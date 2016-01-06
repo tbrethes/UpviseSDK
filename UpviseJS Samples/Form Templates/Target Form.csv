@@ -1,0 +1,7 @@
+"templatename","templateprefix","fieldrank","fieldname","fieldtype","fieldoptions","fieldvalue","mandatory","group","linkedtable","onsubmit"
+"Target Form","","1","Values copied from the Submitted Form","header","","","0","TEST","",""
+"Target Form","","2","Copy of Where","text","","","0","TEST","",""
+"Target Form","","3","Copy of When","date","","","0","TEST","",""
+"Target Form","","4","Copy of Who","contact","","","0","TEST","",""
+"Target Form","","5","Other Values","header","","","0","TEST","",""
+"Target Form","","6","Another Entry","text","","","0","TEST","",""

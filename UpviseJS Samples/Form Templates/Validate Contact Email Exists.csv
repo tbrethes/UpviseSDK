@@ -1,0 +1,23 @@
+"templatename","templateprefix","fieldrank","fieldname","fieldtype","fieldoptions","fieldvalue","mandatory","group","linkedtable","onsubmit"
+"Validate Contact Email Exists","","1","Contact Email","text","","","0","TEST","","var email = F1.trim().toLowerCase();
+var level = F2;
+var count = Query.count(""Contacts.contacts"", ""email="" + esc(email));
+if (count > 0) App.alert('Email already exists!');
+else {
+   var id = Query.insert(""Contacts.contacts"", {name:email, email:email, creationdate: Date.now() });
+CustomFields.values = CustomFields.loadValues(); 
+CustomFields._update(""Contacts.contacts"", id, ""F3"", level);
+App.alert('Contact inserted!');
+}
+return 1;"
+"Validate Contact Email Exists","","2","Proficiency Level","selectmulti","High|Low|Average","","0","TEST","","var email = F1.trim().toLowerCase();
+var level = F2;
+var count = Query.count(""Contacts.contacts"", ""email="" + esc(email));
+if (count > 0) App.alert('Email already exists!');
+else {
+   var id = Query.insert(""Contacts.contacts"", {name:email, email:email, creationdate: Date.now() });
+CustomFields.values = CustomFields.loadValues(); 
+CustomFields._update(""Contacts.contacts"", id, ""F3"", level);
+App.alert('Contact inserted!');
+}
+return 1;"
