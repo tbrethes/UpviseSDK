@@ -1,7 +1,0 @@
-"templatename","templateprefix","fieldrank","fieldname","fieldtype","fieldoptions","fieldvalue","group","linkedtable","onsubmit"
-"Online Lead Collection","","1","Please fill in your Contact details","header","","","Leads","",""
-"Online Lead Collection","","2","First Name","text","","","Leads","",""
-"Online Lead Collection","","3","Last Name","text","","","Leads","",""
-"Online Lead Collection","","4","Email","email","","","Leads","",""
-"Online Lead Collection","","5","Phone","phone","","","Leads","",""
-"Online Lead Collection","","6","Interested In","select","Product 1|Product 2|Product 3","","Leads","",""
