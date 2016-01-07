@@ -89,8 +89,8 @@ namespace com.upvise.samples {
                 query.beginBatch();
                 foreach (JSONObject task in completedTasks) {
                     string id = task.getString("id");
-                    // Add the task data in the buffer. We use the serialize method here to convert into JSON Format
-                    buffer.AppendLine(task.serialize());
+                    // Add the task data in the buffer
+                    buffer.AppendLine(task.ToString());
                     query.deleteId("Tasks.tasks", id);
 
                 }

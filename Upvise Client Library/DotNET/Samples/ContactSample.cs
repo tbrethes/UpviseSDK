@@ -48,7 +48,7 @@ namespace com.upvise.samples {
                 // Verify that the contact has been correctly inserted by selecting it again
                 JSONObject obj = query.selectId(Contact.TABLE, newContact.id);
                 if (obj != null) {
-                    Console.WriteLine("Contact: " + obj.serialize());
+                    Console.WriteLine("Contact: " + obj.ToString());
                 }
 
                 // 3. Update Contact

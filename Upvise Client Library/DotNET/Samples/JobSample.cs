@@ -81,7 +81,7 @@ namespace com.upvise.samples {
                 JSONObject[] forms = query.select(Form.TABLE, formWhere);
                 foreach (JSONObject formObj in forms) {
                     Form form = Form.fromJson(formObj, query);
-                    Console.WriteLine("Form : " + formObj.serialize());
+                    Console.WriteLine("Form : " + formObj.ToString());
                 }
             }
 

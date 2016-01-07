@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root>
+
+  <job>
+    <id>JOBID1</id>
+    <name>Aircon maintenance</name>
+    <note>this is the job description</note>
+    <date>07/01/2016 11:00AM</date>
+    <priority>high</priority>
+    <duration>120</duration>
+    <address>
+      <street>333 Collins St</street>
+      <city>Melbourne</city>
+      <state>VIC</state>
+      <zipcode>3000</zipcode>
+      <geo></geo>
+    </address>
+    <client>
+      <name>John Doe</name>
+      <mobile>4969 3958</mobile>
+    </client>
+    <field1>TEST</field1>
+    <field2>REPAIR</field2>
+  </job>
+
+  <job>
+    <id>JOBID2</id>
+    <name>Ventilator fix</name>
+    <note>this is the job description</note>
+    <date>07/01/2016 4:00PM</date>
+    <priority>high</priority>
+    <duration>60</duration>
+    <address>
+      <street>Bourke St</street>
+      <city>Melbourne</city>
+      <state>VIC</state>
+      <zipcode>3000</zipcode>
+      <geo></geo>
+    </address>
+    <client>
+      <name>Tom Smith</name>
+      <mobile>6754 7775</mobile>
+    </client>
+    <field1>XDE</field1>
+    <field2>MAINTAIN</field2>
+  </job>
+
+
+
+
+
+
+
+</root>

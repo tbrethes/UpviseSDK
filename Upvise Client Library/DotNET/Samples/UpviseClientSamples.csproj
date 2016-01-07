@@ -39,6 +39,7 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
     <Reference Include="UpviseClientLibrary">
       <HintPath>..\Library\UpviseClientLibrary.dll</HintPath>
@@ -48,6 +49,7 @@
     <Compile Include="AssetSample.cs" />
     <Compile Include="ContactSampleBatch.cs" />
     <Compile Include="FormSample.cs" />
+    <Compile Include="JobSampleBatch.cs" />
     <Compile Include="TaskSample.cs" />
     <Compile Include="FileSample.cs" />
     <Compile Include="ContactSample.cs" />
@@ -59,6 +61,12 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="JobSampleBatch.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

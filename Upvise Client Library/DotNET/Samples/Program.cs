@@ -20,9 +20,10 @@ namespace com.upvise.samples {
 
             // ContactSample sample = new ContactSample();
             // ContactSampleBatch sample = new ContactSample();
-            // JobSample sample = new JobSample();
             // FileSample sample = new FileSample();
-
+            // JobSample sample = new JobSample();
+            // JobSampleBatch sample = new FileSample();
+            
             TaskSample sample = new TaskSample();
             sample.run();
             

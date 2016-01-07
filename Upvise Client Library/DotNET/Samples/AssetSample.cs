@@ -32,7 +32,7 @@ namespace com.upvise.samples {
                 where.put("geo", "");
                 JSONObject[] assets = query.select("Assets.assets", where);
                 foreach (JSONObject obj in assets) {
-                    Console.WriteLine(obj.serialize());
+                    Console.WriteLine(obj.ToString());
                 }
 
                 // Update the first asset with a geo location
