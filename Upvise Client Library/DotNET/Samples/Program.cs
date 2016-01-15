@@ -18,13 +18,14 @@ namespace com.upvise.samples {
     class Program {
         static void Main(string[] args) {
 
+            // TaskSample sample = new TaskSample();
             // ContactSample sample = new ContactSample();
             // ContactSampleBatch sample = new ContactSample();
             // FileSample sample = new FileSample();
             // JobSample sample = new JobSample();
-            // JobSampleBatch sample = new FileSample();
+            // JobSampleBatch sample = new JobSampleBatch();
+            JobSampleBatch2 sample = new JobSampleBatch2();
             
-            TaskSample sample = new TaskSample();
             sample.run();
             
         }
