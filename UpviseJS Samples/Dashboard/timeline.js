@@ -21,27 +21,26 @@ Config.title = "Dashboard3";
 function leftpane() { List.show("leftpane");}
 
 function main() {
-    
-}
    Chart.init();
-        Chart.addColumn("string");
-        Chart.addColumn("string");
-        Chart.addColumn("date");
-        Chart.addColumn("date");
+    Chart.addColumn("string");
+    Chart.addColumn("string");
+    Chart.addColumn("date");
+    Chart.addColumn("date");
 
-        var startdate = new Date(2016, 4, 1);
-        var stopdate = new Date(2016, 6, 1);
-        Chart.addRow("Equipment# ", "Requested time frame", startdate, stopdate);
-        Chart.addRowClick("", Color.GREEN);
+    var startdate = new Date(2016, 4, 1);
+    var stopdate = new Date(2016, 6, 1);
+    Chart.addRow("Equipment# ", "Requested time frame", startdate, stopdate);
+    Chart.addRowClick("", Color.GREEN);
 
-        for (var i = 0; i < 10; i++) {
-            var month = Math.floor(1 + 10 * Math.random());
-
-            var date1 = new Date(2016, month, 5);
-            var date2 = new Date(2016, month+1, 5);
-            var color = (date2 < startdate || date1 > stopdate) ? Color.BLUE : Color.RED;
-            Chart.addRow("Equipment " + i, "Project " + i, date1, date2);
-            Chart.addRowClick("App.alert('Hello')", color);
-        }
-        Chart.show("timeline");
-        List.show();
+    for (var i = 0; i < 10; i++) {
+        var month = Math.floor(1 + 10 * Math.random());
+        var date1 = new Date(2016, month, 5);
+        var date2 = new Date(2016, month+1, 5);
+        var color = (date2 < startdate || date1 > stopdate) ? Color.BLUE : Color.RED;
+        Chart.addRow("Equipment " + i, "Project " + i, date1, date2);
+        Chart.addRowClick("App.alert('Hello')", color);
+    }
+    Chart.show("timeline");
+    List.show();
+}
+}
