@@ -1,7 +1,7 @@
 Config.appid = "dashboard3";
 Config.title = "Forms Map";
 Config.version = "1";
-
+Config.uses = "Forms";
 
 function leftpane() {
     List.show("leftpane");
