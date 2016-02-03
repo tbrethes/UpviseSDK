@@ -15,7 +15,7 @@
  */
 
 Config.appid = "chartsample";
-Config.version = "8";
+Config.version = "9";
 Config.title = "Chart Sample";
 
 function main(tab) {
