@@ -51,6 +51,8 @@
     <Compile Include="ContactSampleBatch.cs" />
     <Compile Include="CustomField.cs" />
     <Compile Include="FormSample.cs" />
+    <Compile Include="JobSampleBatch2Completed.cs" />
+    <Compile Include="JobSampleBatchInsert.cs" />
     <Compile Include="JobSampleBatch2.cs" />
     <Compile Include="JobSampleBatch.cs" />
     <Compile Include="JobSampleHolidays.cs" />
