@@ -106,8 +106,7 @@ namespace com.upvise.samples {
                 job.name = node.SelectSingleNode("name").InnerText; // job name or title
                 job.note = node.SelectSingleNode("note").InnerText; // additional job description
                 job.priority = (node.SelectSingleNode("priority").InnerText == "high") ? Job.HIGHPRIORITY : 0;
-                //job.duedate = DateTime.Parse(node.SelectSingleNode("date").InnerText); // job scheduled date
-
+                
                 string strdate = node.SelectSingleNode("date").InnerText;
                 job.duedate = DateTime.Parse(strdate); // job scheduled date
                 
@@ -125,6 +124,7 @@ namespace com.upvise.samples {
                 } else {
                      // get the contact record ID from the index       
                     job.contactid = mUpviseContactIndex[contact.name];
+                    
                 }
 
                 // Address
