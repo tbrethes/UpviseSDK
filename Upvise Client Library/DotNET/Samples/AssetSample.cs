@@ -28,8 +28,7 @@ namespace com.upvise.samples {
                 Query query = new Query(token);
 
                 // 3. Returns all Assets with no geocode
-                JSONObject where = new JSONObject();
-                where.put("geo", "");
+                string where = "geo=''";
                 JSONObject[] assets = query.select("Assets.assets", where);
                 foreach (JSONObject obj in assets) {
                     Console.WriteLine(obj.ToString());

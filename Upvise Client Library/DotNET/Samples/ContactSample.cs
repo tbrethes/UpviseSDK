@@ -28,7 +28,7 @@ namespace com.upvise.samples {
                 Query query = new Query(token);
 
                 // 1. Select All Contacts
-                JSONObject[] items = query.select(Contact.TABLE, null);
+                JSONObject[] items = query.select(Contact.TABLE, "");
                 foreach (JSONObject item in items) {
                     // get Contact object from Json for easy record values manipulation
                     Contact contact = Contact.fromJson(item);

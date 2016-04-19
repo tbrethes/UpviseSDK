@@ -26,8 +26,7 @@ namespace com.upvise.samples {
             Query query = new Query(token);
 
             // 1. Get the Template Id for a given Template Name
-            JSONObject where = new JSONObject();
-            where.put("name", "My Template");
+            string where = "name='My Template'";
             Template template = null;
             JSONObject[] templates = query.select(Template.TABLE, where);
             if (templates.Length == 0) {

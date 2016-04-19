@@ -55,8 +55,7 @@ namespace com.upvise.samples {
             query.updateId(Job.TABLE, "ID1", updatedValues.toJson());
 
             // 3. Select All Completed Jobs
-            JSONObject where = new JSONObject();
-            where.put("status", Job.COMPLETED);
+            string where = "status=" + Job.COMPLETED;
             JSONObject[] completedJobs = query.select(Job.TABLE, where);
             foreach (JSONObject obj in completedJobs) {
                 Job job = Job.fromJson(obj);
@@ -76,8 +75,7 @@ namespace com.upvise.samples {
                 }
 
                 // Get All forms for the Job
-                JSONObject formWhere = new JSONObject();
-                formWhere.put("linkedid", job.id);
+                string formWhere = "linkedid='" + job.id + "'";
                 JSONObject[] forms = query.select(Form.TABLE, formWhere);
                 foreach (JSONObject formObj in forms) {
                     Form form = Form.fromJson(formObj, query);

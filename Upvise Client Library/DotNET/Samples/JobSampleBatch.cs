@@ -75,7 +75,7 @@ namespace com.upvise.samples {
             mUpviseContactIndex = new Dictionary<string, string>();
 
             // Load All contacts from Upvise Cloud
-            JSONObject[] contacts = mQuery.select(Contact.TABLE, null);
+            JSONObject[] contacts = mQuery.select(Contact.TABLE, "");
             
             // Add all returned contacts into the dictionary    
             foreach (JSONObject contact in contacts) {

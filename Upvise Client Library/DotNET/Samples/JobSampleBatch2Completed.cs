@@ -65,8 +65,7 @@ namespace com.upvise.samples {
         private List<Job> getCompletedJobs() {
             List<Job> list = new List<Job>();
 
-            JSONObject where = new JSONObject();
-            where.put("status", Job.COMPLETED);
+            string where = "status=" + Job.COMPLETED;
             JSONObject[] completedJobs = mQuery.select(Job.TABLE, where);
             foreach (JSONObject obj in completedJobs) {
                 Job job = Job.fromJson(obj);
