@@ -23,8 +23,8 @@ namespace com.upvise.samples {
     class FileSample {
         public void run() {
             try {
-                // Login
-                string token = Query.login("demobiz@upvise.com", "demobiz");
+                // Login : replace with your Upvise email and password
+                string token = Query.login("email", "password");
                 Query query = new Query(token);
 
                 
@@ -55,8 +55,7 @@ namespace com.upvise.samples {
                 }
                 
                 // Select All Files for the contact and download their content
-                JSONObject where = new JSONObject();
-                where.put("linkedrecid", contactId);
+                string where = "linkedrecid='" + contactId + "'";
                 JSONObject[] files = query.select(File.TABLE, where);
                 foreach (JSONObject obj in files) {
                     File file = File.fromJson(obj);

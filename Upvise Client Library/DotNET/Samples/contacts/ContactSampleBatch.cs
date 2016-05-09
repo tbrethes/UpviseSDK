@@ -23,8 +23,8 @@ namespace com.upvise.samples {
 
         public void run() {
             try {
-                // Login
-                string token = Query.login("demobiz@upvise.com", "demobiz");
+                // Login : replace with your Upvise email and password
+                string token = Query.login("email", "password");
                 Query query = new Query(token);
 
                 // 1. Start a batch operation

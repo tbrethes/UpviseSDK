@@ -24,8 +24,9 @@ namespace com.upvise.samples {
             // FileSample sample = new FileSample();
             // JobSample sample = new JobSample();
             // JobSampleBatch sample = new JobSampleBatch();
-            JobSampleBatch2 sample = new JobSampleBatch2();
-            
+            // JobSampleBatch2 sample = new JobSampleBatch2();
+            CompanySample sample = new CompanySample();
+
             sample.run();
             
         }

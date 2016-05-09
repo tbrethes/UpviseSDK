@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root>
+
+  <project>
+    <id>PROJECTID1</id>
+    <name>Test Project1</name>
+    <code>TEST001</code>
+    <status>OPEN</status>
+    <note>this is test project 1 description</note>
+    <startdate>01/01/2016</startdate>
+    <enddate>07/09/2016</enddate>
+    <owner>John Doe</owner>
+    <owner>Steve Ferguson</owner>
+    <stageid>S1</stageid>
+    <groupid>R1</groupid>
+    <budget>100000</budget>
+   
+    <companyid>COMPANYID1</companyid>
+    <contactid>COMPANYID1</contactid>
+
+    <address>
+      <street>333 Collins St</street>
+      <city>Melbourne</city>
+      <state>VIC</state>
+      <zipcode>3000</zipcode>
+      <geo></geo>
+    </address>
+    <!-- id of the client company -->
+    <field1>TEST</field1>
+    <field2>REPAIR</field2>
+  </project>
+
+
+  <project>
+    <id>PROJECTID2</id>
+    <name>Test Project 2</name>
+    <code>TEST002</code>
+    <status>OPEN</status>
+    <note>this is test project 2 description</note>
+    <startdate>01/02/2016</startdate>
+    <enddate>07/10/2016</enddate>
+    <owner>John Doe</owner>
+    <owner>Steve Ferguson</owner>
+    <stageid>S2</stageid>
+    <groupid>R2</groupid>
+    <budget>200000</budget>
+
+    <companyid>COMPANYID2</companyid>
+    <contactid>CONTACTID2</contactid>
+
+    <address>
+      <street>123 Collins St</street>
+      <city>Sydney</city>
+      <state></state>
+      <zipcode></zipcode>
+      <geo></geo>
+    </address>
+    <!-- id of the client company -->
+    <field1>TEST</field1>
+    <field2>REPAIR</field2>
+  </project>
+
+</root>

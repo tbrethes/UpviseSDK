@@ -39,7 +39,8 @@ namespace com.upvise.samples {
         Dictionary<string, string> mUpviseContactIndex;
         
         public void run() {
-            string token = Query.login("demobiz@upvise.com", "demobiz");
+            // Login : replace with your Upvise email and password
+            string token = Query.login("email", "password");
             mQuery = new Query(token);
 
             // Step 1: make a query to Upvise Cloud and get all contacts

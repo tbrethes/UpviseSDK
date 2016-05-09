@@ -36,10 +36,8 @@ namespace com.upvise.samples {
             }
 
             // 2. Selecting all submitted Forms for this template
-            JSONObject where2 = new JSONObject();
-            where2.put("templateid", template.id);
-            where2.put("status", Form.SUBMITTED);
-            JSONObject[] forms = query.select(Form.TABLE, where2);
+            where = "templateid='" + template.id + "' AND status=" + Form.SUBMITTED;
+            JSONObject[] forms = query.select(Form.TABLE, where);
             foreach (JSONObject formObj in forms) {
                 Form form = Form.fromJson(formObj, query);
                 

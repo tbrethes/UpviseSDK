@@ -34,8 +34,7 @@ namespace com.upvise.samples {
 
                 // Select all open tasks from the "Tasks.tasks" table 
                 // You can go to your Upvise web account in the Task app and create some tasks first
-                JSONObject where = new JSONObject();
-                where.put("status", 0);
+                string where = "status=0";
                 JSONObject[] tasks = query.select("Tasks.tasks", where);
                 Console.WriteLine("Found " + tasks.Length + " open tasks in this database");
                 foreach (JSONObject task in tasks) {
@@ -60,10 +59,9 @@ namespace com.upvise.samples {
                     query.insert("Tasks.tasks", task);
                 }
                 query.commitBatch();
-                
+
                 // update All open John's Tasks and mark them complete (status=1)
-                where.put("owner", "John");
-                where.put("status", 0);
+                where = "status=0 AND owner='John'";
                 JSONObject[] myTasks = query.select("Tasks.tasks", where);
                 Console.WriteLine("found " + myTasks.Length  + " open tasks for John");
                 // Start a new batch operation to group all updates into one HTTPS request for best performance
@@ -79,8 +77,7 @@ namespace com.upvise.samples {
                 Console.WriteLine("Updated the tasks to Complete");
 
                 // Now Get All John's completed Tasks, export them in a file and delete them
-                where.put("owner", "John");
-                where.put("status", 1);
+                where = "status=1 AND owner='John'";
                 JSONObject[] completedTasks = query.select("Tasks.tasks", where);
                 Console.WriteLine("found " + completedTasks.Length + " completed tasks for John");
 

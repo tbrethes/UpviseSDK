@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root>
+
+  <company>
+    <id>COMP1</id>
+    <name>Test Company 1</name>
+    <phone>123456</phone>
+    <email>test1@upvise.com</email>
+    <fax>1111 11111</fax>
+    <taxnumber>TN0002</taxnumber>
+    <website>www.upvise.com</website>
+    <note>this is test company 1 note</note>
+    <groupid>G1</groupid>
+    <regionid>R1</regionid>
+
+    <address>
+      <street>333 Collins St</street>
+      <city>Melbourne</city>
+      <state>VIC</state>
+      <zipcode>3000</zipcode>
+      <geo></geo>
+    </address>
+    
+    <field1>TEST</field1>
+    <field2>REPAIR</field2>
+  </company>
+
+  <company>
+    <id>COMP2</id>
+    <name>Test Company 2</name>
+    <phone>345678</phone>
+    <email>test2@upvise.com</email>
+    <fax>222 22222</fax>
+    <taxnumber>TN0002</taxnumber>
+    <website>www.google.com</website>
+    <note>this is test company 2 note</note>
+    <groupid>G1</groupid>
+    <regionid>R1</regionid>
+
+    <address>
+      <street>333 Collins St</street>
+      <city>Sydney</city>
+      <state>VIC</state>
+      <zipcode>4000</zipcode>
+      <geo></geo>
+    </address>
+
+    <field1>TEST</field1>
+    <field2>REPAIR</field2>
+  </company>
+
+</root>

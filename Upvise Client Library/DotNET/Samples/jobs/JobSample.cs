@@ -22,7 +22,8 @@ namespace com.upvise.samples {
     class JobSample {
 
         public void run() {
-            string token = Query.login("demobiz@upvise.com", "demobiz");
+            // Login : replace with your Upvise email and password
+            string token = Query.login("email", "password");
             Query query = new Query(token);
 
             // 1. insert one job
