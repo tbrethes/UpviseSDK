@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="assets\AssetSample.cs" />
+    <Compile Include="backup\BackupClient.cs" />
     <Compile Include="contacts\CompanySample.cs" />
     <Compile Include="contacts\ContactSampleBatch.cs" />
     <Compile Include="forms\FormSample.cs" />

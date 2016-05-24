@@ -25,9 +25,11 @@ namespace com.upvise.samples {
             // JobSample sample = new JobSample();
             // JobSampleBatch sample = new JobSampleBatch();
             // JobSampleBatch2 sample = new JobSampleBatch2();
-            CompanySample sample = new CompanySample();
+            //CompanySample sample = new CompanySample();
 
-            sample.run();
+            BackupClient sample = new BackupClient();
+
+            sample.Run();
             
         }
         
