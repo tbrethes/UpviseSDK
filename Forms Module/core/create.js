@@ -74,7 +74,7 @@ Forms.getNewName = function (templateid) {
 }
 
 Forms.setDefaultValues = function (form, values, status) {
-    var fields = Query.select("fields", "name;label;value;type", "status={status} AND formid={form.templateid}", "rank");
+    var fields = Query.select("Forms.fields", "name;label;value;type", "status={status} AND formid={form.templateid}", "rank");
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var value = values[field.name];
@@ -98,7 +98,7 @@ Forms.setDefaultValues = function (form, values, status) {
 
 /////////////////////
 
-Forms.deleteForm = function(formid) {
+Forms.deleteForm = function(formid, goBack) {
     var form = Query.selectId("Forms.forms", formid);
     var files = Forms.selectFormPhotos(form);
     for (var i = 0; i < files.length; i++) {
@@ -106,7 +106,7 @@ Forms.deleteForm = function(formid) {
         Query.deleteId("System.files", file.id);
     }
     Query.deleteId("Forms.forms", formid);
-    History.back();
+    if (!(goBack === false)) History.back();
 }
 
 Forms.selectFormPhotos = function (form) {
@@ -119,4 +119,19 @@ Forms.selectFormPhotos = function (form) {
         files = files.concat(list);
     }
     return files;
+}
+
+/////////////////////
+
+Forms.archiveOneForm = function (id, confirm) {
+    if (confirm == true) {
+        if (App.confirm("Confirm Archive") == false) return;
+    }
+
+    var form = Query.selectId("Forms.forms", id);
+    var files = Forms.selectFormPhotos(form);
+    for (var i = 0; i < files.length; i++) {
+        Query.archiveId("System.files", files[i].id);
+    }
+    Query.archiveId("Forms.forms", id);
 }
