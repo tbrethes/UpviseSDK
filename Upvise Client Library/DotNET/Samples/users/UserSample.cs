@@ -2,10 +2,11 @@
 using System;
 using System.Collections.Generic;
 
-namespace UpviseClientTest {
+namespace com.upvise.samples {
+
     class UserSample {
 
-        public void run() {
+        public void Run() {
 
             string[] EMAILS = { "testx1@upvise.com", "testx2@upvise.com", "testx3@upvise.com" };
             string[] NAMES = { "Name1 Changed", "Name2", "Name3" };
@@ -37,7 +38,17 @@ namespace UpviseClientTest {
                         user.changeName(name);
                     }
                 }
-            } 
+            }
+
+            // Desativate the first user
+            users = User.selectUsers(query);
+            foreach (User user in users) {
+                if (user.email == EMAILS[0]) {
+                    user.deactivateUser();
+                    Console.WriteLine("Deactivated : " + user.email + " " + user.name + " ");
+                    break;
+                }
+            }
         }
     }
 }

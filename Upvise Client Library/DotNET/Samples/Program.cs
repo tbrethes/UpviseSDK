@@ -27,7 +27,8 @@ namespace com.upvise.samples {
             // JobSampleBatch2 sample = new JobSampleBatch2();
             //CompanySample sample = new CompanySample();
 
-            BackupClient sample = new BackupClient();
+            //BackupClient sample = new BackupClient();
+            UserSample sample = new UserSample();
 
             sample.Run();
             
