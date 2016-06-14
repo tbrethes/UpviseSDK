@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-using System.Collections.Generic;
-using com.upvise.client;
 using System;
+using com.upvise.client;
 
 namespace com.upvise.samples {
     class FormSample {
