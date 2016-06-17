@@ -123,7 +123,7 @@ Forms.getState = function (form) {
 
     // Here we have a form with a workflow
     if (form.status == Forms.REJECTED) {
-        return { name: "Rejected" };
+        return { name: R.REJECTED };
     } else if (form.status == Forms.DRAFT) {
         return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms.nextState({form.id},{form.status})" };
     } else {
@@ -143,7 +143,7 @@ Forms.getState = function (form) {
 
 Forms.containsUser = function (form, statestaff) {
     if (statestaff == "" || User.isAdmin() || MultiValue.contains(statestaff, User.getName()) ||
-       (MultiValue.contains(statestaff, 'Initiator') && form.owner == User.getName())) {
+       (MultiValue.contains(statestaff, 'Initiator') && Forms.getCreator(form.owner) == User.getName())) {
         return true;
     } else {
         return false;
@@ -164,8 +164,8 @@ Forms.reject = function (id) {
 
     var form = Query.selectId("Forms.forms", id);
     Query.updateId("Forms.forms", id, "status", Forms.REJECTED);
-    Forms.addHistory(form, "Rejected", note, "");
-    Forms.notify(form, "Rejected", Forms.getCreator(form));
+    Forms.addHistory(form, R.REJECTED, note, "");
+    Forms.notify(form, R.REJECTED, Forms.getCreator(form));
     Forms.archive(id);
 
     History.reload();
@@ -248,11 +248,13 @@ Forms.evalOnLoad = function (form, onload) {
 }
 
 // formowner and staff can be multi owner
+// Warning: staff can contain the owner 'Initiator' which must not be added
 Forms.addStandardUsers = function (formowner, staff) {
     var newowners = formowner;
     var owners = staff.split("|");
     for (var i = 0; i < owners.length; i++) {
         var owner = owners[i];
+        if (owner == 'Initiator') continue;
         if (Query.count("System.users", "type!={User.STANDARD} AND status=1 AND name={owner}") == 0) {
             newowners = MultiValue.add(newowners, owner);
         }

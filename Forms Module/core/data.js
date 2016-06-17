@@ -189,9 +189,10 @@ Forms._evalFormula = function (js, valuesObj, form) {
         // link var is available in eval buffer;
         var link = (form != null && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
         if (link == null) link = {};
-        var result = eval(buffer.join(';'));
+        var result = eval(buffer.join(';') + "\n//# sourceURL=ONSUBMIT.js");
         return result;
     } catch (e) {
+        if (WEB()) window.alert("Form Eval Formula Error:\n" + e.message);
         return "Error: " + e.message;
     }
 }
@@ -217,6 +218,10 @@ Forms.canEditTemplates = function () {
     else return User.isManager();
 }
 
+Forms.punchCount = function(id) {
+    return Query.count("Forms.punchitems", "formid={id}");
+}
+
 /////////////////////
 
 Forms.getCreator = function (form) {
@@ -225,7 +230,7 @@ Forms.getCreator = function (form) {
 
 // used on web only...
 Forms.getLastSignature = function (staff) {
-    var forms = Query.select("forms", "history", null, "date DESC");
+    var forms = Query.select("Forms.forms", "history", null, "date DESC");
     for (var i = 0; i < forms.length; i++) {
         var form = forms[i];
         var history = Forms.getHistory(form);
