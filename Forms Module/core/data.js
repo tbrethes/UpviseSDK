@@ -188,11 +188,15 @@ Forms._evalFormula = function (js, valuesObj, form) {
     try {
         // link var is available in eval buffer;
         var link = (form != null && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
-        if (link == null) link = {};
-        var result = eval(buffer.join(';') + "\n//# sourceURL=ONSUBMIT.js");
+        //if (link == null) link = {};
+        var result = eval(buffer.join(';') /* + "\n//# sourceURL=ONSUBMIT.js" */);
         return result;
     } catch (e) {
-        if (WEB()) window.alert("Form Eval Formula Error:\n" + e.message);
+        if (WEB()) {
+            var msg = "Form Eval Formula Error:\n" + e.message + "\nForm: " + form.name;
+            window.alert(msg);
+            if (console != null) console.log(msg);
+        }
         return "Error: " + e.message;
     }
 }

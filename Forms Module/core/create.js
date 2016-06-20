@@ -1,4 +1,7 @@
 
+if (typeof (Forms) == "undefined") {
+    function Forms() { }
+}
 
 //////////////////////////// Form Creation
 

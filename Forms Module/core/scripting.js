@@ -39,8 +39,9 @@ Forms.createForm = function (name, linkedtable, linkedid) {
     if (templates.length == 0) { App.alert("No Template not found!"); return 1; }
     var templateid = templates[0].id;
     var formid = Forms.newFormInternal(templateid, linkedtable, linkedid);
-    History.add("Forms.viewForm({formid})");
-    History.replace("Forms.editForm({formid})");
+
+    History.add(Forms._VIEWFORM + "({formid})");
+    History.replace(Forms._EDITFORM + "({formid})");
     return 2;
 }
 
@@ -95,4 +96,22 @@ Forms.extractValue = function(buffer, label) {
         index++;
     }
     return value;
+}
+
+Forms.setCustomField = function (table, id, name, value) {
+    if (table == null || table == "" || id == "" || id == null) return;
+    var obj = Query.selectId(table, id);
+    if (obj == null || obj.custom == null) return;
+    var custom = (obj.custom != "") ? JSON.parse(obj.custom) : {};
+    custom[name] = value;
+    Query.updateId(table, id, "custom", JSON.stringify(custom));
+}
+
+Forms.getCustomField = function (table, id, name) {
+    if (table == null || table == "" || id == "" || id == null) return "";
+    var obj = Query.selectId(table, id);
+    if (obj == null || obj.custom == null) return;
+    var custom = (obj.custom != "") ? JSON.parse(obj.custom) : {};
+    var value = custom[name];
+    return (value != null) ? value : "";
 }

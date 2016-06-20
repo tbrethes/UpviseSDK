@@ -8,38 +8,6 @@ var SUBMITTED = 1;
 
 Forms.LOCK = 0;
 
-Forms.submitForm = function (id, goBack) {
-    var form = Query.selectId("Forms.forms", id);
-    // TBR: shield for KONE email loop bug. 9/22/2015
-    if (form.status == 1) return;
-
-    if (Forms.checkEmptyFields(form) == false) return;
-
-    //NB LOCK is to handle double tap execution, but will not fix all concurrent execution cases
-    if (Forms.LOCK == 1) {
-        App.alert("Lock");
-        return;
-    }
-
-    // Execute on Submit
-    var returnValue = Forms.evalSubmit(form);
-    if (returnValue == 0) return;
-
-    Forms.LOCK = 1;
-    try {
-        Query.updateId("Forms.forms", id, "status", 1);
-        // notify all managers : null
-        Forms.notify(form, R.SUBMITTED, null);
-        Forms.archive(id);
-    } catch (e) {}
-    if (returnValue != 2) {
-        if (goBack === true) History.back();
-        else History.reload();
-    }
-
-    Forms.LOCK = 0;
-}
-
 Forms.checkEmptyFields = function (form) {
     var template = Query.selectId("Forms.templates", form.templateid);
     if (template == null) return true;
@@ -106,7 +74,6 @@ Forms.archive = function (id) {
     }
 }
 
-
 /////////////////////////////
 
 Forms.getState = function (form) {
@@ -114,7 +81,7 @@ Forms.getState = function (form) {
 
     if (count == 0) {
         if (form.status == 0) {
-            return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms.submitForm({form.id})" };
+            return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms_submit({form.id})" };
         } else {
             // we assume form.status = 1 : means Submitted : nothing to do
             return { name: null };
@@ -125,7 +92,7 @@ Forms.getState = function (form) {
     if (form.status == Forms.REJECTED) {
         return { name: R.REJECTED };
     } else if (form.status == Forms.DRAFT) {
-        return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms.nextState({form.id},{form.status})" };
+        return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms_nextState({form.id},{form.status})" };
     } else {
         var states = Query.select("Forms.states", "name;action;staff", "templateid={form.templateid} AND status={form.status}");
         if (states.length == 0) return { name: "Error Status" };
@@ -134,8 +101,8 @@ Forms.getState = function (form) {
         var statestaff = Forms.getStateStaff(form, state);
         if (state.action != "" && Forms.containsUser(form, statestaff)) {
             obj.action = state.action;
-            obj.onclick = "Forms.nextState({form.id},{form.status})";
-            obj.reject = "Forms.reject({form.id})";
+            obj.onclick = "Forms_nextState({form.id},{form.status})";
+            obj.reject = "Forms_reject({form.id})";
         }
         return obj;
     }
@@ -143,7 +110,7 @@ Forms.getState = function (form) {
 
 Forms.containsUser = function (form, statestaff) {
     if (statestaff == "" || User.isAdmin() || MultiValue.contains(statestaff, User.getName()) ||
-       (MultiValue.contains(statestaff, 'Initiator') && Forms.getCreator(form.owner) == User.getName())) {
+       (MultiValue.contains(statestaff, 'Initiator') && Forms.getCreator(form) == User.getName())) {
         return true;
     } else {
         return false;
@@ -158,7 +125,39 @@ Forms.getStateStaff = function (form, state) {
 
 //////////////////////
 
-Forms.reject = function (id) {
+function Forms_submit(id, goBack) {
+    var form = Query.selectId("Forms.forms", id);
+    // TBR: shield for KONE email loop bug. 9/22/2015
+    if (form.status == 1) return;
+
+    if (Forms.checkEmptyFields(form) == false) return;
+
+    //NB LOCK is to handle double tap execution, but will not fix all concurrent execution cases
+    if (Forms.LOCK == 1) {
+        App.alert("Lock");
+        return;
+    }
+
+    // Execute on Submit
+    var returnValue = Forms.evalSubmit(form);
+    if (returnValue == 0) return;
+
+    Forms.LOCK = 1;
+    try {
+        Query.updateId("Forms.forms", id, "status", 1);
+        // notify all managers : null
+        Forms.notify(form, R.SUBMITTED, null);
+        Forms.archive(id);
+    } catch (e) { }
+    if (returnValue != 2) {
+        if (goBack === true) History.back();
+        else History.reload();
+    }
+
+    Forms.LOCK = 0;
+}
+
+function Forms_reject(id) {
     var note = App.prompt("Enter Reason", "");
     if (note == "" || note == null) return;
 
@@ -171,7 +170,7 @@ Forms.reject = function (id) {
     History.reload();
 }
 
-Forms.nextState = function (id, currentStatus) {
+function Forms_nextState(id, currentStatus) {
 
     var form = Query.selectId("Forms.forms", id);
     if (form == null) return;
