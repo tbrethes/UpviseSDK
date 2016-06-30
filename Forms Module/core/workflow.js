@@ -25,8 +25,12 @@ Forms.checkEmptyFields = function (form) {
                 isEmpty = true;
             }
             if (isEmpty) {
-                if (App.confirm("Edit mandatory field: " + field.label) == true) {
-                    History.replace(Forms._EDITFORM + "({form.id})");
+                if (Forms._EDITFORM != null) {
+                    if (App.confirm("Edit mandatory field: " + field.label) == true) {
+                        History.replace(Forms._EDITFORM + "({form.id})");
+                    }
+                } else {
+                    App.alert("Mandatory field: " + field.label);
                 }
                 return false;
             }

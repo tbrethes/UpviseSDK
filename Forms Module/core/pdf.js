@@ -45,7 +45,7 @@ Forms.writePdf = function (form, template) {
 
     Pdf2.startTitleBlock(title);
     if (addFormCaption) {
-        Pdf2.addRow([R.FORMID, form.name, R.CREATEDBY, form.owner]);
+        Pdf2.addRow([R.FORMID, form.name, R.CREATEDBY, Forms.getCreator(form)]);
         if (addLocation) {
             Pdf2.addRow([R.DATE, Format.datetime(form.date), R.LOCATION, (form.address != '') ? form.address : form.geo]);
         } else {

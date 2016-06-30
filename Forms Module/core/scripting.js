@@ -52,7 +52,6 @@ Forms.emailCsv = function (emails, id) {
     if (Format.forprint != null) Format.forprint();
 
     var csv = new CsvFile();
-    //csv.writeLine(["Label", "Value"]);
     csv.writeLine(["Form ID", filename]);
     csv.writeLine(["Submitted by", form.owner]);
     csv.writeLine(["Submitted Date", Format.datetime(form.date)]);
@@ -78,6 +77,13 @@ Forms.setValue = function (id, value) {
     _valueObj[id] = value;
     var values = JSON.stringify(_valueObj);
     Query.updateId("Forms.forms", _formid, "value", values);
+}
+
+Forms.getValue = function (id) {
+    if (_formid == null || _formid == "" || id == null || id == "") return null; // error
+    var value = _valueObj[id];
+    if (value == null) value = "";
+    return value;
 }
 
 Forms.extractValue = function(buffer, label) {
@@ -114,4 +120,31 @@ Forms.getCustomField = function (table, id, name) {
     var custom = (obj.custom != "") ? JSON.parse(obj.custom) : {};
     var value = custom[name];
     return (value != null) ? value : "";
+}
+
+///////////////
+
+Forms.getAllFields = function (form) {
+    var where = "formid={form.templateid}";
+    var fields = Query.select("Forms.fields", "name;label;value;type;seloptions;status;mandatory", where, "rank");
+    var formValues = Forms._getFullValues(form, fields);
+
+    var list = [];
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var field2 = {};
+        field2.id = field.name;
+        field2.label = field.label;
+        field2.type = field.type;
+        field2.options = field.seloptions;
+        field2.mandatory = field.mandatory;
+     
+        var value = formValues[field.name];
+        if (value == null) value = "";
+        
+        field2.value = value;
+
+        list.push(field2);
+    }
+    return list;
 }

@@ -8,17 +8,22 @@ Forms._EDITFORM = "Forms.editForm";
 Forms._VIEWFORM = "Forms.viewForm";
 
 function _updateValue(formid, fieldname, fieldvalue) {
+
+    _valueObj[fieldname] = fieldvalue;
+
     var onchange = _changeObj[fieldname];
-    if (onchange != null && onchange != "") {
-        var js = "function f1() { var value=" + esc(fieldvalue) + "; var formid=" + esc(formid) + ";" + onchange + "};f1();";
-        var ok = Forms._evalFormula(js);
+    if (onchange) {
+        var ok = Forms._evalFormula(onchange);
         if (ok === false) return; 
     }
 
-    _valueObj[fieldname] = fieldvalue;
     var values = JSON.stringify(_valueObj);
     var table = (_valueTable != null) ? _valueTable : "Forms.forms";
     Query.updateId(table, formid, 'value', values);
+
+    if (onchange) {
+        History.reload();
+    }
 }
 
 Forms.writeEditFields = function (form) {
@@ -189,13 +194,12 @@ Forms._evalFormula = function (js, valuesObj, form) {
         // link var is available in eval buffer;
         var link = (form != null && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
         //if (link == null) link = {};
-        var result = eval(buffer.join(';') /* + "\n//# sourceURL=ONSUBMIT.js" */);
+        var result = eval(buffer.join(';') + "\n//# sourceURL=FORM_FORMULA.js");
         return result;
     } catch (e) {
         if (WEB()) {
             var msg = "Form Eval Formula Error:\n" + e.message + "\nForm: " + form.name;
-            window.alert(msg);
-            if (console != null) console.log(msg);
+            if (window.console != null) window.console.log(msg);
         }
         return "Error: " + e.message;
     }
@@ -211,6 +215,13 @@ Forms.canEdit = function (form) {
     if (form.owner == User.getName() && form.status == 0) return true;
     return false;
 }
+
+Forms.hasRight = function (action, form) {
+    if (User.isAdmin()) return true;
+    if (action == "editlink") return form.linkedid == "";
+    return false;
+}
+
 
 Forms.canCreate = function () {
     if (User.isAdmin()) return true;
