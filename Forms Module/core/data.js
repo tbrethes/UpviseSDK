@@ -13,7 +13,8 @@ function _updateValue(formid, fieldname, fieldvalue) {
 
     var onchange = _changeObj[fieldname];
     if (onchange) {
-        var ok = Forms._evalFormula(onchange);
+        var form = Query.selectId("Forms.forms", _formid);
+        var ok = Forms._evalFormula(onchange, null, form);
         if (ok === false) return; 
     }
 
@@ -193,7 +194,6 @@ Forms._evalFormula = function (js, valuesObj, form) {
     try {
         // link var is available in eval buffer;
         var link = (form != null && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
-        //if (link == null) link = {};
         var result = eval(buffer.join(';') + "\n//# sourceURL=FORM_FORMULA.js");
         return result;
     } catch (e) {
