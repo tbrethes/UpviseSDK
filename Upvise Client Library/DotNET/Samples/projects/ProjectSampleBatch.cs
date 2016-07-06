@@ -91,10 +91,10 @@ namespace com.upvise.samples {
             long newSyncDate = 0;
             foreach (Project project in mProjectList) {
                 Form[] forms = project.selectForms(mQuery, lastSyncDate);
-                // rememver the new server date stamp
+                // remember the new server date stamp
                 if (newSyncDate == 0) newSyncDate = mQuery.lastServerDate;
 
-                // Iterate through all forms, ad ignore DRAFT ones
+                // Iterate through all forms,  ignore DRAFT ones
                 foreach (Form form in forms) {
                     if (form.status != Form.DRAFT) {
                         // get the form data
@@ -102,9 +102,11 @@ namespace com.upvise.samples {
                         System.IO.File.WriteAllText(@"C:\temp\FORM " + form.templatename + " " + form.name + ".xml", xml, Encoding.UTF8);
 
                         // download the PDF file for the form (work only if the correct settings in Forms Web has been set in Options)
-                        // and also if the form has been archived first (for example if the form is in draft mode, it will return nill)
+                        // and also if the form has been archived first (for example if the form is in draft mode, it will return null)
                         byte[] pdfcontent = form.downloadPdfArchive(mQuery);
-                        if (pdfcontent != null) System.IO.File.WriteAllBytes(@"C:\temp\FORM " + form.templatename + " " + form.name + ".pdf", pdfcontent);
+                        if (pdfcontent != null) {
+                            string filename = (@"C:\temp\FORM " + form.templatename + " " + form.name + ".pdf";
+                            System.IO.File.WriteAllBytes(filename, pdfcontent);
 
                         newFormCount++;
                     }
