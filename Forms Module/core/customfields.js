@@ -37,11 +37,11 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         if (Settings.getPlatform() == "web") List.addItemLabel(label, (value == "1") ? R.YES : R.NO);
         else if (parseInt(value) == 1) List.addItem(label, '', 'icon:checked');
     } else if (type == 'contact') {
-        CustomFields.writeMultivalueItem(label, value, "Contacts.contacts", "Contacts.viewContact");
+        CustomFields.writeMultivalueItem(label, value, "Contacts.contacts", "Contacts.viewContact", "contact");
     } else if (type == 'company') {
-        CustomFields.writeMultivalueItem(label, value, "Contacts.companies", "Contacts.viewCompany");
+        CustomFields.writeMultivalueItem(label, value, "Contacts.companies", "Contacts.viewCompany", "company");
     } else if (type == 'project') {
-        CustomFields.writeMultivalueItem(label, value, "Projects.projects", "Projects.viewProject");
+        CustomFields.writeMultivalueItem(label, value, "Projects.projects", "Projects.viewProject", "project");
     } else if (type == 'opp') {
         CustomFields.writeMultivalueItem(label, value, "Sales.opportunities", "Sales.viewOpp");
     } else if (type == 'product') {
@@ -49,11 +49,17 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == 'asset') {
         CustomFields.writeMultivalueItem(label, value, "Assets.assets", "Assets.viewAsset");
     } else if (type == 'tool') {
-        CustomFields.writeMultivalueItem(label, value, "Tools.tools", "Tools.viewTool");
+        CustomFields.writeMultivalueItem(label, value, "Tools.tools", "Tools.viewTool", "job");
     } else if (type == 'form') {
         CustomFields.writeMultivalueItem(label, value, "Forms.forms", "Forms.viewForm");
     } else if (type == 'user') {
-        List.addItemLabel(label, value.replace("|", ", "));
+        var owners = value.split("|");
+        var contactids = [];
+        for (var i = 0; i < owners.length; i++) {
+            var contact = User.getContact(owners[i]);
+            if (contact != null) contactids.push(contact.id);
+        }
+        CustomFields.writeMultivalueItem(label, contactids.join("|"), "Contacts.contacts", "Contacts.viewContact", "contact"); // no table="" id and value are the same
     } else if (type == "photo") {
         List_addFileBox(label, "Forms.forms", value);
     } else if (type == "drawing") {
@@ -97,6 +103,8 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         Risk.view(id, label, value);
     } else if (type == 'location') {
         List.addItemLabel(label, value, "App.map({value})");
+    } else if (type == "file") {
+        List.addItemLabel(label, Query.names("System.files", value), "Files.viewFile({value})");
     } else {
         List.addItemLabel(label, value);
     }
@@ -111,21 +119,22 @@ CustomFields.addButton = function(label, value, options, formid) {
     if (onclick != null) List.addButton(label, onclick);
 }
  
-CustomFields.writeMultivalueItem = function (label, id, table, func) {
+CustomFields.writeMultivalueItem = function (label, id, table, func, img) {
     var items = Query.select(table, "id;name", "id IN " + list(id), "name");
-    if (items.length == 0) {
-        return;
-    } else if (items.length == 1) {
+    if (items.length == 0) return;
+
+    var style = "icon:arrow"  + (img !=null ? ";img:" + img : "");
+    if (items.length == 1) {
         var item = items[0];
         var onclick = func + "(" + esc(item.id) + ")";
-        List.addItemLabel(label, item.name, onclick, "icon=arrow");
+        List.addItemLabel(label, item.name, onclick, style );
     } else {
         var values = new Array();
         for (var i = 0; i < items.length; i++) {
             values.push(items[i].name);
         }
         var onclick = "CustomFields.viewItemList(" + esc(id) + "," + esc(table) + "," + esc(func) + ")";
-        List.addItemLabel(label, values.join(", "), onclick, "icon=arrow");
+        List.addItemLabel(label, values.join(", "), onclick, style);
     }
 }
 
@@ -133,9 +142,9 @@ CustomFields.viewItemList = function (id, table, func) {
     var items = Query.select(table, "id;name", "id IN " + list(id), "name");
     for (var i = 0; i < items.length; i++) {
         var item = items[i];
-        List.addItem(item.name, func + "(" + esc(item.id) + ")");
+        Popup.add(item.name, func + "(" + esc(item.id) + ")");
     }
-    List.show();
+    Popup.show();
 }
 
 CustomFields.edit = function (table, recordId, ids, fieldsTable) {
@@ -170,7 +179,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'selectmulti') {
         List.addComboBoxMulti(id, label, value, onchange, options);
     } else if (type == 'toggle') {
-        onchange += ";CustomFields.onPunch({formid},{label},this.value)";
+        onchange += ";CustomFields.onPunch({formid},this.value)";
         List.addToggleBox(id, label, value, onchange, options);
     } else if (type == 'checkbox') {
         List.addCheckBox(id, label, parseInt(value), onchange);
@@ -218,15 +227,17 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
         List.addTextBox(id, label, value, onchange, type);
     } else if (type == 'risk') {
         Risk.edit(id, label, value, options, formid);
+    } else if (type == 'file') {
+        List.addComboBox(id, label, value, onchange, Query.options("System.files", "folderid={options}"));
     } else {
         // works for text, phone, email, time, duration, currency
         List.addTextBox(id, label, value, onchange, type);
     }
 }
 
-CustomFields.onPunch = function (formid, question, value) {
+CustomFields.onPunch = function (formid, value) {
     if (value == "P") {
-        Punch.newItem(formid, question);
+        Punch.newFormItem(formid);
     }
 }
 
@@ -336,4 +347,8 @@ CustomFields.getHtml = function (table, custom) {
         }
     }
     return html.join("<br/>");
+}
+
+CustomFields.formatSignature = function (value) {
+    return (value == null || value == "") ? "" : '<img height="100" src="data:image/png;base64,' + value + '" />'
 }
