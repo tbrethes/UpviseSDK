@@ -148,3 +148,17 @@ Forms.getAllFields = function (form) {
     }
     return list;
 }
+
+Forms.datasetOptions = function (name, orderby) {
+    var sets = Query.select("Forms.datasets", "id", "name={name}");
+    if (sets.length == 0) return "";
+    var datasetid = sets[0].id;
+    if (orderby == null) orderby = "name";
+    var items = Query.select("Forms.dataitems", "code;name", "datasetid={datasetid}", orderby);
+    var options = [];
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        options.push(item.code + ":" + item.name);
+    }
+    return options.join("|");
+}

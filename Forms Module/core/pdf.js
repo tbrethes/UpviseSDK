@@ -10,6 +10,8 @@ Forms.exportPdf = function (formid, action, email) {
     options.hideEmpty = AccountSettings.get("forms.hideempty") == "1";
     options.fontsize = AccountSettings.get("forms.fontsize");
     options.logoid = template.logoid;
+    options.columnWidth = template.columnwidth;
+
     FormPdf.init(options);
 
     Pdf2.setWatermark(AccountSettings.get("forms.watermark"), AccountSettings.get("forms.watermarkcolor"));
