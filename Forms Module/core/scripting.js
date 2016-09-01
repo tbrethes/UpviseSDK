@@ -34,11 +34,17 @@ Forms.getDescription = function (id) {
     return desc.join("<br/>");
 }
 
-Forms.createForm = function (name, linkedtable, linkedid) {
+Forms.getTemplateId = function (name) {
     var templates = Query.select("Forms.templates", "id", "name={name}");
-    if (templates.length == 0) { App.alert("No Template not found!"); return 1; }
-    var templateid = templates[0].id;
-    var formid = Forms.newFormInternal(templateid, linkedtable, linkedid);
+    if (templates.length == 0) templates = Query.select("Forms.templates", "id", "prefix={name}");
+    return (templates.length > 0) ? templates[0].id : null;
+}
+
+Forms.createForm = function (name, linkedtable, linkedid, values) {
+    var templateid = Forms.getTemplateId(name);
+    if (templateid == null) { App.alert("No Template not found!"); return 1; }
+
+    var formid = Forms.newFormInternal(templateid, linkedtable, linkedid, values);
 
     History.add(Forms._VIEWFORM + "({formid})");
     History.replace(Forms._EDITFORM + "({formid})");
@@ -158,7 +164,18 @@ Forms.datasetOptions = function (name, orderby) {
     var options = [];
     for (var i = 0; i < items.length; i++) {
         var item = items[i];
-        options.push(item.code + ":" + item.name);
+        var str = item.code ? item.code + ":" + item.name : item.name;
+        options.push(str);
     }
     return options.join("|");
+}
+
+Forms.getForm = function (templateName, formName) {
+    var templateid = Forms.getTemplateId(templateName);
+    if (templateid == null) return null;
+    var forms = Query.select("Forms.forms", "*", "templateid={templateid} AND name={formName}");
+    if (forms.length == 0) return null;
+    var form = forms[0];
+    var values = JSON.parse(form.value);
+    return values;
 }

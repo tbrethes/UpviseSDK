@@ -14,7 +14,7 @@ function _updateValue(formid, fieldname, fieldvalue) {
     var onchange = _changeObj[fieldname];
     if (onchange) {
         var form = Query.selectId("Forms.forms", _formid);
-        var ok = Forms._evalFormula(onchange, null, form);
+        var ok = Forms._evalFormula(onchange, {value: fieldvalue}, form); // value keyword is available in onchange
         if (ok === false) return; 
     }
 
@@ -30,8 +30,8 @@ function _updateValue(formid, fieldname, fieldvalue) {
 Forms.writeEditFields = function (form) {
     // form.value contains a json string of array values indexed by field names
     _valueObj = Forms._getValues(form);
-    _changeObj = {};
     _formid = form.id;
+    _changeObj = {};
     var onchange = "_updateValue({form.id},this.id,this.value)";
 
     var stateCount = Query.count("Forms.states", "templateid={form.templateid}");
@@ -62,6 +62,7 @@ Forms.onScan = function (formid, fieldid, value) {
 
 Forms.writeViewFields = function (form) {
     _valueObj = Forms._getValues(form); // we need this because Risk.view access it
+    _formid = form.id;
     var fields = Forms.getFields(form);
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
@@ -69,7 +70,7 @@ Forms.writeViewFields = function (form) {
             if (field.status == 0 || field.status == -1 || form.status == field.status) {
                 CustomFields.addButton(field.label, field.value, field.options, form.id);
             }
-        } else if (form.status >= field.status) {
+        } else if (form.status >= field.status || form.status == -1) {
             CustomFields.addViewItem(field.id, field.type, field.label, field.value, field.options, form.id);
         }
     }

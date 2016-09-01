@@ -5,7 +5,7 @@ if (typeof (Forms) == "undefined") {
 
 //////////////////////////// Form Creation
 
-Forms.newFormInternal = function (templateid, linkedtable, linkedid) {
+Forms.newFormInternal = function (templateid, linkedtable, linkedid, values) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
@@ -23,7 +23,7 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid) {
         form.linkedtable = template.linkedtable;
     }
 
-    var values = {}; // must be an object not array for stringify
+    if (values == null) values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     form.value = JSON.stringify(values);
 
@@ -73,6 +73,10 @@ Forms.getNewName = function (templateid) {
     var template = Query.selectId("Forms.templates", templateid);
     var counter = 1 + template.counter;
     Query.updateId("Forms.templates", templateid, "counter", counter);
+
+    if (AccountSettings.get("forms.initials") == "1") {
+        counter = User.getInitials() + "-" + counter;
+    }
     return template.prefix + (template.prefix != "" ? "-" : "") + counter;
 }
 

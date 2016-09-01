@@ -12,18 +12,23 @@ CustomFields.view = function (table, recordId, fieldsTable) {
     if (fields.length == 0 || item == null) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
+    CustomFields.buttons = {}; // to keep the onclick for button fields
 
     if (WEB() == false) List.addHeader(R.CUSTOMFIELDS);
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var value = CustomFields.values[field.name];
-        CustomFields.addViewItem(field.name, field.type, field.label, value, field.seloptions);
+        CustomFields.addViewItem(field.name, field.type, field.label, value, field.seloptions, recordId);
     }
 }
 
 CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     if (type == 'header') {
         List.addHeader(label);
+        return;
+    } else if (type == "button") {
+        CustomFields.buttons[id] = options; // this contains the onclick for button
+        List.addButton(label, "CustomFields.onButton({formid},{id})", "color:gray");
         return;
     }
     if (value == null || value === "") return;
@@ -110,6 +115,21 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     }
 }
 
+CustomFields.onButton = function (recordId, fieldid) {
+    var onclick = CustomFields.buttons[fieldid];
+    if (onclick) {
+        try {
+            var buf = [];
+            buf.push("var recordid=" + esc(recordId));
+            buf.push(onclick);
+            eval(buf.join(";\n"));
+        } catch (e) {
+            App.alert(e.message);
+        }
+    }
+
+}
+
 CustomFields.addButton = function(label, value, options, formid) {
     var onclick = null;
     if (value == "newtask") onclick = "Tasks.newTask()";
@@ -157,7 +177,7 @@ CustomFields.edit = function (table, recordId, ids, fieldsTable) {
     if (fields.length == 0) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
-
+    
     CustomFields.companyOptions = null;
     CustomFields.contactOptions = null;
 
@@ -214,8 +234,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'signature') {
         List.addSignatureBox(id, label, value, onchange);
     } else if (type == 'barcode') {
-        if (List.addBarcodeBox != undefined) List.addBarcodeBox(id, label, value, onchange);
-        else List.addItemSubtitle(label, "Upgrade to the latest version of Upvise for Barcode Support");
+        List.addBarcodeBox(id, label, value, onchange);
     } else if (type == 'button') {
         // do not display button in edit mode
     } else if (type == 'label') {
@@ -229,6 +248,8 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
         Risk.edit(id, label, value, options, formid);
     } else if (type == 'file') {
         List.addComboBox(id, label, value, onchange, Query.options("System.files", "folderid={options}"));
+    } else if (type == "button") {
+        // no button in edit mode
     } else {
         // works for text, phone, email, time, duration, currency
         List.addTextBox(id, label, value, onchange, type);
@@ -327,7 +348,7 @@ CustomFields.formatValue = function (value, type, options) {
     else if (type == 'asset') return Query.names("Assets.assets", value);
     else if (type == 'tool') return Query.names("Tools.tools", value);
     else if (type == 'button' || type == "header") return "";
-    else if (type == "select" || type == "multiselect" || type == "toggle") return (Format.options != null) ? Format.options(value, options) : value;
+    else if (type == "select" || type == "selectmulti" || type == "toggle") return (Format.options != null) ? Format.options(value, options) : value;
     else if (type == 'textarea') return Format.text(value);
     else if (type == 'checkbox') return value == 1 ? R.YES : R.NO;
     else if (type == "numeric" || type == "decimal") return Number(value).toLocaleString();
@@ -352,3 +373,16 @@ CustomFields.getHtml = function (table, custom) {
 CustomFields.formatSignature = function (value) {
     return (value == null || value == "") ? "" : '<img height="100" src="data:image/png;base64,' + value + '" />'
 }
+
+CustomFields.writePdf = function (table, recordId) {
+    var item = Query.selectId(table, recordId);
+    if (item == null) return;
+    var customFields = CustomFields.get(table, item.custom);
+    if (customFields.length > 0) {
+        for (var i = 0; i < customFields.length; i++) {
+            var field = customFields[i];
+            if (field.value != "") Pdf2.addRow([field.label, field.value]);
+        }
+    }
+}
+

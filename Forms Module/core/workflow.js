@@ -211,8 +211,9 @@ function Forms_nextState(id, currentStatus) {
         }
     }
 
-    // Execute the onload script for this state - if any.
-    Forms.evalOnLoad(form, newstate.onload);
+    // Execute the onload script for this state - if any. If the onload script retrun a non null string, display the message and do not continue to next state
+    var errorMsg = Forms.evalOnLoad(form, newstate.onload);
+    if (errorMsg) return App.alert(errorMsg);
 
     // Set the form default values for the new state
     var values = Forms._getValues(form);
@@ -246,8 +247,7 @@ Forms.evalOnLoad = function (form, onload) {
     var formValues = Forms._getFullValues(form, fields);
 
     var js = "function f1(){" + onload + "};f1();";
-    var error = Forms._evalFormula(js, formValues, form);
-    if (error != null && error != "") App.alert(error);
+    return Forms._evalFormula(js, formValues, form);
 }
 
 // formowner and staff can be multi owner

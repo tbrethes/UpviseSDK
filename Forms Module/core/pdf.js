@@ -37,6 +37,10 @@ Forms.writePdf = function (form, template) {
 
     var group = Query.selectId("Forms.groups", template.groupid);
     var linkedItem = Forms.getLinkedRecord != undefined ? Forms.getLinkedRecord(form) : null;
+
+    
+    _valueObj = Forms._getValues(form); // we need these 2 lines because of dynamic scripting in formulas and options
+    _formid = form.id;
     var fields = Forms.getFields(form);
     var addFormCaption = (AccountSettings.get('formcaption', '1') != "0");
 
