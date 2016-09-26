@@ -2,6 +2,8 @@
 /// CustomField class is defined in common.js because there is a namespace issue with web version.....
 function CustomFields() {}
 
+CustomFields._VIEWFILE = "Files.viewFile";
+
 CustomFields.values = null; // Array of values indexed by name
 
 CustomFields.view = function (table, recordId, fieldsTable) {
@@ -27,10 +29,9 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         List.addHeader(label);
         return;
     } else if (type == "button") {
-        CustomFields.buttons[id] = options; // this contains the onclick for button
-        List.addButton(label, "CustomFields.onButton({formid},{id})", "color:gray");
+        CustomFields.addButton(id, label, "code", options, formid);
         return;
-    }
+    } 
     if (value == null || value === "") return;
 
     if (type == 'select' || type == 'selectmulti') {
@@ -66,7 +67,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         }
         CustomFields.writeMultivalueItem(label, contactids.join("|"), "Contacts.contacts", "Contacts.viewContact", "contact"); // no table="" id and value are the same
     } else if (type == "photo") {
-        List_addFileBox(label, "Forms.forms", value);
+        CustomFields.addFileBox(label, "Forms.forms", value);
     } else if (type == "drawing") {
         List.addHeader(label);
         List.addImage(Settings.getFileUrl(value));
@@ -115,30 +116,37 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     }
 }
 
+CustomFields.addButton = function(id, label, value, options, formid) {
+    var onclick = null;
+    if (value == "newtask") onclick = "Tasks.newTask()";
+    else if (value == "newnote") onclick = "Notes.newNote()";
+    else if (value == "newevent") onclick = "Calendar.newEvent()";
+    else if (value == "newform") onclick = "Forms.newForm({options},'Forms.forms',{formid})";
+    else if (value == "code") {
+        if (CustomFields.buttons == null) CustomFields.buttons = {};
+        CustomFields.buttons[id] = options; // this contains the onclick for button
+        onclick = "CustomFields.onButton({formid},{id})";
+    } else return;
+    List.addButton(label, onclick, "color:gray");
+}
+
 CustomFields.onButton = function (recordId, fieldid) {
     var onclick = CustomFields.buttons[fieldid];
     if (onclick) {
         try {
-            var buf = [];
-            buf.push("var recordid=" + esc(recordId));
-            buf.push(onclick);
-            eval(buf.join(";\n"));
+            //var buf = [];
+            // the onclick script needs the form object.
+            var form = Query.selectId("Forms.forms", recordId); // this is for button inside forms
+            if (form == null) form = { id: recordId }; // this is for button inside other records
+            //buf.push("var recordid=" + esc(recordId));
+            //buf.push(onclick);
+            eval(onclick);
         } catch (e) {
             App.alert(e.message);
         }
     }
-
 }
 
-CustomFields.addButton = function(label, value, options, formid) {
-    var onclick = null;
-    if (value == "newtask") onclick = "Tasks.newTask()";
-    else if (value == "newnote") onclick =  "Notes.newNote()";
-    else if (value == "newevent") onclick =  "Calendar.newEvent()";
-    else if (value == "newform") onclick =  "Forms.newForm({options},'Forms.forms',{formid})";
-    if (onclick != null) List.addButton(label, onclick);
-}
- 
 CustomFields.writeMultivalueItem = function (label, id, table, func, img) {
     var items = Query.select(table, "id;name", "id IN " + list(id), "name");
     if (items.length == 0) return;
@@ -224,7 +232,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'user') {
         List.addComboBoxMulti(id, label, value, onchange, User.getOptions());
     } else if (type == "photo") {
-        List_addFileBox(label, "Forms.forms", value, options); // true is for add new
+        CustomFields.addFileBox(label, "Forms.forms", value, options); // options is for add new
     } else if (type == "drawing") {
         List.addHeader(label);
         List.addImage(Settings.getFileUrl(value), "App.editPicture({value})");
@@ -281,7 +289,6 @@ CustomFields.onNewContact = function (formid, fieldname, name) {
     var value = (_valueObj != null) ? _valueObj[fieldname] : null ;
     value = (value == null || value == '') ? newid : value + "|" + newid;
     _updateValue(formid, fieldname, value);
-    //if (History.redirect != null) History.redirect("Contacts.editContact({newid})");
     History.reload();
 }
 
@@ -290,7 +297,6 @@ CustomFields.onNewCompany = function(formid, fieldname, name) {
     var value = (_valueObj != null) ? _valueObj[fieldname] : null;
     value = (value == null || value == '') ? newid : value + "|" + newid;
     _updateValue(formid, fieldname, value);
-    //if (History.redirect != null) History.redirect("Contacts.editCompany({newid})");
     History.reload();
 }
 
@@ -336,9 +342,9 @@ CustomFields.get = function (table, custom) {
 CustomFields.formatValue = function (value, type, options) {
     if (value == null || value === "") return "";
 
-    if (type == 'date') return value > 0 ? Format.date(parseFloat(value)) : "";
-    else if (type == 'time') return value > 0 ? Format.time(parseFloat(value)) : "";
-    else if (type == 'datetime') return value > 0 ? Format.datetime(parseFloat(value)) : "";
+    if (type == 'date') return Format.date(parseFloat(value));
+    else if (type == 'time') return Format.time(parseFloat(value));
+    else if (type == 'datetime') return Format.datetime(parseFloat(value));
     else if (type == 'duration') return Format.duration(parseInt(value));
     else if (type == 'contact') return buf = Query.names("Contacts.contacts", value);
     else if (type == 'company') return Query.names("Contacts.companies", value);
@@ -382,6 +388,40 @@ CustomFields.writePdf = function (table, recordId) {
         for (var i = 0; i < customFields.length; i++) {
             var field = customFields[i];
             if (field.value != "") Pdf2.addRow([field.label, field.value]);
+        }
+    }
+}
+
+//////////////////////
+
+CustomFields.addFileBox = function (label, table, id, action) {
+    var files = [];
+    if (table && id) files = Query.select("System.files", "id;name;mime;externalurl", "linkedtable={table} AND linkedrecid={id}", "date");
+    if (action == null && files.length == 0) return;
+
+    if (label != null) List.addHeader(label);
+
+    if (WEB()) {
+        _html.push('<div style="margin-left:60px;">');
+        NextPrevious.addSection();
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            var fileid = (file.mime.indexOf("image/") != -1 && file.externalurl == "") ? file.id : null;
+            List.addThumbnail(file.name, fileid, CustomFields._VIEWFILE + "({file.id})");
+        }
+        if (action != null) FileBox.writeButton("", R.SELECTFILE, "FilePicker.pick({table},{id})", "");
+        _html.push('</div>');
+    } else {
+        if (action != null) {
+            var label = (action == "scan") ? R.SCANDOCUMENT : R.ADDPHOTO;
+            List.addItem(label, "App.takePicture({table},{id},{action})", "icon:camera");
+        }
+
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            var style = null;
+            if (file.mime == 'image/jpeg' || file.mime == 'image/png' || file.mime == 'image/gif') style = "scale:crop;img:" + Settings.getFileUrl(file.id);
+            List.addItem(file.name, CustomFields._VIEWFILE + "({file.id})", style);
         }
     }
 }

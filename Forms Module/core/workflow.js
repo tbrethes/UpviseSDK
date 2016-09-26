@@ -19,8 +19,8 @@ Forms.checkEmptyFields = function (form) {
             var isEmpty = false;
             if (field.type == "signature" && Settings.getPlatform() == "web") continue; // signature never mandatory on web.
             else if (field.type == "photo") {
-                var items = Files.select("Forms.forms", field.value);
-                if (items.length == 0) isEmpty = true;
+                var count = Query.count("System.files", "linkedtable='Forms.forms' AND linkedrecid={field.value}");
+                if (count == 0) isEmpty = true;
             } else if (field.value == null || field.value == "") {
                 isEmpty = true;
             }
@@ -196,8 +196,14 @@ function Forms_nextState(id, currentStatus) {
 
     // ensure no empty mandatory fiels
     if (Forms.checkEmptyFields(form) == false) return;
+    
+    // Execute the onload script for this state - if any. If the onload script retrun a non null string, display the message and do not continue to next state
+    var errorMsg = Forms.evalOnLoad(form, newstate.onload);
+    if (errorMsg) return App.alert(errorMsg);
+
     if (newstate.note != "" && App.confirm(newstate.note) == false) return;
 
+    // ask for signature
     var signature = "";
     if (newstate.sign == 1) {
         if (WEB() == true) {
@@ -210,10 +216,6 @@ function Forms_nextState(id, currentStatus) {
             if (signature == "" || signature == null) return;
         }
     }
-
-    // Execute the onload script for this state - if any. If the onload script retrun a non null string, display the message and do not continue to next state
-    var errorMsg = Forms.evalOnLoad(form, newstate.onload);
-    if (errorMsg) return App.alert(errorMsg);
 
     // Set the form default values for the new state
     var values = Forms._getValues(form);

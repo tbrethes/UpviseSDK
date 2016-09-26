@@ -6,6 +6,7 @@ var _formid;
 
 Forms._EDITFORM = "Forms.editForm";
 Forms._VIEWFORM = "Forms.viewForm";
+Forms._VIEWFILE = null;
 
 function _updateValue(formid, fieldname, fieldvalue) {
 
@@ -68,7 +69,7 @@ Forms.writeViewFields = function (form) {
         var field = fields[i];
         if (field.type == "button") {
             if (field.status == 0 || field.status == -1 || form.status == field.status) {
-                CustomFields.addButton(field.label, field.value, field.options, form.id);
+                CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
             }
         } else if (form.status >= field.status || form.status == -1) {
             CustomFields.addViewItem(field.id, field.type, field.label, field.value, field.options, form.id);

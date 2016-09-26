@@ -118,20 +118,30 @@ Forms.deleteForm = function(formid, goBack) {
 
 Forms.selectFormPhotos = function (form) {
     var files = [];
-    var fields = Query.select("Forms.fields", "name", "type='photo' AND formid=" + esc(form.templateid));
+    var fields = Query.select("Forms.fields", "name", "type='photo' AND formid={form.templateid}");
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var value = form.id + ":" + field.name; // hack for photos.....
-        var list = Files.select("Forms.forms", value);
+        var list = Query.select("System.files", "*", "linkedtable='Forms.forms' AND linkedrecid={value}", date);
         files = files.concat(list);
     }
     return files;
 }
 
+Forms.changeOwner = function (id, owner) {
+    var form = Query.selectId("Forms.forms", id);
+    var files = Forms.selectFormPhotos(form);
+    Query.updateId("Forms.forms", id, "owner", owner);
+    // change the owner of the photos linked to the form too.
+    for (var i = 0; i < files.length; i++) {
+        Query.updateId("System.files", files[i].id, "owner", owner);
+    }
+}
+
 /////////////////////
 
-Forms.archiveOneForm = function (id, confirm) {
-    if (confirm == true) {
+Forms.archiveForm = function (id, confirm) {
+    if (confirm === true) {
         if (App.confirm("Confirm Archive") == false) return;
     }
 
@@ -141,4 +151,33 @@ Forms.archiveOneForm = function (id, confirm) {
         Query.archiveId("System.files", files[i].id);
     }
     Query.archiveId("Forms.forms", id);
+    if (confirm === true) History.back();
+}
+
+// if from == "DELETED"
+Forms.restoreForm = function (id, reload, from) {
+    var forms = Query.selectArchivedOrDeleted("Forms.forms", "*", "id={id}");
+    if (forms.length == 0) return;
+    var form = forms[0];
+
+    // also restore the form photos...
+    var files = [];
+    var fields = Query.select("Forms.fields", "name", "type='photo' AND formid={form.templateid}");
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var linkedrecid = form.id + ":" + field.name; // hack for photos.....
+        var list = Query.selectArchivedOrDeleted("System.files", "*", "linkedrecid={linkedrecid)");
+        files = files.concat(list);
+    }
+
+    Query.restoreId("Forms.forms", form.id);
+    for (var i = 0; i < files.length; i++) {
+        Query.restoreId("System.files", files[i].id);
+    }
+
+    if (reload === true) {
+        Cache.sync(function (changed) {
+            History.reload("Forms.viewForm({id})");
+        });
+    }
 }
