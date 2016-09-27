@@ -122,7 +122,7 @@ Forms.selectFormPhotos = function (form) {
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var value = form.id + ":" + field.name; // hack for photos.....
-        var list = Query.select("System.files", "*", "linkedtable='Forms.forms' AND linkedrecid={value}", date);
+        var list = Query.select("System.files", "*", "linkedtable='Forms.forms' AND linkedrecid={value}", "date");
         files = files.concat(list);
     }
     return files;

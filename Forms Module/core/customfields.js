@@ -110,7 +110,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == 'location') {
         List.addItemLabel(label, value, "App.map({value})");
     } else if (type == "file") {
-        List.addItemLabel(label, Query.names("System.files", value), "Files.viewFile({value})");
+        List.addItemLabel(label, Query.names("System.files", value), CustomFields._VIEWFILE + "({value})");
     } else {
         List.addItemLabel(label, value);
     }
@@ -137,6 +137,7 @@ CustomFields.onButton = function (recordId, fieldid) {
             //var buf = [];
             // the onclick script needs the form object.
             var form = Query.selectId("Forms.forms", recordId); // this is for button inside forms
+            var link = (form != null && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
             if (form == null) form = { id: recordId }; // this is for button inside other records
             //buf.push("var recordid=" + esc(recordId));
             //buf.push(onclick);
