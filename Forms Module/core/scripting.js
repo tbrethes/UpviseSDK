@@ -52,7 +52,7 @@ Forms.createForm = function (name, linkedtable, linkedid, values) {
 }
 
 Forms.emailCsv = function (emails, id) {
-    var form = Query.selectId("Forms.forms", id)
+    var form = Query.selectId("Forms.forms", id);
 
     var filename = Query.names("templates", form.templateid) + " " + form.name;
     if (Format.forprint != null) Format.forprint();
@@ -76,6 +76,10 @@ Forms.emailCsv = function (emails, id) {
     var content = csv.getContent();
     var filename = filename + ".csv";
     Notif.sendCsv(emails, content, filename);
+}
+
+Forms.emailPdf = function (formid, email, subject, body) {
+    Forms.exportPdf(formid, "serveremail", email, subject, body);
 }
 
 Forms.setValue = function (id, value) {

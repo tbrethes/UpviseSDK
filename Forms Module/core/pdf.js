@@ -1,7 +1,7 @@
 
 //////////////////////////////////////
 
-Forms.exportPdf = function (formid, action, email) {
+Forms.exportPdf = function (formid, action, email, subject, body) {
     var form = Query.selectId("Forms.forms", formid);
     var template = Query.selectId("Forms.templates", form.templateid);
     
@@ -28,9 +28,13 @@ Forms.exportPdf = function (formid, action, email) {
     } else if (action == "archive") {
         // if fileid is set, pdf email archival will also store PDF file in the Files app in Upvise
         if (AccountSettings.get("forms.archivedb") == "1") Pdf2.setFileid(formid);
-
-        Pdf2.archiveEmail(email);
-    } else {
+        var subject = "Archive: " + User.getName() + " " + Pdf2.filename;
+        Pdf2.archiveEmail(email, subject);
+    } else if (action == "serveremail") {
+        // difference with "email" is that email is sent automatically by the server, there is no UI for the user to validate and click Send
+        Pdf2.archiveEmail(email, subject, body);
+    }
+    else {
         Pdf2.download();
     }
 }
