@@ -12,6 +12,8 @@ Forms.exportPdf = function (formid, action, email, subject, body) {
     options.logoid = template.logoid;
     options.columnWidth = template.columnwidth;
 
+    if (!options.columnWidth && options.singleLine) options.columnWidth = "600px";
+
     FormPdf.init(options);
 
     Pdf2.setWatermark(AccountSettings.get("forms.watermark"), AccountSettings.get("forms.watermarkcolor"));
@@ -39,7 +41,7 @@ Forms.exportPdf = function (formid, action, email, subject, body) {
     }
 }
 
-Forms.writePdf = function (form, template) {
+Forms.writePdf = function (form, template, index) {
 
     var group = Query.selectId("Forms.groups", template.groupid);
     var linkedItem = Forms.getLinkedRecord != undefined ? Forms.getLinkedRecord(form) : null;
@@ -48,23 +50,27 @@ Forms.writePdf = function (form, template) {
     if (linkedItem != null && linkedItem.value != null) filename += "-" + linkedItem.value;
     filename += ".pdf";
     
-    _valueObj = Forms._getValues(form); // we need these 2 lines because of dynamic scripting in formulas and options
-    _formid = form.id;
+   
     var addFormCaption = (AccountSettings.get('formcaption', '1') != "0");
 
-    var title = (group != null) ? group.name + " - " + template.name : template.name;
-    if (form.status == Forms.DRAFT) title += " " + R.DRAFT;
+    var title = (index != null) ? index + ". " : "";
+    title += (group != null) ? group.name + " - " + template.name : template.name;
+    title += " " + form.name;
 
     var addLocation = AccountSettings.get("forms.pdflocation", "0") != "0" && form.geo != null && form.geo != '';
+
+    // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields()
+    _valueObj = Forms._getValues(form);
+    _formid = form.id;
 
     if (template.htmlpdf != "") {
         Forms.writeCustomPdf(form, template);
         return filename;
     }
-
+  
     Pdf2.startTitleBlock(title);
     if (addFormCaption) {
-        Pdf2.addRow([R.FORMID, form.name, R.CREATEDBY, Forms.getCreator(form)]);
+        Pdf2.addRow([R.CREATEDBY, Forms.getCreator(form), R.STATUS, (form.status == Forms.DRAFT) ? R.DRAFT : R.SUBMITTED]);
         if (addLocation) {
             Pdf2.addRow([R.DATE, Format.datetime(form.date), R.LOCATION, (form.address != '') ? form.address : form.geo]);
         } else {
@@ -78,13 +84,15 @@ Forms.writePdf = function (form, template) {
     FormPdf.addFields(fields, form);
 
     var files = Query.select("System.files", "id;name", "linkedtable='Forms.forms' AND linkedrecid={form.id}", "date");
-    FormPdf.addImages(R.PHOTOS, files);
+    Pdf2.addImages(R.PHOTOS, files);
 
-    var punchs = Query.select("Forms.punchitems", "*", "formid={form.id}", "date");
+    // Also add all subforms photos
+    
+    var punchs = Query.select("Forms.punchitems", "*", "formid={form.id}", "creationdate");
     if (punchs.length > 0 && typeof (Punch) != "undefined") {
-        Pdf2.addPageBreak();
+        Pdf2.addHeader(R.PUNCHITEMS, "text-align:center;font-size:20px;margin-top:20px;margin-bottom:20px;");
         for (var i = 0; i < punchs.length; i++) {
-            Punch.writePdf(punchs[i]);
+            Punch.writePdf(punchs[i], i + 1, {link:false, history:false});
         }
     }
 
@@ -102,7 +110,7 @@ Forms.writePdf = function (form, template) {
 Forms.getEmails = function (form) {
     var emails = [];
     var map = new HashMap(); // key = email, to avoid duplicates
-    var link = (form.linkedtable != "" && form.linkedid != "") ? Query.selectId(form.linkedtable, form.linkedid) : null;
+    var link = Forms._getLink(form);
     if (link == null) return;
     // if link is a contact or company, use the email field
     if (link.email != null && link.email != "" && checkEmailMap(map, link.email)) emails.push(link.email);

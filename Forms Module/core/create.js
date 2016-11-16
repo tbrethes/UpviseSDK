@@ -82,6 +82,8 @@ Forms.getNewName = function (templateid) {
 
 Forms.setDefaultValues = function (form, values, status) {
     var fields = Query.select("Forms.fields", "name;label;value;type", "status={status} AND formid={form.templateid}", "rank");
+    var fieldsall = Query.select("Forms.fields", "name;label;value;type", "status=-1 AND formid={form.templateid}", "rank");
+    fields = fields.concat(fieldsall);
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var value = values[field.name];
@@ -96,7 +98,7 @@ Forms.setDefaultValues = function (form, values, status) {
                     values[field.name + "P"] = risk.probability;
                 }
             } else if (field.type != "header" && field.type != "label" && field.type != "image" && field.type != "button" && field.type != "formula") {
-                value = Forms._eval(field.value, form); // to use javacript:// feature
+                value = Forms._eval(field.value, form, "DEFAULTVALUE_" + field.name); // to use javacript:// feature
                 if (value != "") values[field.name] = value;
             }
         }
@@ -109,9 +111,13 @@ Forms.deleteForm = function(formid, goBack) {
     var form = Query.selectId("Forms.forms", formid);
     var files = Forms.selectFormPhotos(form);
     for (var i = 0; i < files.length; i++) {
-        var file = files[i];
-        Query.deleteId("System.files", file.id);
+        Query.deleteId("System.files", files[i]);
     }
+    var subforms = Forms.selectSubForms(form);
+    for (var i = 0; i < subforms.length; i++) {
+        Query.deleteId("Forms.forms", subforms[i].id);
+    }
+
     Query.deleteId("Forms.forms", formid);
     if (!(goBack === false)) History.back();
 }
@@ -126,6 +132,18 @@ Forms.selectFormPhotos = function (form) {
         files = files.concat(list);
     }
     return files;
+}
+
+Forms.selectSubForms = function (form) {
+    var subforms = [];
+    var fields = Query.select("Forms.fields", "name", "type='button' AND value='newsubform' AND formid={form.templateid}");
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var linkedid = form.id + ":" + field.name;
+        var list = Query.select("Forms.forms", "*", "linkedtable='Forms.forms' AND linkedid={linkedid}", "date");
+        subforms = subforms.concat(list);
+    }
+    return subforms;
 }
 
 Forms.changeOwner = function (id, owner) {
@@ -166,7 +184,7 @@ Forms.restoreForm = function (id, reload, from) {
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var linkedrecid = form.id + ":" + field.name; // hack for photos.....
-        var list = Query.selectArchivedOrDeleted("System.files", "*", "linkedrecid={linkedrecid)");
+        var list = Query.selectArchivedOrDeleted("System.files", "*", "linkedrecid={linkedrecid}");
         files = files.concat(list);
     }
 
@@ -180,4 +198,22 @@ Forms.restoreForm = function (id, reload, from) {
             History.reload("Forms.viewForm({id})");
         });
     }
+}
+
+///////////////////
+
+Forms.popupResetSignature = function (formid, fieldid) {
+    Popup.add("Reset", "Forms.resetSignature({formid},{fieldid})", "img:delete");
+    Popup.show();
+}
+
+Forms.resetSignature = function (formid, fieldid) {
+    if (App.confirm(R.CONFIRM) == false) return;
+    var form = Query.selectId("Forms.forms", formid);
+    if (form == null) return;
+    var values = JSON.parse(form.value);
+    values[fieldid] = "";
+    Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
+    Query.updateId("Forms.forms", formid, "status", 0); // set back to draft
+    History.reload();
 }

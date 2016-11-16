@@ -49,9 +49,9 @@ Forms.evalSubmit = function (form) {
     var fields = Query.select("Forms.fields", "name;label;value;type;seloptions", "formid=" + esc(form.templateid), "rank");
     var formValues = Forms._getFullValues(form, fields);
 
-    var js = "function f1(){" + onsubmit + "};f1();";
-    var returnValue = Forms._evalFormula(js, formValues, form);
-    if (returnValue != 0 && returnValue != 1 && returnValue != 2) {
+    var js = "function f1() {" + onsubmit + "};f1();";
+    var returnValue = Forms._evalFormula(js, formValues, form, "ONSUBMIT");
+    if (returnValue != undefined && returnValue != 0 && returnValue != 1 && returnValue != 2) {
         App.alert("Javascript Error: " + returnValue);
     }
     return returnValue;
@@ -127,6 +127,10 @@ Forms.getStateStaff = function (form, state) {
     return state.staff;
 }
 
+Forms.shouldArchive = function (state) {
+    return state.action == ""; // archive last state only
+}
+
 //////////////////////
 
 function Forms_submit(id, goBack) {
@@ -149,6 +153,11 @@ function Forms_submit(id, goBack) {
     Forms.LOCK = 1;
     try {
         Query.updateId("Forms.forms", id, "status", 1);
+        // also submit the subforms
+        var subforms = Forms.selectSubForms(form);
+        for (var i = 0; i < subforms.length; i++) {
+            Query.updateId("Forms.forms", subforms[i].id, "status", 1);
+        }
         // notify all managers : null
         Forms.notify(form, R.SUBMITTED, null);
         Forms.archive(id);
@@ -237,7 +246,7 @@ function Forms_nextState(id, currentStatus) {
     Forms.notify(form, newstate.name, users);
 
     // If this is the last stage, ie no action button, archive the form
-    if (newstate.action == "") Forms.archive(id);
+    if (Forms.shouldArchive(newstate)) Forms.archive(id);
     History.reload();
 }
 
@@ -249,7 +258,7 @@ Forms.evalOnLoad = function (form, onload) {
     var formValues = Forms._getFullValues(form, fields);
 
     var js = "function f1(){" + onload + "};f1();";
-    return Forms._evalFormula(js, formValues, form);
+    return Forms._evalFormula(js, formValues, form, "ONLOAD");
 }
 
 // formowner and staff can be multi owner

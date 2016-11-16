@@ -82,6 +82,7 @@ Forms.emailPdf = function (formid, email, subject, body) {
     Forms.exportPdf(formid, "serveremail", email, subject, body);
 }
 
+// set the value for the current form only
 Forms.setValue = function (id, value) {
     if (_formid == null || _formid == "" || id == null || id == "") return;
     _valueObj[id] = value;
@@ -89,12 +90,34 @@ Forms.setValue = function (id, value) {
     Query.updateId("Forms.forms", _formid, "value", values);
 }
 
-Forms.getValue = function (id) {
-    if (_formid == null || _formid == "" || id == null || id == "") return null; // error
-    var value = _valueObj[id];
+// second parameter formid is optional, if null, it means current form
+Forms.getValue = function (fieldid, formid) {
+    if (!fieldid) return null; // error
+    var value;
+    if (formid == null) {
+        // the current form
+        if (_formid == null || _formid == "") return null; // error
+        value = _valueObj[fieldid];
+    } else {
+        // a specific form
+        var form = Query.selectId("Forms.forms", formid);
+        if (form == null) return "";
+        var values = JSON.parse(form.value);
+        value = values[fieldid];
+    }
     if (value == null) value = "";
     return value;
 }
+
+Forms.getIntValue = function (fieldid, formid) {
+    return parseInt(Forms.getValue(fieldid, formid));
+}
+
+Forms.getFloatValue = function (fieldid, formid) {
+    return parseFloat(Forms.getValue(fieldid, formid));
+}
+
+/////////////////////////////////////////////////
 
 Forms.extractValue = function(buffer, label) {
     if (buffer == null) return "";
@@ -159,12 +182,17 @@ Forms.getAllFields = function (form) {
     return list;
 }
 
-Forms.datasetOptions = function (name, orderby) {
+
+Forms.selectDataset = function (name, orderby) {
     var sets = Query.select("Forms.datasets", "id", "name={name}");
-    if (sets.length == 0) return "";
+    if (sets.length == 0) return [];
     var datasetid = sets[0].id;
     if (orderby == null) orderby = "name";
-    var items = Query.select("Forms.dataitems", "code;name", "datasetid={datasetid}", orderby);
+    return Query.select("Forms.dataitems", "code;name", "datasetid={datasetid}", orderby);
+}
+
+Forms.datasetOptions = function (name, orderby) {
+    var items = Forms.selectDataset(name, orderby);
     var options = [];
     for (var i = 0; i < items.length; i++) {
         var item = items[i];
@@ -182,4 +210,15 @@ Forms.getForm = function (templateName, formName) {
     var form = forms[0];
     var values = JSON.parse(form.value);
     return values;
+}
+
+// return a list of subform ids for this field
+Forms.getFormIds = function (fieldname) {
+    var linkedid = _formid + ":" + fieldname;
+    var list = [];
+    var subforms = Query.select("Forms.forms", "id", "linkedtable='Forms.forms' AND linkedid={linkedid}", "date DESC");
+    for (var i = 0; i < subforms.length; i++) {
+        list.push(subforms[i].id);
+    }
+    return list;
 }
