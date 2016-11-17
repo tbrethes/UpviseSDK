@@ -145,7 +145,7 @@ CustomFields.addButton = function (id, label, value, options, formid) {
 }
 
 CustomFields.writeSubforms = function (id, label, templateid, formid) {
-    var form = Query.selectId("forms", formid);
+    var form = Query.selectId("Forms.forms", formid);
     var editable = (form != null && form.status == 0);
     //var title = Query.names("Forms.templates", templateid);
     var linkedid = formid + ":" + id;
@@ -155,16 +155,7 @@ CustomFields.writeSubforms = function (id, label, templateid, formid) {
         if (editable) List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid})", "color:gray");
         Forms.writeSubformsTable(subforms, editable);
     } else {
-        //if (subforms.length > 0) List.addHeader(title);
         if (editable) List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid})", "color:gray");
-        /*
-        for (var i = 0; i < subforms.length; i++) {
-            var form = subforms[i];
-            //var subtitle = Forms.getDescription(form.id);
-            var subtitle = Format.datetime(form.date);
-            List.add([title + " " + form.name, Format.text(subtitle)], editable ? "Forms.editForm({form.id})" : "Forms.viewForm({form.id})", "img:form");
-        }
-        */
     }
 }
 
@@ -174,7 +165,7 @@ CustomFields.onButton = function (recordId, fieldid) {
         try {
             // the onclick script needs the form object.
             var form = Query.selectId("Forms.forms", recordId); // this is for button inside forms
-            var link = (form && form.linkedtable) ? FormsQuery.selectId(form.linkedtable, form.linkedid) : null;
+            var link = (form && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
             if (form == null) form = { id: recordId }; // this is for button inside other records
             eval(onclick);
         } catch (e) {

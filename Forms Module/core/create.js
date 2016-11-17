@@ -111,7 +111,7 @@ Forms.deleteForm = function(formid, goBack) {
     var form = Query.selectId("Forms.forms", formid);
     var files = Forms.selectFormPhotos(form);
     for (var i = 0; i < files.length; i++) {
-        Query.deleteId("System.files", files[i]);
+        Query.deleteId("System.files", files[i].id);
     }
     var subforms = Forms.selectSubForms(form);
     for (var i = 0; i < subforms.length; i++) {
