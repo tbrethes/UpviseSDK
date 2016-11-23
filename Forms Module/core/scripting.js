@@ -213,7 +213,8 @@ Forms.getForm = function (templateName, formName) {
 }
 
 // return a list of subform ids for this field
-Forms.getFormIds = function (fieldname) {
+Forms.getFormIds = function (fieldname, formid) {
+    if (formid == null) formid = _formid;
     var linkedid = _formid + ":" + fieldname;
     var list = [];
     var subforms = Query.select("Forms.forms", "id", "linkedtable='Forms.forms' AND linkedid={linkedid}", "date DESC");

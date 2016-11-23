@@ -234,7 +234,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'selectmulti') {
         List.addComboBoxMulti(id, label, value, onchange, options);
     } else if (type == 'toggle') {
-        onchange += ";CustomFields.onPunch({formid},{label},this.value)";
+        onchange += ";CustomFields.onPunch({formid},{label},this.value,{id})";
         List.addToggleBox(id, label, value, onchange, options);
     } else if (type == 'checkbox') {
         List.addCheckBox(id, label, parseInt(value), onchange);
@@ -291,7 +291,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     }
 }
 
-CustomFields.onPunch = function (formid, label, value) {
+CustomFields.onPunch = function (formid, label, value, id) {
     if (value == "P") {
         Punch.newFormItem(formid, label);
     }
