@@ -53,6 +53,7 @@
     <Compile Include="contacts\CompanySample.cs" />
     <Compile Include="contacts\ContactSampleBatch.cs" />
     <Compile Include="forms\FormSample.cs" />
+    <Compile Include="jobs\JobSampleNote.cs" />
     <Compile Include="projects\ProjectSampleBatch.cs" />
     <Compile Include="jobs\JobSampleBatch2Completed.cs" />
     <Compile Include="jobs\JobSampleBatchInsert.cs" />
