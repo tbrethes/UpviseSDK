@@ -1,30 +1,23 @@
-
 //////////////////////////////////////
+
+function FormsPdf() {}
 
 Forms.exportPdf = function (formid, action, email, subject, body) {
     var form = Query.selectId("Forms.forms", formid);
     var template = Query.selectId("Forms.templates", form.templateid);
     
-    var options = {};
-    options.singleLine = AccountSettings.get("forms.columns") == "1";
-    options.hideEmpty = AccountSettings.get("forms.hideempty") == "1";
-    options.fontsize = AccountSettings.get("forms.fontsize");
-    options.logoid = template.logoid;
-    options.columnWidth = template.columnwidth;
+    var pdfoptions = FormsPdf.getOptions(template);
 
-    if (!options.columnWidth && options.singleLine) options.columnWidth = "600px";
+    FormsPdf.init(pdfoptions);
+    Pdf2.setWatermark(pdfoptions.watermark, pdfoptions.watermarkcolor);
 
-    FormPdf.init(options);
-
-    Pdf2.setWatermark(AccountSettings.get("forms.watermark"), AccountSettings.get("forms.watermarkcolor"));
-
-    var filename = Forms.writePdf(form, template);
+    var filename = FormsPdf.write(form, template);
 
     // Download or Email
     Pdf2.setFilename(filename);
     if (action == "email") {
-        var emails = Forms.getEmails(form);
-        var customemail = Forms.getCustomEmail(form, template);
+        var emails = FormsPdf.getEmails(form);
+        var customemail = FormsPdf.getCustomEmail(form, template);
         Pdf2.setCustomEmail(customemail.subject, customemail.body);
         Pdf2.email(emails);
     } else if (action == "archive") {
@@ -41,37 +34,58 @@ Forms.exportPdf = function (formid, action, email, subject, body) {
     }
 }
 
-Forms.writePdf = function (form, template, index) {
+FormsPdf.getOptions = function (template) {
+    if (template.pdfoptions) {
+        return  JSON.parse(template.pdfoptions);
+    } else {
+        var options = {};
+        options.columns = AccountSettings.get("forms.columns", "1");
+        options.fontsize = AccountSettings.get("forms.fontsize", "1.4em");
+        options.hideempty = AccountSettings.get("forms.hideempty", "0");
+        options.location = AccountSettings.get("forms.pdflocation", "0");
+        options.caption = AccountSettings.get('formcaption', "1");
+        options.watermark = AccountSettings.get("forms.watermark", "");
+        options.watermarkcolor = AccountSettings.get("forms.watermarkcolor", "#FF000000");
+        options.logoid = template.logoid;
+        options.columnwidth = template.columnwidth ? template.columnwidth : "500px";
+        options.nohistory = template.pdfnohistory;
+        options.excelid = "";
 
-    var group = Query.selectId("Forms.groups", template.groupid);
+        Query.updateId("Forms.templates", template.id, "pdfoptions", JSON.stringify(options));
+        return options;
+    }
+}
+
+FormsPdf.write = function (form, template, index) {
     var linkedItem = Forms.getLinkedRecord != undefined ? Forms.getLinkedRecord(form) : null;
 
     var filename = template.name + " " + form.name;
     if (linkedItem != null && linkedItem.value != null) filename += "-" + linkedItem.value;
     filename += ".pdf";
-    
-   
-    var addFormCaption = (AccountSettings.get('formcaption', '1') != "0");
+
+    var pdfoptions = FormsPdf.getOptions(template);
+
+    //var addFormCaption = (AccountSettings.get('formcaption', '1') != "0");
+    // var addLocation = AccountSettings.get("forms.pdflocation", "0") != "0" && form.geo != null && form.geo != '';
 
     var title = (index != null) ? index + ". " : "";
-    title += (group != null) ? group.name + " - " + template.name : template.name;
+    title += template.name;
     title += " " + form.name;
 
-    var addLocation = AccountSettings.get("forms.pdflocation", "0") != "0" && form.geo != null && form.geo != '';
-
+   
     // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields()
     _valueObj = Forms._getValues(form);
     _formid = form.id;
 
     if (template.htmlpdf != "") {
-        Forms.writeCustomPdf(form, template);
+        FormsPdf.writeCustom(form, template);
         return filename;
     }
   
     Pdf2.startTitleBlock(title);
-    if (addFormCaption) {
+    if (pdfoptions.caption == "1") {
         Pdf2.addRow([R.CREATEDBY, Forms.getCreator(form), R.STATUS, (form.status == Forms.DRAFT) ? R.DRAFT : R.SUBMITTED]);
-        if (addLocation) {
+        if (pdfoptions.location == "1" && form.geo) {
             Pdf2.addRow([R.DATE, Format.datetime(form.date), R.LOCATION, (form.address != '') ? form.address : form.geo]);
         } else {
             Pdf2.addRow([R.DATE, Format.datetime(form.date), "", ""]);
@@ -81,13 +95,8 @@ Forms.writePdf = function (form, template, index) {
     Pdf2.stopTable();
 
     var fields = Forms.getFields(form);
-    FormPdf.addFields(fields, form);
+    FormsPdf.addFields(fields, form);
 
-    var files = Query.select("System.files", "id;name", "linkedtable='Forms.forms' AND linkedrecid={form.id}", "date");
-    Pdf2.addImages(R.PHOTOS, files);
-
-    // Also add all subforms photos
-    
     var punchs = Query.select("Forms.punchitems", "*", "formid={form.id}", "creationdate");
     if (punchs.length > 0 && typeof (Punch) != "undefined") {
         Pdf2.addHeader(R.PUNCHITEMS, "text-align:center;font-size:20px;margin-top:20px;margin-bottom:20px;");
@@ -96,9 +105,9 @@ Forms.writePdf = function (form, template, index) {
         }
     }
 
-    if (template.pdfnohistory == false) {
+    if (pdfoptions.nohistory == false) {
         var history = Forms.getHistory(form);
-        FormPdf.addHistory(history);
+        FormsPdf.addHistory(history);
     }
 
     return filename;
@@ -107,7 +116,7 @@ Forms.writePdf = function (form, template, index) {
 ////////////////////////////
 
 // try to find emails for the linked record of this form in contactid or custom fields
-Forms.getEmails = function (form) {
+FormsPdf.getEmails = function (form) {
     var emails = [];
     var map = new HashMap(); // key = email, to avoid duplicates
     var link = Forms._getLink(form);
@@ -134,47 +143,246 @@ function checkEmailMap(map, email) {
     return false;
 }
 
-//////////////
+/////////////////////
 
-Forms.MYNAME = "#MyName#";
-Forms.FORMNAME = "#FormName#";
-Forms.LINKEDNAME = "#LinkedName#";
+FormsPdf.init = function (options) {
+    if (options == null) options = {};
 
-Forms.replaceCustom = function (content, form, template) {
-    if (content == null || content == "") return content;
+    if (options.columns === undefined) options.columns = AccountSettings.get("forms.columns", "1");
+    if (options.hideempty === undefined) options.hideempty = AccountSettings.get("forms.hideempty", "1");
 
-    var output = content;
-    // My Name
-    output = output.replace(new RegExp(Forms.MYNAME, 'g'), User.getName());
-    // Form Name
-    output = output.replace(new RegExp(Forms.FORMNAME, 'g'), template.name + " " + form.name);
-    // Linked Name
-    var linkedItem = Forms.getLinkedRecord(form);
-    var linkedvalue = (linkedItem != null && linkedItem.value != null) ? linkedItem.value : "";
-    output = output.replace(new RegExp(Forms.LINKEDNAME, 'g'), linkedvalue);
+    Pdf2.init(options.fontsize);
+    Pdf2.singleline = (options.columns == "1");
+    Pdf2.hideempty = (options.hideempty == "1");
+    Pdf2.fieldIndex = -1;
 
-    var fields = Forms.getFields(form);
-    for (var i = 0; i < fields.length; i++) {
-        var field = fields[i];
+    var bordercolor = "#AAA";
+    var headerbackcolor = "rgba(204, 204, 204, 0.5)";
+    var headercolor = "black";
+    var labelbackcolor = "transparent";
+
+    if (options.headercolor && options.headercolor != "#000000") {
+        headerbackcolor = options.headercolor;
+        headercolor = "white";
+        labelbackcolor = Color.opacity(options.headercolor, 0.2);
+    }
+  
+    Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid " + bordercolor + ";padding:0;margin-top:1em;margin-bottom:1em;");
+    Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid " + bordercolor + ";min-width:30px;text-align:left;");
+    Pdf2.addStyle("TABLE.form THEAD TR TD", "font-weight:bold;width:100%;background-color:" + headerbackcolor + ";color:" + headercolor);// +rgba(204, 204, 204, 0.5);");
+    Pdf2.addStyle("TABLE.form TD.label", "background-color:" + labelbackcolor);
+
+    if (Pdf2.singleline) {
+        Pdf2.addStyle("TABLE.form TD:nth-child(1)", "width:" + options.columnwidth);
+    } else {
+        Pdf2.addStyle("TABLE.form TD:nth-child(1)", "width:" + options.columnwidth);
+        Pdf2.addStyle("TABLE.form TD:nth-child(3)", "width:" + options.columnwidth);
+    }
+    Pdf2.addStyle("TABLE.form TR.history TD", "width:33%");
+
+    Pdf2.addStyle("TD.checkbox SPAN", "vertical-align:middle");
+    Pdf2.addStyle("TD.checkbox SPAN.bigger", "font-size:1.5em;padding-right:0.5em;");
+
+    /*
+    Pdf2.addStyle("TABLE.punch", "width:100%;border-collapse:collapse;border:1px solid #AAA;margin-top:2em;");
+    Pdf2.addStyle("TABLE.punch THEAD TD", "background-color:#F1F1F1;");
+    Pdf2.addStyle("TABLE.punch TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;");
+    */
+    Pdf2.addStyle("TABLE.form TR.punch TD", "width:auto");
+
+    Pdf2.setHeader(options.logoid);
+}
+
+FormsPdf.addFields = function (fields, form) {
+    var headerToWrite = null;
+
+    for (var j = 0; j < fields.length; j++) {
+        var field = fields[j];
+        if (FormsPdf.isFieldHidden(field) == true) continue;
+        if (field.type == "header") {
+            FormsPdf.stop();
+            if (field.value == "1") Pdf2.addPageBreak();
+            headerToWrite = field.label;
+        } else {
+            if (headerToWrite != null) {
+                // delayed header write only if there are fields below....
+                Pdf2.add('<table class=form><thead><tr><td colspan=4 xclass=header>', headerToWrite, '</td></tr></thead>');
+                Pdf2.fieldIndex = 0;
+                headerToWrite = null;
+            }
+
+            if (field.type == "drawing" || field.type == "image") {
+                FormsPdf.stop();
+                Pdf2.addHeader(field.label);
+                Pdf2.addImage(field.value, null);
+            } else if (field.type == "button" && field.value == "newsubform") {
+                FormsPdf.stop();
+                var linkedid = form.id + ":" + field.id;
+                var subforms = Query.select("Forms.forms", "*", "linkedtable='Forms.forms' AND linkedid=" + esc(linkedid), "date");
+                FormsPdf.addSubFormsTable(subforms);
+            } else if (field.type != "label" || (field.type == "label" && field.value == "1")) {
+                FormsPdf.addField(field, form);
+            }
+        }
+    }
+    FormsPdf.stop();
+}
+
+FormsPdf.addSubFormsTable = function (subforms) {
+    if (subforms.length == 0) return;
+
+    var photos = [];
+
+    for (var i = 0; i < subforms.length; i++) {
+        var fields = Forms.getFields(subforms[i]);
+        var header = [];
+        var values = [];
+        for (var j = 0; j < fields.length; j++) {
+            var field = fields[j];
+            if (field.type == "photo") {
+                var files = Query.select("System.files", "id;name", "linkedtable='Forms.forms' AND linkedrecid=" + esc(field.value), "date");
+                photos = photos.concat(files);
+            } else if (field.type != "button" && field.type != "label" && field.type != "header") {
+                var value = CustomFields.formatValue(field.value, field.type, field.options);
+                if (field.type == "longtext") value = Format.text(value);
+                header.push(field.label);
+                values.push(value);
+            }
+        }
+        if (i == 0) Pdf2.startTable(header, null, "form"); // "punch"
+        Pdf2.addRow(values);
+    }
+    Pdf2.stopTable();
+
+    // Add subform photos
+    if (photos.length > 0) Pdf2.addImages(null, photos);
+}
+
+FormsPdf.isFieldHidden = function (field) {
+    // buttons are hidden except for subforms
+    if (field.type == "button" && field.value != "newsubform") return true;
+
+    return (Pdf2.hideempty == true && field.type != "header" && field.value == "");
+}
+
+FormsPdf.ensureNewLine = function () {
+    if (Pdf2.fieldIndex % 2 == 1) {
+        Pdf2.add('<td colspan=2> </td></tr><tr>');
+        Pdf2.fieldIndex++;
+    }
+}
+
+FormsPdf.stop = function () {
+    if (Pdf2.fieldIndex == -1) return;
+    if (Pdf2.fieldIndex % 2 == 1) Pdf2.add('<td></td><td></td>');
+    Pdf2.add('</table>');
+    Pdf2.fieldIndex = -1;
+}
+
+FormsPdf.addField = function (field, form) {
+    if (Pdf2.fieldIndex == -1) {
+        Pdf2.add('<table class=form><tr>');
+        Pdf2.fieldIndex = 0;
+    } else if (Pdf2.fieldIndex % 2 == 0) Pdf2.add('</tr><tr>');
+
+    if (field.type == "label") {
+        var label = field.label.split("\n").join("<br/>");
+        if (Pdf2.singleline == true) {
+            Pdf2.add('<td class="label" colspan=2>', label, '</td>');
+        } else {
+            FormsPdf.ensureNewLine();
+            Pdf2.add('<td class="label" colspan=4>', label, '</td>');
+            Pdf2.fieldIndex++;
+        }
+    } else if (field.type == "photo") {
+        var files = Query.select("System.files", "*", "linkedtable='Forms.forms' AND linkedrecid=" + esc(field.value), "date");
+        if (files.length == 0) return;
+
+        if (Pdf2.singleline == true) {
+            Pdf2.add('<td colspan=2>');
+        } else {
+            FormsPdf.ensureNewLine();
+            Pdf2.add('<td colspan=4>');
+        }
+
+        var fullSize = (field.options == "scan") ? true : false;
+        if (field.label) Pdf2.add(field.label, '<br/>');
+        Pdf2.addImages(null, files, fullSize);
+
+        Pdf2.add('</td>');
+        if (Pdf2.singleline == false) Pdf2.fieldIndex++;
+    } else if (field.type == "textarea") {
+        if (Pdf2.singleline == true) {
+            Pdf2.add('<td class="label">', field.label, '</td><td>', field.value, '</td>');
+        } else {
+            FormsPdf.ensureNewLine();
+            Pdf2.add('<td class="label">', field.label, '</td><td colspan=3>', field.value, '</td>');
+            Pdf2.fieldIndex++;
+        }
+    } else if (field.type == "signature") {
+        Pdf2.add('<td colspan=2>');
+        Pdf2.addSignature(field.label, field.value);
+        Pdf2.add('</td>');
+    } else if (field.type == "risk") {
+        var values = JSON.parse(form.value);
+        var valueP = values[field.id + "P"];
+        var valueS = values[field.id + "S"];
+        var proba = "Probability: " + Risk.format(valueP);
+        var sev = "Severity: " + Risk.format(valueS);
+        var measures = (Format.options != null) ? Format.options(field.value, field.value) : field.value;
+        Pdf2.add('<td>Risk: ', field.label, '</td><td>Control Measures:', measures, '<br/>');
+        Pdf2.add('<span style="', Risk.getColorStyle(valueP), '">', proba, '</span> <span style="', Risk.getColorStyle(valueS), '">', sev, '</span></td>');
+    } else if (field.type == "checkbox") {
+        var c = (field.value == "1") ? '&#9745;' : '&#9744;';
+        Pdf2.add('<td colspan=2 class="checkbox"><span class="bigger">', c, '</span><span>', field.label, '</span></td>');
+    } else {
         var value = CustomFields.formatValue(field.value, field.type, field.options);
-        output = output.replace(new RegExp("#" + field.id + "#", 'g'), value);
+        if (field.type == "selectmulti") value = value.split("|").join("<br/>");
+        else if (field.type == "toggle") value = FormsPdf.formatToggle(value, field);
+        Pdf2.add('<td class="label">', field.label, '</td><td>', value, '</td>');
     }
 
-    return output;
+    var increment = (Pdf2.singleline == true) ? 2 : 1;
+    Pdf2.fieldIndex += increment;
+}
+
+// Aligned with ToggleBox.getSelectedStyle in framework/web/edit/ToogleBox
+FormsPdf.formatToggle = function (value, field) {
+    var color = "";
+    if (field.value == "0" || field.value == "5") color = Color.RED;
+    else if (field.value == "1") color = Color.GREEN;
+    else if (field.value == "2" || field.value == "3") color = Color.YELLOW;
+    else if (field.value == "4" || field.value == "P") color = Color.ORANGE;
+    else color = Color.BLUE;
+    return '<span style="font-weight:bold;color:' + color + '">' + value + '</span>';
+}
+
+FormsPdf.addHistory = function (history) {
+    for (var i = 0; i < history.length; i++) {
+        var item = history[i];
+        var signature = "";
+        if (item.signature != "") signature = '<img height="50" src="data:image/png;base64,' + item.signature + '" />';
+
+        Pdf2.add("<table class=form>");
+        Pdf2.add("<tr><td colspan=3 class=header>", item.name, "</td></tr>");
+        if (item.note != "") Pdf2.add('<tr><td class="label" colspan=3>', item.note, "</td></tr>");
+        Pdf2.add("<tr class=history><td>", R.NAME, ":<br><b>", item.staff, "</b></td><td>", R.DATE, ":<br/><b>", Format.datetime(item.date), "</b></td><td>", R.SIGNATURE, ": ", signature, '</td></tr>');
+        Pdf2.add("</table>");
+    }
+}
+
+FormsPdf.addPunch = function (items) {
+    if (items.length == 0) return;
+
+    Pdf2.startTable([R.PUNCHITEM, R.DATE, R.STATUS, "Assigned To"], [null, "150px", "50px", "150px"], "punch");
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var name = item.name;
+        if (item.question != "") name += "<br/><small>" + "Related to:" + item.question + "</small>";
+        var status = (item.status == 0) ? R.OPEN : R.CLOSED;
+        Pdf2.addRow([name, Format.date(item.date), status, item.owner]);
+    }
+    Pdf2.stopTable();
 }
 
 
-Forms.writeCustomPdf = function (form, template) {
-    var html = Forms.replaceCustom(template.htmlpdf, form, template);
-    Pdf2.add(html);
-}
-
-/// Custom Email that replaces the default email when sending a Form by PDF
-Forms.getCustomEmail = function (form, template) {
-    var custom = { subject: "", body: "" };
-
-    if (template.subject != "") custom.subject = Forms.replaceCustom(template.subject, form, template);
-    if (template.body != "") custom.body = Forms.replaceCustom(template.body, form, template);
-
-    return custom;
-}

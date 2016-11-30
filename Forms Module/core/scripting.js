@@ -54,7 +54,7 @@ Forms.createForm = function (name, linkedtable, linkedid, values) {
 Forms.emailCsv = function (emails, id) {
     var form = Query.selectId("Forms.forms", id);
 
-    var filename = Query.names("templates", form.templateid) + " " + form.name;
+    var filename = Query.names("Forms.templates", form.templateid) + " " + form.name;
     if (Format.forprint != null) Format.forprint();
 
     var csv = new CsvFile();

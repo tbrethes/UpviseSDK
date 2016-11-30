@@ -99,8 +99,8 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == 'duration') {
         List.addItemLabel(label, Format.duration(parseInt(value)));
     } else if (type == 'textarea') {
-        value = Format.text(value);
-        if (Settings.getPlatform() == "web") value = Utils.xmlEncodeFormat(value);
+        if (Settings.getPlatform() != "web") value = Format.text(value);
+        // value = Utils.xmlEncodeFormat(value);
         List.addItemLabel(label, value);
     } else if (type == 'numeric' || type == 'decimal') {
         List.addItemLabel(label, Number(value).toLocaleString());
@@ -382,7 +382,7 @@ CustomFields.formatValue = function (value, type, options) {
     else if (type == 'tool') return Query.names("Tools.tools", value);
     else if (type == 'button' || type == "header") return "";
     else if (type == "select" || type == "selectmulti" || type == "toggle") return (Format.options != null) ? Format.options(value, options) : value;
-    else if (type == 'textarea') return Format.text(value);
+    //else if (type == 'textarea') return Format.text(value);
     else if (type == 'checkbox') return value == 1 ? R.YES : R.NO;
     else if (type == "numeric" || type == "decimal") return Number(value).toLocaleString();
     else if (type == "signature") return CustomFields.formatSignature(value);

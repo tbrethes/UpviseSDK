@@ -243,7 +243,7 @@ function Forms_nextState(id, currentStatus) {
     // notify the state staff + form owner
     var users = newstaff + "|" + Forms.getCreator(form);
     if (template.notifusers != "") users += "|" + template.notifusers;
-    Forms.notify(form, newstate.name, users);
+    Forms.notify(form, newstate.name, users); 
 
     // If this is the last stage, ie no action button, archive the form
     if (Forms.shouldArchive(newstate)) Forms.archive(id);
