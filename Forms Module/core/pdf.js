@@ -35,7 +35,7 @@ FormsPdf.export = function (formid, action, email, subject, body) {
 
 FormsPdf.getOptions = function (template) {
     if (template.pdfoptions) {
-        return  JSON.parse(template.pdfoptions);
+        return JSON.parse(template.pdfoptions);
     } else {
         var options = {};
         options.columns = AccountSettings.get("forms.columns", "1");
@@ -49,6 +49,7 @@ FormsPdf.getOptions = function (template) {
         options.columnwidth = template.columnwidth ? template.columnwidth : "500px";
         options.nohistory = template.pdfnohistory;
         options.excelid = "";
+        options.photoheight = "300px";
 
         Query.updateId("Forms.templates", template.id, "pdfoptions", JSON.stringify(options));
         return options;
@@ -59,22 +60,18 @@ FormsPdf.write = function (form, template, index) {
     var linkedItem = Forms.getLinkedRecord != undefined ? Forms.getLinkedRecord(form) : null;
 
     var filename = template.name + " " + form.name;
-    if (linkedItem != null && linkedItem.value != null) filename += "-" + linkedItem.value;
+    if (linkedItem && linkedItem.value) filename += "-" + linkedItem.value;
     filename += ".pdf";
 
     var options = FormsPdf.getOptions(template);
     Pdf2.singleline = (options.columns == "1");
     Pdf2.hideempty = (options.hideempty == "1");
     Pdf2.fieldIndex = -1;
+    Pdf2.photoheight = options.photoheight ? options.photoheight : "300px";
 
-    //var addFormCaption = (AccountSettings.get('formcaption', '1') != "0");
-    // var addLocation = AccountSettings.get("forms.pdflocation", "0") != "0" && form.geo != null && form.geo != '';
+    var title = index ? index + ". " : "";
+    title += template.name + " " + form.name;
 
-    var title = (index != null) ? index + ". " : "";
-    title += template.name;
-    title += " " + form.name;
-
-   
     // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields()
     _valueObj = Forms._getValues(form);
     _formid = form.id;
@@ -91,18 +88,9 @@ FormsPdf.write = function (form, template, index) {
         Pdf2.addRow([R.CREATEDBY, creator, R.DATE, Format.datetime(form.date)]);
         var values = [];
         if (linkedItem) values.push(linkedItem.label, linkedItem.value);
-        if (options.location == "1" && form.geo) values.push(R.LOCATION, form.address ? form.address : form.geo);
+        if (options.location == "1") values.push(R.LOCATION, form.address ? form.address : form.geo);
         if (values.length == 2) values.push("", "");
         if (values.length > 0)  Pdf2.addRow(values);
-        /*
-        Pdf2.addRow([R.CREATEDBY, Forms.getCreator(form), R.STATUS, (form.status == Forms.DRAFT) ? R.DRAFT : R.SUBMITTED]);
-        if (options.location == "1" && form.geo) {
-            Pdf2.addRow([R.DATE, Format.datetime(form.date), R.LOCATION, (form.address != '') ? form.address : form.geo]);
-        } else {
-            Pdf2.addRow([R.DATE, Format.datetime(form.date), "", ""]);
-        }
-        if (linkedItem != null) Pdf2.addRow([linkedItem.label, linkedItem.value, "", ""]);
-        */
     }
     Pdf2.stopTable();
 
@@ -159,11 +147,9 @@ function checkEmailMap(map, email) {
 
 FormsPdf.init = function (options) {
     if (options == null) options = {};
-
     if (options.columns === undefined) options.columns = AccountSettings.get("forms.columns", "1");
     if (options.hideempty === undefined) options.hideempty = AccountSettings.get("forms.hideempty", "1");
 
-   
     var headerbackcolor = "rgba(204, 204, 204, 0.5)";
     var headercolor = "black";
     var labelbackcolor = "transparent";
@@ -216,7 +202,7 @@ FormsPdf.addFields = function (fields, form) {
         } else {
             if (headerToWrite != null) {
                 // delayed header write only if there are fields below....
-                Pdf2.add('<table class=form><thead><tr><td colspan=4 xclass=header>', headerToWrite, '</td></tr></thead>');
+                Pdf2.add('<table class=form><thead><tr><td colspan=4>', headerToWrite, '</td></tr></thead>');
                 Pdf2.fieldIndex = 0;
                 headerToWrite = null;
             }
@@ -315,10 +301,8 @@ FormsPdf.addField = function (field, form) {
             Pdf2.add('<td colspan=4>');
         }
 
-        var fullSize = (field.options == "scan") ? true : false;
-        if (field.label) Pdf2.add(field.label, '<br/>');
-        Pdf2.addImages(null, files, fullSize);
-
+        var height = (field.options == "scan") ? null : Pdf2.photoheight;
+        Pdf2.addImages(field.label, files, height);
         Pdf2.add('</td>');
         if (Pdf2.singleline == false) Pdf2.fieldIndex++;
     } else if (field.type == "textarea") {
