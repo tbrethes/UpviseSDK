@@ -2,15 +2,14 @@
 
 function FormsPdf() {}
 
-Forms.exportPdf = function (formid, action, email, subject, body) {
+FormsPdf.export = function (formid, action, email, subject, body) {
     var form = Query.selectId("Forms.forms", formid);
     var template = Query.selectId("Forms.templates", form.templateid);
     
     var pdfoptions = FormsPdf.getOptions(template);
 
     FormsPdf.init(pdfoptions);
-    Pdf2.setWatermark(pdfoptions.watermark, pdfoptions.watermarkcolor);
-
+    
     var filename = FormsPdf.write(form, template);
 
     // Download or Email
@@ -63,7 +62,10 @@ FormsPdf.write = function (form, template, index) {
     if (linkedItem != null && linkedItem.value != null) filename += "-" + linkedItem.value;
     filename += ".pdf";
 
-    var pdfoptions = FormsPdf.getOptions(template);
+    var options = FormsPdf.getOptions(template);
+    Pdf2.singleline = (options.columns == "1");
+    Pdf2.hideempty = (options.hideempty == "1");
+    Pdf2.fieldIndex = -1;
 
     //var addFormCaption = (AccountSettings.get('formcaption', '1') != "0");
     // var addLocation = AccountSettings.get("forms.pdflocation", "0") != "0" && form.geo != null && form.geo != '';
@@ -83,14 +85,24 @@ FormsPdf.write = function (form, template, index) {
     }
   
     Pdf2.startTitleBlock(title);
-    if (pdfoptions.caption == "1") {
+    if (options.caption == "1") {
+        var creator = Forms.getCreator(form);
+        if (form.status == Forms.DRAFT) creator += " [" +  R.DRAFT + "]";
+        Pdf2.addRow([R.CREATEDBY, creator, R.DATE, Format.datetime(form.date)]);
+        var values = [];
+        if (linkedItem) values.push(linkedItem.label, linkedItem.value);
+        if (options.location == "1" && form.geo) values.push(R.LOCATION, form.address ? form.address : form.geo);
+        if (values.length == 2) values.push("", "");
+        if (values.length > 0)  Pdf2.addRow(values);
+        /*
         Pdf2.addRow([R.CREATEDBY, Forms.getCreator(form), R.STATUS, (form.status == Forms.DRAFT) ? R.DRAFT : R.SUBMITTED]);
-        if (pdfoptions.location == "1" && form.geo) {
+        if (options.location == "1" && form.geo) {
             Pdf2.addRow([R.DATE, Format.datetime(form.date), R.LOCATION, (form.address != '') ? form.address : form.geo]);
         } else {
             Pdf2.addRow([R.DATE, Format.datetime(form.date), "", ""]);
         }
         if (linkedItem != null) Pdf2.addRow([linkedItem.label, linkedItem.value, "", ""]);
+        */
     }
     Pdf2.stopTable();
 
@@ -105,7 +117,7 @@ FormsPdf.write = function (form, template, index) {
         }
     }
 
-    if (pdfoptions.nohistory == false) {
+    if (options.nohistory == false) {
         var history = Forms.getHistory(form);
         FormsPdf.addHistory(history);
     }
@@ -151,12 +163,7 @@ FormsPdf.init = function (options) {
     if (options.columns === undefined) options.columns = AccountSettings.get("forms.columns", "1");
     if (options.hideempty === undefined) options.hideempty = AccountSettings.get("forms.hideempty", "1");
 
-    Pdf2.init(options.fontsize);
-    Pdf2.singleline = (options.columns == "1");
-    Pdf2.hideempty = (options.hideempty == "1");
-    Pdf2.fieldIndex = -1;
-
-    var bordercolor = "#AAA";
+   
     var headerbackcolor = "rgba(204, 204, 204, 0.5)";
     var headercolor = "black";
     var labelbackcolor = "transparent";
@@ -167,9 +174,12 @@ FormsPdf.init = function (options) {
         labelbackcolor = Color.opacity(options.headercolor, 0.2);
     }
   
-    Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid " + bordercolor + ";padding:0;margin-top:1em;margin-bottom:1em;");
-    Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid " + bordercolor + ";min-width:30px;text-align:left;");
-    Pdf2.addStyle("TABLE.form THEAD TR TD", "font-weight:bold;width:100%;background-color:" + headerbackcolor + ";color:" + headercolor);// +rgba(204, 204, 204, 0.5);");
+    Pdf2.init(options.fontsize, options.headercolor);
+    Pdf2.setWatermark(options.watermark, options.watermarkcolor);
+
+    Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
+    Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;min-width:30px;text-align:left;");
+    Pdf2.addStyle("TABLE.form THEAD TR TD", "font-weight:bold;xwidth:100%;background-color:" + headerbackcolor + ";color:" + headercolor); // +rgba(204, 204, 204, 0.5);");
     Pdf2.addStyle("TABLE.form TD.label", "background-color:" + labelbackcolor);
 
     if (Pdf2.singleline) {
@@ -267,14 +277,14 @@ FormsPdf.isFieldHidden = function (field) {
 
 FormsPdf.ensureNewLine = function () {
     if (Pdf2.fieldIndex % 2 == 1) {
-        Pdf2.add('<td colspan=2> </td></tr><tr>');
+        Pdf2.add('<td class=label></td<td></td></tr><tr>');
         Pdf2.fieldIndex++;
     }
 }
 
 FormsPdf.stop = function () {
     if (Pdf2.fieldIndex == -1) return;
-    if (Pdf2.fieldIndex % 2 == 1) Pdf2.add('<td></td><td></td>');
+    if (Pdf2.fieldIndex % 2 == 1) Pdf2.add('<td class=label></td><td></td>');
     Pdf2.add('</table>');
     Pdf2.fieldIndex = -1;
 }

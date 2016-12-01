@@ -79,7 +79,7 @@ Forms.emailCsv = function (emails, id) {
 }
 
 Forms.emailPdf = function (formid, email, subject, body) {
-    Forms.exportPdf(formid, "serveremail", email, subject, body);
+    FormsPdf.export(formid, "serveremail", email, subject, body);
 }
 
 // set the value for the current form only

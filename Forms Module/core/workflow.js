@@ -74,7 +74,7 @@ Forms.notify = function (form, statename, staff) {
 Forms.archive = function (id) {
     var email = AccountSettings.get("Forms.archive");
     if (email != null && email != "") {
-        Forms.exportPdf(id, "archive", email);
+        FormsPdf.export(id, "archive", email);
     }
 }
 
