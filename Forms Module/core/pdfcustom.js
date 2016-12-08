@@ -39,7 +39,7 @@ FormsPdf.replaceCustom = function (content, form, template) {
 FormsPdf.getCustomEmail = function (form, template) {
     var custom = { subject: "", body: "" };
 
-    if (template.subject != "") custom.subject = Forms.replaceCustom(template.subject, form, template);
-    if (template.body != "") custom.body = Forms.replaceCustom(template.body, form, template);
+    if (template.subject != "") custom.subject = FormsPdf.replaceCustom(template.subject, form, template);
+    if (template.body != "") custom.body = FormsPdf.replaceCustom(template.body, form, template);
     return custom;
 }

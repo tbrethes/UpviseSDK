@@ -50,10 +50,58 @@ FormsPdf.getOptions = function (template) {
         options.nohistory = template.pdfnohistory;
         options.excelid = "";
         options.photoheight = "300px";
+        options.photocaption = true;
 
         Query.updateId("Forms.templates", template.id, "pdfoptions", JSON.stringify(options));
         return options;
     }
+}
+
+
+/////////////////////
+
+FormsPdf.init = function (options) {
+    if (options == null) options = {};
+    //if (options.columns === undefined) options.columns = AccountSettings.get("forms.columns", "1");
+    //if (options.hideempty === undefined) options.hideempty = AccountSettings.get("forms.hideempty", "1");
+
+    var headerbackcolor = "rgba(204, 204, 204, 0.5)";
+    var headercolor = "black";
+    var labelbackcolor = "transparent";
+
+    if (options.headercolor && options.headercolor != "#000000") {
+        headerbackcolor = options.headercolor;
+        headercolor = "white";
+        labelbackcolor = Color.opacity(options.headercolor, 0.2);
+    }
+
+    Pdf2.init(options.fontsize, options.headercolor);
+    Pdf2.setWatermark(options.watermark, options.watermarkcolor);
+
+    Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
+    Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;min-width:30px;text-align:left;");
+    Pdf2.addStyle("TABLE.form THEAD TR TD", "font-weight:bold;xwidth:100%;background-color:" + headerbackcolor + ";color:" + headercolor); // +rgba(204, 204, 204, 0.5);");
+    Pdf2.addStyle("TABLE.form TD.label", "background-color:" + labelbackcolor);
+
+    if (Pdf2.singleline) {
+        Pdf2.addStyle("TABLE.form TD:nth-child(1)", "width:" + options.columnwidth);
+    } else {
+        Pdf2.addStyle("TABLE.form TD:nth-child(1)", "width:" + options.columnwidth);
+        Pdf2.addStyle("TABLE.form TD:nth-child(3)", "width:" + options.columnwidth);
+    }
+    Pdf2.addStyle("TABLE.form TR.history TD", "width:33%");
+
+    Pdf2.addStyle("TD.checkbox SPAN", "vertical-align:middle");
+    Pdf2.addStyle("TD.checkbox SPAN.bigger", "font-size:1.5em;padding-right:0.5em;");
+
+    /*
+    Pdf2.addStyle("TABLE.punch", "width:100%;border-collapse:collapse;border:1px solid #AAA;margin-top:2em;");
+    Pdf2.addStyle("TABLE.punch THEAD TD", "background-color:#F1F1F1;");
+    Pdf2.addStyle("TABLE.punch TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;");
+    */
+    Pdf2.addStyle("TABLE.form TR.punch TD", "width:auto");
+
+    Pdf2.setHeader(options.logoid);
 }
 
 FormsPdf.write = function (form, template, index) {
@@ -68,6 +116,7 @@ FormsPdf.write = function (form, template, index) {
     Pdf2.hideempty = (options.hideempty == "1");
     Pdf2.fieldIndex = -1;
     Pdf2.photoheight = options.photoheight ? options.photoheight : "300px";
+    Pdf2.photocaption = (options.photocaption == "0") ? false : true;
 
     var title = index ? index + ". " : "";
     title += template.name + " " + form.name;
@@ -141,52 +190,6 @@ function checkEmailMap(map, email) {
         return true;
     }
     return false;
-}
-
-/////////////////////
-
-FormsPdf.init = function (options) {
-    if (options == null) options = {};
-    if (options.columns === undefined) options.columns = AccountSettings.get("forms.columns", "1");
-    if (options.hideempty === undefined) options.hideempty = AccountSettings.get("forms.hideempty", "1");
-
-    var headerbackcolor = "rgba(204, 204, 204, 0.5)";
-    var headercolor = "black";
-    var labelbackcolor = "transparent";
-
-    if (options.headercolor && options.headercolor != "#000000") {
-        headerbackcolor = options.headercolor;
-        headercolor = "white";
-        labelbackcolor = Color.opacity(options.headercolor, 0.2);
-    }
-  
-    Pdf2.init(options.fontsize, options.headercolor);
-    Pdf2.setWatermark(options.watermark, options.watermarkcolor);
-
-    Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
-    Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;min-width:30px;text-align:left;");
-    Pdf2.addStyle("TABLE.form THEAD TR TD", "font-weight:bold;xwidth:100%;background-color:" + headerbackcolor + ";color:" + headercolor); // +rgba(204, 204, 204, 0.5);");
-    Pdf2.addStyle("TABLE.form TD.label", "background-color:" + labelbackcolor);
-
-    if (Pdf2.singleline) {
-        Pdf2.addStyle("TABLE.form TD:nth-child(1)", "width:" + options.columnwidth);
-    } else {
-        Pdf2.addStyle("TABLE.form TD:nth-child(1)", "width:" + options.columnwidth);
-        Pdf2.addStyle("TABLE.form TD:nth-child(3)", "width:" + options.columnwidth);
-    }
-    Pdf2.addStyle("TABLE.form TR.history TD", "width:33%");
-
-    Pdf2.addStyle("TD.checkbox SPAN", "vertical-align:middle");
-    Pdf2.addStyle("TD.checkbox SPAN.bigger", "font-size:1.5em;padding-right:0.5em;");
-
-    /*
-    Pdf2.addStyle("TABLE.punch", "width:100%;border-collapse:collapse;border:1px solid #AAA;margin-top:2em;");
-    Pdf2.addStyle("TABLE.punch THEAD TD", "background-color:#F1F1F1;");
-    Pdf2.addStyle("TABLE.punch TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;");
-    */
-    Pdf2.addStyle("TABLE.form TR.punch TD", "width:auto");
-
-    Pdf2.setHeader(options.logoid);
 }
 
 FormsPdf.addFields = function (fields, form) {
