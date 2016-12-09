@@ -149,12 +149,6 @@ CustomFields.writeSubforms = function (id, label, templateid, formid) {
     var linkedid = formid + ":" + id;
     var editable = (form != null && form.status == 0);
     if (editable) List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid})", "color:gray");
-    /*
-    if (WEB()) {
-        var subforms = Query.select("Forms.forms", "*", "linkedtable='Forms.forms' AND linkedid={linkedid}", "date");
-        Forms.writeSubformsTable(subforms, editable);
-    }
-    */
 }
 
 CustomFields.onButton = function (recordId, fieldid) {

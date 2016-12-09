@@ -62,46 +62,50 @@ FormsPdf.getOptions = function (template) {
 
 FormsPdf.init = function (options) {
     if (options == null) options = {};
-    //if (options.columns === undefined) options.columns = AccountSettings.get("forms.columns", "1");
-    //if (options.hideempty === undefined) options.hideempty = AccountSettings.get("forms.hideempty", "1");
 
-    var headerbackcolor = "rgba(204, 204, 204, 0.5)";
-    var headercolor = "black";
-    var labelbackcolor = "transparent";
-
-    if (options.headercolor && options.headercolor != "#000000") {
-        headerbackcolor = options.headercolor;
-        headercolor = "white";
-        labelbackcolor = Color.opacity(options.headercolor, 0.2);
-    }
-
-    Pdf2.init(options.fontsize, options.headercolor);
+    Pdf2.init(options.fontsize);
     Pdf2.setWatermark(options.watermark, options.watermarkcolor);
+    Pdf2.setHeader(options.logoid);
 
     Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
     Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;min-width:30px;text-align:left;");
-    Pdf2.addStyle("TABLE.form THEAD TR TD", "font-weight:bold;xwidth:100%;background-color:" + headerbackcolor + ";color:" + headercolor); // +rgba(204, 204, 204, 0.5);");
-    Pdf2.addStyle("TABLE.form TD.label", "background-color:" + labelbackcolor);
-
-    if (Pdf2.singleline) {
-        Pdf2.addStyle("TABLE.form TD:nth-child(1)", "width:" + options.columnwidth);
-    } else {
-        Pdf2.addStyle("TABLE.form TD:nth-child(1)", "width:" + options.columnwidth);
-        Pdf2.addStyle("TABLE.form TD:nth-child(3)", "width:" + options.columnwidth);
-    }
-    Pdf2.addStyle("TABLE.form TR.history TD", "width:33%");
-
-    Pdf2.addStyle("TD.checkbox SPAN", "vertical-align:middle");
-    Pdf2.addStyle("TD.checkbox SPAN.bigger", "font-size:1.5em;padding-right:0.5em;");
-
-    /*
-    Pdf2.addStyle("TABLE.punch", "width:100%;border-collapse:collapse;border:1px solid #AAA;margin-top:2em;");
-    Pdf2.addStyle("TABLE.punch THEAD TD", "background-color:#F1F1F1;");
-    Pdf2.addStyle("TABLE.punch TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;");
-    */
+    Pdf2.addStyle("TABLE.form THEAD TR TD", "font-weight:bold;background-color:rgba(204, 204, 204, 0.5)");
     Pdf2.addStyle("TABLE.form TR.punch TD", "width:auto");
 
-    Pdf2.setHeader(options.logoid);
+    ////////////////
+
+    Pdf2.addStyle("TABLE.form TR.history TD", "width:33%");
+    Pdf2.addStyle("TD.checkbox SPAN", "vertical-align:middle");
+    Pdf2.addStyle("TD.checkbox SPAN.bigger", "font-size:1.5em;padding-right:0.5em;");
+}
+
+FormsPdf.addStyle = function (template) {
+    var options = FormsPdf.getOptions(template);
+    Pdf2.singleline = (options.columns == "1");
+    Pdf2.hideempty = (options.hideempty == "1");
+    Pdf2.fieldIndex = -1;
+    Pdf2.photoheight = options.photoheight ? options.photoheight : "300px";
+    Pdf2.photocaption = (options.photocaption == "0") ? false : true;
+
+    //var headerbackcolor = "rgba(204, 204, 204, 0.5)";
+    //var headercolor = "black";
+    //var labelbackcolor = "transparent";
+
+    if (options.headercolor && options.headercolor != "#000000") {
+        //var headerbackcolor = color;
+        //var headercolor = "white";
+        var labelbackcolor = Color.opacity(options.headercolor, 0.2);
+        Pdf2.addStyle("TABLE.t" + template.id + " THEAD TR TD", "font-weight:bold;background-color:" + options.headercolor + ";color:white");
+        Pdf2.addStyle("TABLE.t" + template.id + " TD.label", "background-color:" + labelbackcolor);
+    }
+
+    if (Pdf2.singleline) {
+        Pdf2.addStyle("TABLE.t" + template.id + " TD:nth-child(1)", "width:" + options.columnwidth);
+    } else {
+        Pdf2.addStyle("TABLE.t" + template.id + " TD:nth-child(1)", "width:" + options.columnwidth);
+        Pdf2.addStyle("TABLE.t" + template.id + " TD:nth-child(3)", "width:" + options.columnwidth);
+    }
+    return options;
 }
 
 FormsPdf.write = function (form, template, index) {
@@ -111,13 +115,7 @@ FormsPdf.write = function (form, template, index) {
     if (linkedItem && linkedItem.value) filename += "-" + linkedItem.value;
     filename += ".pdf";
 
-    var options = FormsPdf.getOptions(template);
-    Pdf2.singleline = (options.columns == "1");
-    Pdf2.hideempty = (options.hideempty == "1");
-    Pdf2.fieldIndex = -1;
-    Pdf2.photoheight = options.photoheight ? options.photoheight : "300px";
-    Pdf2.photocaption = (options.photocaption == "0") ? false : true;
-
+    
     var title = index ? index + ". " : "";
     title += template.name + " " + form.name;
 
@@ -130,7 +128,9 @@ FormsPdf.write = function (form, template, index) {
         return filename;
     }
   
-    Pdf2.startTitleBlock(title);
+    var options = FormsPdf.addStyle(template);
+
+    Pdf2.startTitleBlock(title, options.headercolor);
     if (options.caption == "1") {
         var creator = Forms.getCreator(form);
         if (form.status == Forms.DRAFT) creator += " [" +  R.DRAFT + "]";
@@ -205,7 +205,7 @@ FormsPdf.addFields = function (fields, form) {
         } else {
             if (headerToWrite != null) {
                 // delayed header write only if there are fields below....
-                Pdf2.add('<table class=form><thead><tr><td colspan=4>', headerToWrite, '</td></tr></thead>');
+                Pdf2.add('<table class="form t', form.templateid, '"><thead><tr><td colspan=4>', headerToWrite, '</td></tr></thead>');
                 Pdf2.fieldIndex = 0;
                 headerToWrite = null;
             }
@@ -248,7 +248,7 @@ FormsPdf.addSubFormsTable = function (subforms) {
                 values.push(value);
             }
         }
-        if (i == 0) Pdf2.startTable(header, null, "form"); // "punch"
+        if (i == 0) Pdf2.startTable(header, null, "form");
         Pdf2.addRow(values);
     }
     Pdf2.stopTable();
@@ -266,7 +266,7 @@ FormsPdf.isFieldHidden = function (field) {
 
 FormsPdf.ensureNewLine = function () {
     if (Pdf2.fieldIndex % 2 == 1) {
-        Pdf2.add('<td class=label></td<td></td></tr><tr>');
+        Pdf2.add('<td class=label></td><td></td></tr><tr>');
         Pdf2.fieldIndex++;
     }
 }
@@ -280,7 +280,7 @@ FormsPdf.stop = function () {
 
 FormsPdf.addField = function (field, form) {
     if (Pdf2.fieldIndex == -1) {
-        Pdf2.add('<table class=form><tr>');
+        Pdf2.add('<table class="form t', form.templateid, '"><tr>');
         Pdf2.fieldIndex = 0;
     } else if (Pdf2.fieldIndex % 2 == 0) Pdf2.add('</tr><tr>');
 

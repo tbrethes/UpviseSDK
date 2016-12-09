@@ -8,6 +8,15 @@ if (typeof (Forms) === "undefined") {
 
 //////////////////////////// Form Creation
 
+Forms.newForm = function (templateid, linkedtable, linkedid, remove) {
+    if (remove == 1) History.remove(1);
+    var id = Forms.newFormInternal(templateid, linkedtable, linkedid);
+    if (id != null) {
+        if (linkedtable != "Forms.forms") History.add(Forms._VIEWFORM + "({id})");
+        History.redirect(Forms._EDITFORM +  "({id})");
+    }
+}
+
 Forms.newFormInternal = function (templateid, linkedtable, linkedid, values) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
