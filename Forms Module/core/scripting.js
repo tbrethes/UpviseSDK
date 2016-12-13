@@ -34,11 +34,17 @@ Forms.getDescription = function (id) {
     return desc.join("<br/>");
 }
 
-Forms.createForm = function (name, linkedtable, linkedid) {
+Forms.getTemplateId = function (name) {
     var templates = Query.select("Forms.templates", "id", "name={name}");
-    if (templates.length == 0) { App.alert("No Template not found!"); return 1; }
-    var templateid = templates[0].id;
-    var formid = Forms.newFormInternal(templateid, linkedtable, linkedid);
+    if (templates.length == 0) templates = Query.select("Forms.templates", "id", "prefix={name}");
+    return (templates.length > 0) ? templates[0].id : null;
+}
+
+Forms.createForm = function (name, linkedtable, linkedid, values) {
+    var templateid = Forms.getTemplateId(name);
+    if (templateid == null) { App.alert("No Template not found!"); return 1; }
+
+    var formid = Forms.newFormInternal(templateid, linkedtable, linkedid, values);
 
     History.add(Forms._VIEWFORM + "({formid})");
     History.replace(Forms._EDITFORM + "({formid})");
@@ -46,9 +52,9 @@ Forms.createForm = function (name, linkedtable, linkedid) {
 }
 
 Forms.emailCsv = function (emails, id) {
-    var form = Query.selectId("Forms.forms", id)
+    var form = Query.selectId("Forms.forms", id);
 
-    var filename = Query.names("templates", form.templateid) + " " + form.name;
+    var filename = Query.names("Forms.templates", form.templateid) + " " + form.name;
     if (Format.forprint != null) Format.forprint();
 
     var csv = new CsvFile();
@@ -72,6 +78,11 @@ Forms.emailCsv = function (emails, id) {
     Notif.sendCsv(emails, content, filename);
 }
 
+Forms.emailPdf = function (formid, email, subject, body) {
+    FormsPdf.export(formid, "serveremail", email, subject, body);
+}
+
+// set the value for the current form only
 Forms.setValue = function (id, value) {
     if (_formid == null || _formid == "" || id == null || id == "") return;
     _valueObj[id] = value;
@@ -79,12 +90,34 @@ Forms.setValue = function (id, value) {
     Query.updateId("Forms.forms", _formid, "value", values);
 }
 
-Forms.getValue = function (id) {
-    if (_formid == null || _formid == "" || id == null || id == "") return null; // error
-    var value = _valueObj[id];
+// second parameter formid is optional, if null, it means current form
+Forms.getValue = function (fieldid, formid) {
+    if (!fieldid) return null; // error
+    var value;
+    if (formid == null) {
+        // the current form
+        if (_formid == null || _formid == "") return null; // error
+        value = _valueObj[fieldid];
+    } else {
+        // a specific form
+        var form = Query.selectId("Forms.forms", formid);
+        if (form == null) return "";
+        var values = JSON.parse(form.value);
+        value = values[fieldid];
+    }
     if (value == null) value = "";
     return value;
 }
+
+Forms.getIntValue = function (fieldid, formid) {
+    return parseInt(Forms.getValue(fieldid, formid));
+}
+
+Forms.getFloatValue = function (fieldid, formid) {
+    return parseFloat(Forms.getValue(fieldid, formid));
+}
+
+/////////////////////////////////////////////////
 
 Forms.extractValue = function(buffer, label) {
     if (buffer == null) return "";
@@ -149,16 +182,44 @@ Forms.getAllFields = function (form) {
     return list;
 }
 
-Forms.datasetOptions = function (name, orderby) {
+
+Forms.selectDataset = function (name, orderby) {
     var sets = Query.select("Forms.datasets", "id", "name={name}");
-    if (sets.length == 0) return "";
+    if (sets.length == 0) return [];
     var datasetid = sets[0].id;
     if (orderby == null) orderby = "name";
-    var items = Query.select("Forms.dataitems", "code;name", "datasetid={datasetid}", orderby);
+    return Query.select("Forms.dataitems", "code;name", "datasetid={datasetid}", orderby);
+}
+
+Forms.datasetOptions = function (name, orderby) {
+    var items = Forms.selectDataset(name, orderby);
     var options = [];
     for (var i = 0; i < items.length; i++) {
         var item = items[i];
-        options.push(item.code + ":" + item.name);
+        var str = item.code ? item.code + ":" + item.name : item.name;
+        options.push(str);
     }
     return options.join("|");
+}
+
+Forms.getForm = function (templateName, formName) {
+    var templateid = Forms.getTemplateId(templateName);
+    if (templateid == null) return null;
+    var forms = Query.select("Forms.forms", "*", "templateid={templateid} AND name={formName}");
+    if (forms.length == 0) return null;
+    var form = forms[0];
+    var values = JSON.parse(form.value);
+    return values;
+}
+
+// return a list of subform ids for this field
+Forms.getFormIds = function (fieldname, formid) {
+    if (formid == null) formid = _formid;
+    var linkedid = _formid + ":" + fieldname;
+    var list = [];
+    var subforms = Query.select("Forms.forms", "id", "linkedtable='Forms.forms' AND linkedid={linkedid}", "date DESC");
+    for (var i = 0; i < subforms.length; i++) {
+        list.push(subforms[i].id);
+    }
+    return list;
 }

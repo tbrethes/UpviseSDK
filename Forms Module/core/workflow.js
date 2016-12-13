@@ -19,8 +19,8 @@ Forms.checkEmptyFields = function (form) {
             var isEmpty = false;
             if (field.type == "signature" && Settings.getPlatform() == "web") continue; // signature never mandatory on web.
             else if (field.type == "photo") {
-                var items = Files.select("Forms.forms", field.value);
-                if (items.length == 0) isEmpty = true;
+                var count = Query.count("System.files", "linkedtable='Forms.forms' AND linkedrecid={field.value}");
+                if (count == 0) isEmpty = true;
             } else if (field.value == null || field.value == "") {
                 isEmpty = true;
             }
@@ -49,9 +49,9 @@ Forms.evalSubmit = function (form) {
     var fields = Query.select("Forms.fields", "name;label;value;type;seloptions", "formid=" + esc(form.templateid), "rank");
     var formValues = Forms._getFullValues(form, fields);
 
-    var js = "function f1(){" + onsubmit + "};f1();";
-    var returnValue = Forms._evalFormula(js, formValues, form);
-    if (returnValue != 0 && returnValue != 1 && returnValue != 2) {
+    var js = "function f1() {" + onsubmit + "};f1();";
+    var returnValue = Forms._evalFormula(js, formValues, form, "ONSUBMIT");
+    if (returnValue != undefined && returnValue != 0 && returnValue != 1 && returnValue != 2) {
         App.alert("Javascript Error: " + returnValue);
     }
     return returnValue;
@@ -74,7 +74,7 @@ Forms.notify = function (form, statename, staff) {
 Forms.archive = function (id) {
     var email = AccountSettings.get("Forms.archive");
     if (email != null && email != "") {
-        Forms.exportPdf(id, "archive", email);
+        FormsPdf.export(id, "archive", email);
     }
 }
 
@@ -127,6 +127,10 @@ Forms.getStateStaff = function (form, state) {
     return state.staff;
 }
 
+Forms.shouldArchive = function (state) {
+    return state.action == ""; // archive last state only
+}
+
 //////////////////////
 
 function Forms_submit(id, goBack) {
@@ -149,6 +153,11 @@ function Forms_submit(id, goBack) {
     Forms.LOCK = 1;
     try {
         Query.updateId("Forms.forms", id, "status", 1);
+        // also submit the subforms
+        var subforms = Forms.selectSubForms(form);
+        for (var i = 0; i < subforms.length; i++) {
+            Query.updateId("Forms.forms", subforms[i].id, "status", 1);
+        }
         // notify all managers : null
         Forms.notify(form, R.SUBMITTED, null);
         Forms.archive(id);
@@ -196,8 +205,14 @@ function Forms_nextState(id, currentStatus) {
 
     // ensure no empty mandatory fiels
     if (Forms.checkEmptyFields(form) == false) return;
+    
+    // Execute the onload script for this state - if any. If the onload script retrun a non null string, display the message and do not continue to next state
+    var errorMsg = Forms.evalOnLoad(form, newstate.onload);
+    if (errorMsg) return App.alert(errorMsg);
+
     if (newstate.note != "" && App.confirm(newstate.note) == false) return;
 
+    // ask for signature
     var signature = "";
     if (newstate.sign == 1) {
         if (WEB() == true) {
@@ -210,9 +225,6 @@ function Forms_nextState(id, currentStatus) {
             if (signature == "" || signature == null) return;
         }
     }
-
-    // Execute the onload script for this state - if any.
-    Forms.evalOnLoad(form, newstate.onload);
 
     // Set the form default values for the new state
     var values = Forms._getValues(form);
@@ -231,10 +243,10 @@ function Forms_nextState(id, currentStatus) {
     // notify the state staff + form owner
     var users = newstaff + "|" + Forms.getCreator(form);
     if (template.notifusers != "") users += "|" + template.notifusers;
-    Forms.notify(form, newstate.name, users);
+    Forms.notify(form, newstate.name, users); 
 
     // If this is the last stage, ie no action button, archive the form
-    if (newstate.action == "") Forms.archive(id);
+    if (Forms.shouldArchive(newstate)) Forms.archive(id);
     History.reload();
 }
 
@@ -246,8 +258,7 @@ Forms.evalOnLoad = function (form, onload) {
     var formValues = Forms._getFullValues(form, fields);
 
     var js = "function f1(){" + onload + "};f1();";
-    var error = Forms._evalFormula(js, formValues, form);
-    if (error != null && error != "") App.alert(error);
+    return Forms._evalFormula(js, formValues, form, "ONLOAD");
 }
 
 // formowner and staff can be multi owner

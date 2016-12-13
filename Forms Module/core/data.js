@@ -6,6 +6,7 @@ var _formid;
 
 Forms._EDITFORM = "Forms.editForm";
 Forms._VIEWFORM = "Forms.viewForm";
+Forms._VIEWFILE = null;
 
 function _updateValue(formid, fieldname, fieldvalue) {
 
@@ -13,8 +14,8 @@ function _updateValue(formid, fieldname, fieldvalue) {
 
     var onchange = _changeObj[fieldname];
     if (onchange) {
-        var form = Query.selectId("Forms.forms", _formid);
-        var ok = Forms._evalFormula(onchange, null, form);
+        var form = Query.selectId("Forms.forms", formid);
+        var ok = Forms._evalFormula(onchange, {value: fieldvalue}, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
         if (ok === false) return; 
     }
 
@@ -30,8 +31,8 @@ function _updateValue(formid, fieldname, fieldvalue) {
 Forms.writeEditFields = function (form) {
     // form.value contains a json string of array values indexed by field names
     _valueObj = Forms._getValues(form);
-    _changeObj = {};
     _formid = form.id;
+    _changeObj = {};
     var onchange = "_updateValue({form.id},this.id,this.value)";
 
     var stateCount = Query.count("Forms.states", "templateid={form.templateid}");
@@ -56,20 +57,22 @@ Forms.onScan = function (formid, fieldid, value) {
     var onchange = _changeObj[fieldid];
     if (onchange != null && onchange != "") {
         var js = "function f1() { var value=" + esc(value) + "; var formid=" + esc(formid) + ";" + onchange + "};f1();";
-        var ok = Forms._evalFormula(js);
+        var form = Query.selectId("Forms.forms", formid);
+        var ok = Forms._evalFormula(js, {}, form, "ONSCAN_" + fieldid);
     }
 }
 
 Forms.writeViewFields = function (form) {
     _valueObj = Forms._getValues(form); // we need this because Risk.view access it
+    _formid = form.id;
     var fields = Forms.getFields(form);
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.type == "button") {
             if (field.status == 0 || field.status == -1 || form.status == field.status) {
-                CustomFields.addButton(field.label, field.value, field.options, form.id);
+                CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
             }
-        } else if (form.status >= field.status) {
+        } else if (form.status >= field.status || form.status == -1) {
             CustomFields.addViewItem(field.id, field.type, field.label, field.value, field.options, form.id);
         }
     }
@@ -102,7 +105,7 @@ Forms.getFields = function (form, type) {
         field2.type = field.type;
         field2.status = field.status;
         field2.value = Forms._getValue(formValues, field, form);
-        field2.options = Forms._eval(field.seloptions, form);
+        field2.options = Forms._eval(field.seloptions, form, "OPTIONS_" + field.name);
         field2.mandatory = field.mandatory;
         field2.onchange = field.onchange;
 
@@ -139,32 +142,14 @@ Forms._getFullValues = function (form, fields) {
     return values;
 }
 
-Forms._eval = function (value, form) {
-    if (value == null || value == "") {
-        return "";
-    } else if (value.indexOf("javascript:") == 0) {
-        value = value.substr("javascript:".length);
-    } else if (value.indexOf("=") == 0) {
-        value = value.substr(1);
+Forms._getLink = function (form) {
+    if (form && form.linkedtable && form.linkedid) {
+        var linkedid = form.linkedid;
+        // subforms have a linkedid which is formid:fieldid
+        if (form.linkedtable == "Forms.forms") linkedid = linkedid.split(":")[0];
+        return Query.selectId(form.linkedtable, linkedid);
     } else {
-        return value;
-    }
-
-    // link variable can be used in when doing eval of the option javascript code....
-    var link = (form.linkedtable != null && form.linkedid != null) ? Query.selectId(form.linkedtable, form.linkedid) : null;
-    if (link != null) {
-        // also add the custom fields to the lik object
-        var custom = CustomFields.loadValues(link.custom);
-        for (var key in custom) {
-            link[key] = custom[key];
-        }
-    }
-    //  The Eval value string CAN reference the "link" keyword for custom code
-    try {
-        var result = eval(value);
-        return result;
-    } catch (e) {
-        return "Error: " + e.message;
+        return null;
     }
 }
 
@@ -174,7 +159,7 @@ Forms._getValue = function (valuesObj, field, form) {
     } else if (field.type == "photo") {
         return form.id + ":" + field.name;
     } else if (field.type == "formula") {
-        return Forms._evalFormula(field.value, valuesObj, form);
+        return Forms._evalFormula(field.value, valuesObj, form, "FORMULA_" + field.name);
     } else {
         var value = valuesObj[field.name];
         if (value == null) value = "";
@@ -182,23 +167,41 @@ Forms._getValue = function (valuesObj, field, form) {
     }
 }
 
-Forms._evalFormula = function (js, valuesObj, form) {
+Forms._eval = function (value, form, sourceURL) {
+    if (value == null || value == "") {
+        return "";
+    } else if (value.indexOf("javascript:") == 0) {
+        value = value.substr("javascript:".length);
+    } else if (value.indexOf("=") == 0) {
+        value = value.substr(1);
+    } else {
+        return value;
+    }
+    // value is javascript, eval
+    return Forms._evalFormula(value, {}, form, sourceURL);
+}
+
+Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
     js = js.trim();
     if (js.substring(0, 1) == "=") js = js.substring(1);
+    else if (js.indexOf("javascript:") == 0) js = js.substr("javascript:".length);
 
+    if (sourceURL) sourceURL = sourceURL.replace(/ /g, '_').toUpperCase();
+    else sourceURL = "FORMULA";
+   
     var buffer = [];
     for (var member in valuesObj) {
         buffer.push('var ' + member + '=' + esc(valuesObj[member]));
     }
-    buffer.push(js);
+    buffer.push("\n" + js);
     try {
-        // link var is available in eval buffer;
-        var link = (form != null && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
-        var result = eval(buffer.join(';') + "\n//# sourceURL=FORM_FORMULA.js");
+        // link var is available in eval buffer, as well as form object
+        var link = Forms._getLink(form);
+        var result = eval(buffer.join(';') + "\n//# sourceURL=http://FORM/" + sourceURL + ".js");
         return result;
     } catch (e) {
         if (WEB()) {
-            var msg = "Form Eval Formula Error:\n" + e.message + "\nForm: " + form.name;
+            var msg = "Form Eval Formula Error:\n" + e.message + "\nForm: " + form.name + "\nSource: " + sourceURL; 
             if (window.console != null) window.console.log(msg);
         }
         return "Error: " + e.message;
@@ -281,4 +284,27 @@ Forms.addHistory = function (form, name, note, signature) {
     Query.updateId("Forms.forms", form.id, "history", JSON.stringify(history));
 }
 
+////////////////
+// WEB ONLY
+Forms.writeSubformsTable = function (forms, editable) {
+    for (var i = 0; i < forms.length; i++) {
+        var color = forms[i].color;
+        var fields = Forms.getFields(forms[i]);
+        var header = [];
+        var values = [];
+        for (var j = 0; j < fields.length; j++) {
+            var field = fields[j];
+            if (field.type != "signature" && field.type != "photo" && field.type != "button" && field.type != "label" && field.type != "header") {
+                var value = CustomFields.formatValue(field.value, field.type, field.options);
+                if (field.type == "longtext") value = Format.text(value);
+                header.push(field.label);
+                values.push(value);
+            }
+        }
+        if (i == 0) List.addHeader(header);
+        var func = editable ? Forms._EDITFORM : Forms._VIEWFORM;
+        var style = color ? "priority:" + color : "";
+        List.add(values, func + "({forms[i].id})", style);
+    }
+}
 

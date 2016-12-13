@@ -2,6 +2,8 @@
 /// CustomField class is defined in common.js because there is a namespace issue with web version.....
 function CustomFields() {}
 
+CustomFields._VIEWFILE = "Files.viewFile";
+
 CustomFields.values = null; // Array of values indexed by name
 
 CustomFields.view = function (table, recordId, fieldsTable) {
@@ -12,12 +14,13 @@ CustomFields.view = function (table, recordId, fieldsTable) {
     if (fields.length == 0 || item == null) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
+    CustomFields.buttons = {}; // to keep the onclick for button fields
 
     if (WEB() == false) List.addHeader(R.CUSTOMFIELDS);
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var value = CustomFields.values[field.name];
-        CustomFields.addViewItem(field.name, field.type, field.label, value, field.seloptions);
+        CustomFields.addViewItem(field.name, field.type, field.label, value, field.seloptions, recordId);
     }
 }
 
@@ -25,7 +28,10 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     if (type == 'header') {
         List.addHeader(label);
         return;
-    }
+    } else if (type == "button") {
+        CustomFields.addButton(id, label, "code", options, formid);
+        return;
+    } 
     if (value == null || value === "") return;
 
     if (type == 'select' || type == 'selectmulti') {
@@ -61,7 +67,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         }
         CustomFields.writeMultivalueItem(label, contactids.join("|"), "Contacts.contacts", "Contacts.viewContact", "contact"); // no table="" id and value are the same
     } else if (type == "photo") {
-        List_addFileBox(label, "Forms.forms", value);
+        CustomFields.addFileBox(label, "Forms.forms", value);
     } else if (type == "drawing") {
         List.addHeader(label);
         List.addImage(Settings.getFileUrl(value));
@@ -69,7 +75,8 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         List.addHeader(label);
         List.addImage(Settings.getFileUrl(value));
     } else if (type == 'signature') {
-        if (WEB()) List.addItemLabel(label, Format.image64(value));
+        var onclick = User.isAdmin() ? "Forms.popupResetSignature({formid},{id})" : "";
+        if (WEB()) List.addItemLabel(label, Format.image64(value), onclick);
         else List.addSignatureBox('', label, value, '');
     } else if (type == 'barcode') {
         List.addItemLabel(label, value);
@@ -92,8 +99,8 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == 'duration') {
         List.addItemLabel(label, Format.duration(parseInt(value)));
     } else if (type == 'textarea') {
-        value = Format.text(value);
-        if (Settings.getPlatform() == "web") value = Utils.xmlEncodeFormat(value);
+        if (Settings.getPlatform() != "web") value = Format.text(value);
+        // value = Utils.xmlEncodeFormat(value);
         List.addItemLabel(label, value);
     } else if (type == 'numeric' || type == 'decimal') {
         List.addItemLabel(label, Number(value).toLocaleString());
@@ -104,21 +111,61 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == 'location') {
         List.addItemLabel(label, value, "App.map({value})");
     } else if (type == "file") {
-        List.addItemLabel(label, Query.names("System.files", value), "Files.viewFile({value})");
+        List.addItemLabel(label, Query.names("System.files", value), CustomFields._VIEWFILE + "({value})");
+    } else if (type == 'score') {
+        if (WEB()) List.addItemLabel(label, Format.toggle(value, options));
+        else List.addToggleBox('', label, value, null, "");
     } else {
         List.addItemLabel(label, value);
     }
 }
 
-CustomFields.addButton = function(label, value, options, formid) {
+CustomFields.addButton = function (id, label, value, options, formid) {
     var onclick = null;
     if (value == "newtask") onclick = "Tasks.newTask()";
-    else if (value == "newnote") onclick =  "Notes.newNote()";
-    else if (value == "newevent") onclick =  "Calendar.newEvent()";
-    else if (value == "newform") onclick =  "Forms.newForm({options},'Forms.forms',{formid})";
-    if (onclick != null) List.addButton(label, onclick);
+    else if (value == "newnote") onclick = "Notes.newNote()";
+    else if (value == "newevent") onclick = "Calendar.newEvent()";
+    else if (value == "newform") {
+        var templateid = options;
+        var form = formid ? Query.selectId("Forms.forms", formid) : null;
+        var linkedtable = form ? form.linkedtable : "";
+        var linkedid = form ? form.linkedid : "";
+        onclick = "Forms.newForm({templateid},{linkedtable},{linkedid})";
+    } else if (value == "newsubform") {
+        var templateid = options;
+        CustomFields.writeSubforms(id, label, templateid, formid);
+        return;
+    }
+    else if (value == "code") {
+        if (CustomFields.buttons == null) CustomFields.buttons = {};
+        CustomFields.buttons[id] = options; // this contains the onclick for button
+        onclick = "CustomFields.onButton({formid},{id})";
+    } else return;
+    List.addButton(label, onclick, "color:gray");
 }
- 
+
+CustomFields.writeSubforms = function (id, label, templateid, formid) {
+    var form = Query.selectId("Forms.forms", formid);
+    var linkedid = formid + ":" + id;
+    var editable = (form != null && form.status == 0);
+    if (editable) List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid})", "color:gray");
+}
+
+CustomFields.onButton = function (recordId, fieldid) {
+    var onclick = CustomFields.buttons[fieldid];
+    if (onclick) {
+        try {
+            // the onclick script needs the form object.
+            var form = Query.selectId("Forms.forms", recordId); // this is for button inside forms
+            var link = (form && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
+            if (form == null) form = { id: recordId }; // this is for button inside other records
+            eval(onclick);
+        } catch (e) {
+            App.alert(e.message);
+        }
+    }
+}
+
 CustomFields.writeMultivalueItem = function (label, id, table, func, img) {
     var items = Query.select(table, "id;name", "id IN " + list(id), "name");
     if (items.length == 0) return;
@@ -157,7 +204,7 @@ CustomFields.edit = function (table, recordId, ids, fieldsTable) {
     if (fields.length == 0) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
-
+    
     CustomFields.companyOptions = null;
     CustomFields.contactOptions = null;
 
@@ -179,7 +226,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'selectmulti') {
         List.addComboBoxMulti(id, label, value, onchange, options);
     } else if (type == 'toggle') {
-        onchange += ";CustomFields.onPunch({formid},this.value)";
+        onchange += ";CustomFields.onPunch({formid},{label},this.value,{id})";
         List.addToggleBox(id, label, value, onchange, options);
     } else if (type == 'checkbox') {
         List.addCheckBox(id, label, parseInt(value), onchange);
@@ -204,18 +251,17 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'user') {
         List.addComboBoxMulti(id, label, value, onchange, User.getOptions());
     } else if (type == "photo") {
-        List_addFileBox(label, "Forms.forms", value, options); // true is for add new
+        CustomFields.addFileBox(label, "Forms.forms", value, options); // options is for add new
     } else if (type == "drawing") {
         List.addHeader(label);
-        List.addImage(Settings.getFileUrl(value), "App.editPicture({value})");
+        if (value != "") List.addImage(Settings.getFileUrl(value), "App.editPicture({value})");
     } else if (type == "image") {
         List.addHeader(label);
         List.addImage(Settings.getFileUrl(value));
     } else if (type == 'signature') {
         List.addSignatureBox(id, label, value, onchange);
     } else if (type == 'barcode') {
-        if (List.addBarcodeBox != undefined) List.addBarcodeBox(id, label, value, onchange);
-        else List.addItemSubtitle(label, "Upgrade to the latest version of Upvise for Barcode Support");
+        List.addBarcodeBox(id, label, value, onchange);
     } else if (type == 'button') {
         // do not display button in edit mode
     } else if (type == 'label') {
@@ -229,15 +275,17 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
         Risk.edit(id, label, value, options, formid);
     } else if (type == 'file') {
         List.addComboBox(id, label, value, onchange, Query.options("System.files", "folderid={options}"));
+    } else if (type == "button") {
+        // no button in edit mode
     } else {
         // works for text, phone, email, time, duration, currency
         List.addTextBox(id, label, value, onchange, type);
     }
 }
 
-CustomFields.onPunch = function (formid, value) {
+CustomFields.onPunch = function (formid, label, value, id) {
     if (value == "P") {
-        Punch.newFormItem(formid);
+        Punch.newFormItem(formid, label);
     }
 }
 
@@ -260,7 +308,6 @@ CustomFields.onNewContact = function (formid, fieldname, name) {
     var value = (_valueObj != null) ? _valueObj[fieldname] : null ;
     value = (value == null || value == '') ? newid : value + "|" + newid;
     _updateValue(formid, fieldname, value);
-    //if (History.redirect != null) History.redirect("Contacts.editContact({newid})");
     History.reload();
 }
 
@@ -269,7 +316,6 @@ CustomFields.onNewCompany = function(formid, fieldname, name) {
     var value = (_valueObj != null) ? _valueObj[fieldname] : null;
     value = (value == null || value == '') ? newid : value + "|" + newid;
     _updateValue(formid, fieldname, value);
-    //if (History.redirect != null) History.redirect("Contacts.editCompany({newid})");
     History.reload();
 }
 
@@ -315,9 +361,9 @@ CustomFields.get = function (table, custom) {
 CustomFields.formatValue = function (value, type, options) {
     if (value == null || value === "") return "";
 
-    if (type == 'date') return value > 0 ? Format.date(parseFloat(value)) : "";
-    else if (type == 'time') return value > 0 ? Format.time(parseFloat(value)) : "";
-    else if (type == 'datetime') return value > 0 ? Format.datetime(parseFloat(value)) : "";
+    if (type == 'date') return Format.date(parseFloat(value));
+    else if (type == 'time') return Format.time(parseFloat(value));
+    else if (type == 'datetime') return Format.datetime(parseFloat(value));
     else if (type == 'duration') return Format.duration(parseInt(value));
     else if (type == 'contact') return buf = Query.names("Contacts.contacts", value);
     else if (type == 'company') return Query.names("Contacts.companies", value);
@@ -327,11 +373,13 @@ CustomFields.formatValue = function (value, type, options) {
     else if (type == 'asset') return Query.names("Assets.assets", value);
     else if (type == 'tool') return Query.names("Tools.tools", value);
     else if (type == 'button' || type == "header") return "";
-    else if (type == "select" || type == "multiselect" || type == "toggle") return (Format.options != null) ? Format.options(value, options) : value;
-    else if (type == 'textarea') return Format.text(value);
+    else if (type == "select" || type == "selectmulti" || type == "toggle") return (Format.options != null) ? Format.options(value, options) : value;
+    //else if (type == 'textarea') return Format.text(value);
     else if (type == 'checkbox') return value == 1 ? R.YES : R.NO;
     else if (type == "numeric" || type == "decimal") return Number(value).toLocaleString();
     else if (type == "signature") return CustomFields.formatSignature(value);
+    else if (type == "photo") return CustomFields.formatImages(value);
+
     else return String(value);
 }
 
@@ -352,3 +400,59 @@ CustomFields.getHtml = function (table, custom) {
 CustomFields.formatSignature = function (value) {
     return (value == null || value == "") ? "" : '<img height="100" src="data:image/png;base64,' + value + '" />'
 }
+
+CustomFields.formatImages = function (value) {
+    var buf = [];
+    var files = Query.select("System.files", "id", "linkedtable='Forms.forms' AND linkedrecid={value}", "date");
+    for (var i = 0; i < files.length; i++) {
+        buf.push('<img height=300 class="photo" src="##BASE##', files[i].id, '"/>');
+    }
+    return buf.join("");
+}
+
+CustomFields.writePdf = function (table, recordId) {
+    var item = Query.selectId(table, recordId);
+    if (item == null) return;
+    var customFields = CustomFields.get(table, item.custom);
+    if (customFields.length > 0) {
+        for (var i = 0; i < customFields.length; i++) {
+            var field = customFields[i];
+            if (field.value != "") Pdf2.addRow([field.label, field.value]);
+        }
+    }
+}
+
+//////////////////////
+
+CustomFields.addFileBox = function (label, table, id, action) {
+    var files = [];
+    if (table && id) files = Query.select("System.files", "id;name;mime;externalurl", "linkedtable={table} AND linkedrecid={id}", "date");
+    if (action == null && files.length == 0) return;
+
+    if (label != null) List.addHeader(label);
+
+    if (WEB()) {
+        _html.push('<div style="margin-left:60px;">');
+        NextPrevious.addSection();
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            var fileid = (file.mime.indexOf("image/") != -1 && file.externalurl == "") ? file.id : null;
+            List.addThumbnail(file.name, fileid, CustomFields._VIEWFILE + "({file.id})");
+        }
+        if (action != null) FileBox.writeButton("", R.SELECTFILE, "FilePicker.pick({table},{id})", "");
+        _html.push('</div>');
+    } else {
+        if (action != null) {
+            var label = (action == "scan") ? R.SCANDOCUMENT : R.ADDPHOTO;
+            List.addItem(label, "App.takePicture({table},{id},{action})", "img:camera;icon:new");
+        }
+
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            var style = null;
+            if (file.mime == 'image/jpeg' || file.mime == 'image/png' || file.mime == 'image/gif') style = "scale:crop;img:" + Settings.getFileUrl(file.id);
+            List.addItem(file.name, CustomFields._VIEWFILE + "({file.id})", style);
+        }
+    }
+}
+
