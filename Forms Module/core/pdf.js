@@ -66,6 +66,7 @@ FormsPdf.init = function (options) {
     Pdf2.init(options.fontsize);
     Pdf2.setWatermark(options.watermark, options.watermarkcolor);
     Pdf2.setHeader(options.logoid);
+    if (options.footer) Pdf2.setFooter(options.footer);
 
     Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
     Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;min-width:30px;text-align:left;");
@@ -87,16 +88,13 @@ FormsPdf.addStyle = function (template) {
     Pdf2.photoheight = options.photoheight ? options.photoheight : "300px";
     Pdf2.photocaption = (options.photocaption == "0") ? false : true;
 
-    //var headerbackcolor = "rgba(204, 204, 204, 0.5)";
-    //var headercolor = "black";
-    //var labelbackcolor = "transparent";
-
     if (options.headercolor && options.headercolor != "#000000") {
-        //var headerbackcolor = color;
-        //var headercolor = "white";
         var labelbackcolor = Color.opacity(options.headercolor, 0.2);
-        Pdf2.addStyle("TABLE.t" + template.id + " THEAD TR TD", "font-weight:bold;background-color:" + options.headercolor + ";color:white");
+        Pdf2.addStyle("TABLE.t" + template.id + " THEAD TR TD", "color:white;background-color:" + options.headercolor);
         Pdf2.addStyle("TABLE.t" + template.id + " TD.label", "background-color:" + labelbackcolor);
+
+        Pdf2.addStyle("TABLE.subt" + template.id + " THEAD TR TD", "color:white;background-color:" + options.headercolor);
+        Pdf2.addStyle("TABLE.subt" + template.id + " tr:nth-child(even)", "background-color:" + labelbackcolor);
     }
 
     if (Pdf2.singleline) {
@@ -218,7 +216,7 @@ FormsPdf.addFields = function (fields, form) {
                 FormsPdf.stop();
                 var linkedid = form.id + ":" + field.id;
                 var subforms = Query.select("Forms.forms", "*", "linkedtable='Forms.forms' AND linkedid=" + esc(linkedid), "date");
-                FormsPdf.addSubFormsTable(subforms);
+                FormsPdf.addSubFormsTable(subforms, form.templateid);
             } else if (field.type != "label" || (field.type == "label" && field.value == "1")) {
                 FormsPdf.addField(field, form);
             }
@@ -227,7 +225,7 @@ FormsPdf.addFields = function (fields, form) {
     FormsPdf.stop();
 }
 
-FormsPdf.addSubFormsTable = function (subforms) {
+FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
     if (subforms.length == 0) return;
 
     var photos = [];
@@ -248,7 +246,7 @@ FormsPdf.addSubFormsTable = function (subforms) {
                 values.push(value);
             }
         }
-        if (i == 0) Pdf2.startTable(header, null, "form");
+        if (i == 0) Pdf2.startTable(header, null, "form subt" + parentTemplateid);
         Pdf2.addRow(values);
     }
     Pdf2.stopTable();

@@ -3,7 +3,7 @@
 if (typeof (Forms) === "undefined") {
     // This is super wierd but if we use the line commented below, on Safari, it resets the Forms class and the left pane does not work when Forms > Files....
     //function Forms() { }
-    window.Forms = new Function("{" + "}");
+    var Forms = new Function("{" + "}");
 }
 
 //////////////////////////// Form Creation
