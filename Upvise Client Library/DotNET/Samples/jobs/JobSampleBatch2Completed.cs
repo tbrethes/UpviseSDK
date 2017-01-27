@@ -66,6 +66,12 @@ namespace com.upvise.samples {
             List<Job> list = new List<Job>();
 
             string where = "status=" + Job.COMPLETED;
+
+            // you can use the checkout filed to return completed jobs only during a specified date range
+            DateTime stopDate = Date.Today;
+            DateTime startDate  = stopDate.AddMonths(-2);
+            // where + = " AND checkout>=" + Query.toEpoch(startDate) + " AND checkout<" + Query.toEpoch(stopDate);
+
             JSONObject[] completedJobs = mQuery.select(Job.TABLE, where);
             foreach (JSONObject obj in completedJobs) {
                 Job job = Job.fromJson(obj);
