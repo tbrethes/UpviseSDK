@@ -254,7 +254,7 @@ Forms.getLastSignature = function (staff) {
         var history = Forms.getHistory(form);
         for (var j = 0; j < history.length; j++) {
             var item = history[j];
-            if (item.staff == staff && item.signature != null) {
+            if (item.staff == staff && item.signature) {
                 return item.signature;
             }
         }

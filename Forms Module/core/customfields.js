@@ -37,8 +37,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     if (type == 'select' || type == 'selectmulti') {
         List.addItemLabel(label, (Format.options != null) ? Format.options(value, options) : value);
     } else if (type == 'toggle') {
-        if (WEB()) List.addItemLabel(label, Format.toggle(value, options));
-        else List.addToggleBox('', label, value, null, options);
+        List.addToggleBox('', label, value, null, options);
     } else if (type == 'checkbox') {
         if (Settings.getPlatform() == "web") List.addItemLabel(label, (value == "1") ? R.YES : R.NO);
         else if (parseInt(value) == 1) List.addItem(label, '', 'icon:checked');
@@ -100,7 +99,6 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         List.addItemLabel(label, Format.duration(parseInt(value)));
     } else if (type == 'textarea') {
         if (Settings.getPlatform() != "web") value = Format.text(value);
-        // value = Utils.xmlEncodeFormat(value);
         List.addItemLabel(label, value);
     } else if (type == 'numeric' || type == 'decimal') {
         List.addItemLabel(label, Number(value).toLocaleString());
@@ -112,9 +110,8 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         List.addItemLabel(label, value, "App.map({value})");
     } else if (type == "file") {
         List.addItemLabel(label, Query.names("System.files", value), CustomFields._VIEWFILE + "({value})");
-    } else if (type == 'score') {
-        if (WEB()) List.addItemLabel(label, Format.toggle(value, options));
-        else List.addToggleBox('', label, value, null, "");
+    } else if (type == "score") {
+        CustomFields.addScoreBox(label, value);
     } else {
         List.addItemLabel(label, value);
     }
@@ -226,6 +223,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'selectmulti') {
         List.addComboBoxMulti(id, label, value, onchange, options);
     } else if (type == 'toggle') {
+        label = Utils.xmlEncode(label);
         onchange += ";CustomFields.onPunch({formid},{label},this.value,{id})";
         List.addToggleBox(id, label, value, onchange, options);
     } else if (type == 'checkbox') {
@@ -261,7 +259,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'signature') {
         List.addSignatureBox(id, label, value, onchange);
     } else if (type == 'barcode') {
-        List.addBarcodeBox(id, label, value, onchange);
+        List.addBarcodeBox(id, label, value, onchange, options); // options if for custom action
     } else if (type == 'button') {
         // do not display button in edit mode
     } else if (type == 'label') {
@@ -277,6 +275,8 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
         List.addComboBox(id, label, value, onchange, Query.options("System.files", "folderid={options}"));
     } else if (type == "button") {
         // no button in edit mode
+    } else if (type == 'score') {
+        CustomFields.addScoreBox(label, value);
     } else {
         // works for text, phone, email, time, duration, currency
         List.addTextBox(id, label, value, onchange, type);
@@ -304,18 +304,20 @@ CustomFields.getToolOptions = function (formid) {
 }
 
 CustomFields.onNewContact = function (formid, fieldname, name) {
-    var newid = Query.insert("Contacts.contacts", { name: name, creationdate: Date.now(), owner: User.getName() });
-    var value = (_valueObj != null) ? _valueObj[fieldname] : null ;
-    value = (value == null || value == '') ? newid : value + "|" + newid;
+    var newid = Query.insert("Contacts.contacts", { name: name, creationdate: Date.now() });
+    var value = _valueObj ? _valueObj[fieldname] : null ;
+    value = value ? value + "|" + newid : newid;
     _updateValue(formid, fieldname, value);
+    CustomFields.contactOptions = null;
     History.reload();
 }
 
 CustomFields.onNewCompany = function(formid, fieldname, name) {
-    var newid = Query.insert("Contacts.companies", {name: name, creationdate: Date.now(), owner: User.getName()});
-    var value = (_valueObj != null) ? _valueObj[fieldname] : null;
-    value = (value == null || value == '') ? newid : value + "|" + newid;
+    var newid = Query.insert("Contacts.companies", {name: name, creationdate: Date.now() });
+    var value = _valueObj ? _valueObj[fieldname] : null;
+    value = value ? value + "|" + newid : newid;
     _updateValue(formid, fieldname, value);
+    CustomFields.companyOptions = null;
     History.reload();
 }
 
@@ -373,7 +375,7 @@ CustomFields.formatValue = function (value, type, options) {
     else if (type == 'asset') return Query.names("Assets.assets", value);
     else if (type == 'tool') return Query.names("Tools.tools", value);
     else if (type == 'button' || type == "header") return "";
-    else if (type == "select" || type == "selectmulti" || type == "toggle") return (Format.options != null) ? Format.options(value, options) : value;
+    else if (type == "select" || type == "selectmulti" || type == "toggle") return Format.options(value, options);
     //else if (type == 'textarea') return Format.text(value);
     else if (type == 'checkbox') return value == 1 ? R.YES : R.NO;
     else if (type == "numeric" || type == "decimal") return Number(value).toLocaleString();
@@ -456,3 +458,14 @@ CustomFields.addFileBox = function (label, table, id, action) {
     }
 }
 
+CustomFields.addScoreBox = function (label, value) {
+    /*var parts = value.split(":");
+    if (parts.length == 2) {
+        value = parts[0];
+        color = parts[1];
+    }*/
+    var onchange = "";
+    var options = "";
+    List.addToggleBox('', label, value, onchange, options);
+    //List.addItemLabelScore(label, value, "", options); // options is color
+}

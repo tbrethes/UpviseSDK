@@ -202,10 +202,14 @@ Forms.datasetOptions = function (name, orderby) {
     return options.join("|");
 }
 
-Forms.getForm = function (templateName, formName) {
+Forms.getForm = function (templateName, formName, linkedid) {
     var templateid = Forms.getTemplateId(templateName);
     if (templateid == null) return null;
-    var forms = Query.select("Forms.forms", "*", "templateid={templateid} AND name={formName}");
+    if (!formName && !linkedid) return null;
+    var where = "templateid={templateid}";
+    if (formName) where += " AND name={formName}";
+    if (linkedid) where += " AND linkedid={linkedid}";
+    var forms = Query.select("Forms.forms", "*", where);
     if (forms.length == 0) return null;
     var form = forms[0];
     var values = JSON.parse(form.value);

@@ -134,6 +134,54 @@ Forms.deleteForm = function(formid, goBack) {
     if (!(goBack === false)) History.back();
 }
 
+///////////////////// Duplicate
+
+Forms.duplicateForm = function (id) {
+    var form = Query.selectId("Forms.forms", id);
+    var newid = Forms.duplicateInternal(form, form.linkedid);
+
+    // Also duplicate all sub forms if any
+    var subforms = Forms.selectSubForms(form);
+    for (var i = 0; i < subforms.length; i++) {
+        var subform = subforms[i];
+        // make the new subform linkedid : first part is the new parent form id, second part is field name stays the same
+        var parts = subform.linkedid.split(":");
+        parts[0] = newid;
+        var linkedid = parts.join(":");
+        Forms.duplicateInternal(subform, linkedid);
+    }
+  
+    History.add(Forms._VIEWFORM + "({newid})");
+    History.redirect(Forms._EDITFORM + "({newid})");
+}
+
+Forms.duplicateInternal = function (form, linkedid) {
+    var form2 = {};
+    form2.templateid = form.templateid;
+    form2.status = Forms.DRAFT;
+    form2.name = Forms.getNewName(form.templateid);
+    form2.owner = User.getName();
+    form2.date = Date.now();
+    form2.geo = Settings.getLocation();
+    form2.address = Settings.getAddress(form.geo);
+    form2.linkedtable = form.linkedtable;
+    form2.linkedid = linkedid;
+
+
+    var values2 = JSON.parse(form.value);
+    var fields = Query.select("Forms.fields", "name;type", "formid={form.templateid}", "rank");
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        if (field.type == "photo" || field.type == "signature") {
+            values2[field.name] = "";
+        }
+    }
+    form2.value = JSON.stringify(values2);
+    return Query.insert("Forms.forms", form2);
+}
+
+//////////////////////////////////
+
 Forms.selectFormPhotos = function (form) {
     var files = [];
     var fields = Query.select("Forms.fields", "name", "type='photo' AND formid={form.templateid}");
@@ -161,10 +209,15 @@ Forms.selectSubForms = function (form) {
 Forms.changeOwner = function (id, owner) {
     var form = Query.selectId("Forms.forms", id);
     var files = Forms.selectFormPhotos(form);
+    var subforms = Forms.selectSubForms(form);
     Query.updateId("Forms.forms", id, "owner", owner);
     // change the owner of the photos linked to the form too.
     for (var i = 0; i < files.length; i++) {
         Query.updateId("System.files", files[i].id, "owner", owner);
+    }
+    // same for subforms
+    for (var i = 0; i < subforms.length; i++) {
+        Query.updateId("Forms.forms", subforms[i].id, "owner", owner);
     }
 }
 

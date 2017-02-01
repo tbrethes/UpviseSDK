@@ -5,6 +5,18 @@ FormsPdf.MYNAME = "#MyName#";
 FormsPdf.FORMNAME = "#FormName#";
 FormsPdf.LINKEDNAME = "#LinkedName#";
 
+FormsPdf.writeCustom2 = function (form, pdfid) {
+    Pdf2.addTag("templateid", pdfid);
+
+    var fields = Forms.getFields(form);
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var value = CustomFields.formatValue(field.value, field.type, field.options);
+        Pdf2.addTag(field.id, value);
+    }
+}
+
+
 FormsPdf.writeCustom = function (form, template) {
     var html = FormsPdf.replaceCustom(template.htmlpdf, form, template);
     Pdf2.add(html);

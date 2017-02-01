@@ -115,7 +115,11 @@ FormsPdf.write = function (form, template, index) {
 
     
     var title = index ? index + ". " : "";
-    title += template.name + " " + form.name;
+    if (AccountSettings.get("forms.pdfgroup") == "1") {
+        var name = Query.names("Forms.groups", template.groupid);
+        if (name) title = name + " - ";
+    }
+    title += template.name;// + " " + form.name;
 
     // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields()
     _valueObj = Forms._getValues(form);
@@ -128,16 +132,29 @@ FormsPdf.write = function (form, template, index) {
   
     var options = FormsPdf.addStyle(template);
 
+    if (options.pdfid && options.pdfid.length > 0) {
+        FormsPdf.writeCustom2(form, options.pdfid);
+        return filename;
+    }
+
     Pdf2.startTitleBlock(title, options.headercolor);
     if (options.caption == "1") {
         var creator = Forms.getCreator(form);
         if (form.status == Forms.DRAFT) creator += " [" +  R.DRAFT + "]";
         Pdf2.addRow([R.CREATEDBY, creator, R.DATE, Format.datetime(form.date)]);
-        var values = [];
-        if (linkedItem) values.push(linkedItem.label, linkedItem.value);
-        if (options.location == "1") values.push(R.LOCATION, form.address ? form.address : form.geo);
-        if (values.length == 2) values.push("", "");
-        if (values.length > 0)  Pdf2.addRow(values);
+
+        var values = [R.FORMID, form.name];
+        if (linkedItem) values.push(linkedItem.label, linkedItem.value)
+        else values.push("", "");
+        Pdf2.addRow(values);
+
+        //var values = [];
+        //if (linkedItem) values.push(linkedItem.label, linkedItem.value);
+        if (options.location == "1") {
+            Pdf2.addRow([R.LOCATION, form.address ? form.address : form.geo, "", ""]);
+        }
+        //if (values.length == 2) values.push("", "");
+        //if (values.length > 0)  Pdf2.addRow(values);
     }
     Pdf2.stopTable();
 
@@ -200,6 +217,7 @@ FormsPdf.addFields = function (fields, form) {
             FormsPdf.stop();
             if (field.value == "1") Pdf2.addPageBreak();
             headerToWrite = field.label;
+            if (headerToWrite == "") headerToWrite = "&nbsp;";
         } else {
             if (headerToWrite != null) {
                 // delayed header write only if there are fields below....
@@ -237,11 +255,12 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
         for (var j = 0; j < fields.length; j++) {
             var field = fields[j];
             if (field.type == "photo") {
-                var files = Query.select("System.files", "id;name", "linkedtable='Forms.forms' AND linkedrecid=" + esc(field.value), "date");
+                var files = Query.select("System.files", "id;name;mime", "linkedtable='Forms.forms' AND linkedrecid=" + esc(field.value), "date");
                 photos = photos.concat(files);
             } else if (field.type != "button" && field.type != "label" && field.type != "header") {
                 var value = CustomFields.formatValue(field.value, field.type, field.options);
                 if (field.type == "longtext") value = Format.text(value);
+                //var label = field.label.replace();
                 header.push(field.label);
                 values.push(value);
             }
@@ -334,6 +353,7 @@ FormsPdf.addField = function (field, form) {
         var value = CustomFields.formatValue(field.value, field.type, field.options);
         if (field.type == "selectmulti") value = value.split("|").join("<br/>");
         else if (field.type == "toggle") value = FormsPdf.formatToggle(value, field);
+        else if (field.type == "score") value = FormsPdf.formatScore(value);
         Pdf2.add('<td class="label">', field.label, '</td><td>', value, '</td>');
     }
 
@@ -350,6 +370,14 @@ FormsPdf.formatToggle = function (value, field) {
     else if (field.value == "4" || field.value == "P") color = Color.ORANGE;
     else color = Color.BLUE;
     return '<span style="font-weight:bold;color:' + color + '">' + value + '</span>';
+}
+
+FormsPdf.formatScore = function (value) {
+    if (!value) value = "";
+    var parts = value.split(":");
+    var label = parts[0];
+    var color = (parts.length == 2) ? parts[1] : Color.BLUE;
+    return '<span style="font-weight:bold;color:' + color + '">' + label + '</span>';
 }
 
 FormsPdf.addHistory = function (history) {

@@ -1,0 +1,87 @@
+﻿
+//zip is optional
+Forms.writeToCsv = function (csv, forms, template, zip) {
+    if (template == null || forms.length == 0) return;
+
+    // Get linked items first
+    var hasLinkedItems = false;
+    for (var i = 0; i < forms.length; i++) {
+        var form = forms[i];
+        if (Forms.getLinkedRecord != undefined) {
+            var linkeditem = Forms.getLinkedRecord(form, true); // Peformance Issue: Query.options is called xx times with options=1000+ items e.g. Assets when exporting xx forms, and options is never even used...
+            if (linkeditem != null) {
+                form.linkeditem = linkeditem;
+                if (hasLinkedItems == false) hasLinkedItems = true;
+            }
+        }
+    }
+
+    var fileMap = Forms.getFilesLinkedIdMap("Forms.forms");
+
+    var header = ["Id", "Template", "Date", "Status", "Location", "Geo", "Owner"];
+    if (hasLinkedItems) header.push("LinkedID", "LinkedRecord", "LinkedName");
+
+    var fields = Query.select("Forms.fields", "label", "formid={template.id}", "rank");
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        header.push(field.label);
+    }
+
+    csv.writeLine(header);
+
+    Format.forprint();
+
+    for (var i = 0; i < forms.length; i++) {
+        var form = forms[i];
+        var values = new Array();
+        values.push(form.name, template.name, Format.datetime(form.date), form.status, form.address, form.geo, form.owner);
+
+        if (hasLinkedItems) {
+            if (form.linkeditem != null) {
+                values.push(form.linkeditem.id, form.linkeditem.label, form.linkeditem.value);
+            } else {
+                values.push("", "", "");
+            }
+        }
+
+        var fields = Forms.getFields(form);
+        for (var j = 0; j < fields.length; j++) {
+            var field = fields[j];
+            var displayValue = null;
+            if (field.type == "photo") {
+                var filenames = [];
+                var files = fileMap.get(form.id + ":" + field.id);
+                if (files != null) {
+                    for (var k = 0; k < files.length; k++) {
+                        if (zip != null) zip.addFile(files[k].id);
+                        filenames.push(files[k].name);
+                    }
+                }
+                displayValue = filenames.join(";");
+            } else if (field.type == "signature") {
+                displayValue = (field.value != "") ? R.YES : "";
+            } else {
+                displayValue = CustomFields.formatValue(field.value, field.type, field.options);
+            }
+            values.push(displayValue);
+        }
+        csv.writeLine(values);
+    }
+}
+
+
+Forms.getFilesLinkedIdMap = function (table) {
+    var where = (table != null) ? "linkedtable=" + esc(table) : "";
+    var files = Query.select("System.files", "*", where, "date");
+    var map = new HashMap();
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var list = map.get(file.linkedrecid);
+        if (list == null) {
+            list = [];
+            map.set(file.linkedrecid, list);
+        }
+        list.push(file);
+    }
+    return map;
+}

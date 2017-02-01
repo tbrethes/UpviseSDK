@@ -238,7 +238,7 @@ function Forms_nextState(id, currentStatus) {
     var newstaff = Forms.getStateStaff(form, newstate);
 
     var newowners = Forms.addStandardUsers(form.owner, newstaff);
-    if (newowners != form.owner) Query.updateId("Forms.forms", id, "owner", newowners);
+    if (newowners != form.owner) Forms.changeOwner(id, newowners);
 
     // notify the state staff + form owner
     var users = newstaff + "|" + Forms.getCreator(form);
