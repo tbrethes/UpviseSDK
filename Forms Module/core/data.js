@@ -216,6 +216,9 @@ Forms.canEdit = function (form) {
     if (User.isManager()) return true;
     // user(s) who own the form can edit it in Draft mode = 0
     if (MultiValue.contains(form.owner, User.getName()) && form.status == 0) return true;
+    // is current user part of the current workflow state
+    var state = Forms.getState(form);
+    if (state.onclick) return true
     return false;
 }
 

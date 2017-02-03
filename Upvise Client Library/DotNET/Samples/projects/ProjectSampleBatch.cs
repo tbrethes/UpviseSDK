@@ -105,10 +105,11 @@ namespace com.upvise.samples {
                         // and also if the form has been archived first (for example if the form is in draft mode, it will return null)
                         byte[] pdfcontent = form.downloadPdfArchive(mQuery);
                         if (pdfcontent != null) {
-                            string filename = (@"C:\temp\FORM " + form.templatename + " " + form.name + ".pdf";
+                            string filename = @"C:\temp\FORM " + form.templatename + " " + form.name + ".pdf";
                             System.IO.File.WriteAllBytes(filename, pdfcontent);
 
-                        newFormCount++;
+                            newFormCount++;
+                        }
                     }
                 }
             }

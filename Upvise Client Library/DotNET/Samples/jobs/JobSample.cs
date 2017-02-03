@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-using System.Collections.Generic;
 using com.upvise.client;
 using System;
 
@@ -30,7 +29,7 @@ namespace com.upvise.samples {
             Job newjob = new Job();
             newjob.id = "ID1";
             newjob.status = Job.OPEN;
-            newjob.name = "Maintain Air Conditining";
+            newjob.name = "TEST JOB " + DateTime.UtcNow.ToString("HH:mm:ss");
             newjob.note = "Verify gaz pressure";
             newjob.duedate = DateTime.Now.AddHours(2);
             newjob.owner = "John"; // if you want to assign a Job, set the Upvise user Display name here

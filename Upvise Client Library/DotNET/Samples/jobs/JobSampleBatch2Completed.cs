@@ -68,7 +68,7 @@ namespace com.upvise.samples {
             string where = "status=" + Job.COMPLETED;
 
             // you can use the checkout filed to return completed jobs only during a specified date range
-            DateTime stopDate = Date.Today;
+            DateTime stopDate = DateTime.Today;
             DateTime startDate  = stopDate.AddMonths(-2);
             // where + = " AND checkout>=" + Query.toEpoch(startDate) + " AND checkout<" + Query.toEpoch(stopDate);
 
