@@ -238,7 +238,7 @@ function Forms_nextState(id, currentStatus) {
     var newstaff = Forms.getStateStaff(form, newstate);
 
     var newowners = Forms.addStandardUsers(form.owner, newstaff);
-    if (newowners != form.owner) Forms.changeOwner(id, newowners);
+    Forms.changeOwner(id, newowners); // we may update the photos and subforms here
 
     // notify the state staff + form owner
     var users = newstaff + "|" + Forms.getCreator(form);

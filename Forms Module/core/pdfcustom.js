@@ -23,7 +23,7 @@ FormsPdf.writeCustom = function (form, template) {
 }
 
 FormsPdf.replaceCustom = function (content, form, template) {
-    if (content == null || content == "") return content;
+    if (!content) return "";
 
     var output = content;
     // My Name

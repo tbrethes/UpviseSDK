@@ -15,9 +15,9 @@ FormsPdf.export = function (formid, action, email, subject, body) {
     // Download or Email
     Pdf2.setFilename(filename);
     if (action == "email") {
-        var emails = FormsPdf.getEmails(form);
-        var customemail = FormsPdf.getCustomEmail(form, template);
-        Pdf2.setCustomEmail(customemail.subject, customemail.body);
+        var emails = email ? email : FormsPdf.getEmails(form);
+        Pdf2.subject = subject ? subject : FormsPdf.replaceCustom(template.subject, form, template);
+        Pdf2.body = body ? body : FormsPdf.replaceCustom(template.body, form, template);
         Pdf2.email(emails);
     } else if (action == "archive") {
         // if fileid is set, pdf email archival will also store PDF file in the Files app in Upvise
@@ -248,6 +248,7 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
 
     var photos = [];
 
+ 
     for (var i = 0; i < subforms.length; i++) {
         var fields = Forms.getFields(subforms[i]);
         var header = [];

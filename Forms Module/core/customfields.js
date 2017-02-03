@@ -130,7 +130,8 @@ CustomFields.addButton = function (id, label, value, options, formid) {
         onclick = "Forms.newForm({templateid},{linkedtable},{linkedid})";
     } else if (value == "newsubform") {
         var templateid = options;
-        CustomFields.writeSubforms(id, label, templateid, formid);
+        var linkedid = formid + ":" + id;
+        List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid})", "color:gray");
         return;
     }
     else if (value == "code") {
@@ -139,13 +140,6 @@ CustomFields.addButton = function (id, label, value, options, formid) {
         onclick = "CustomFields.onButton({formid},{id})";
     } else return;
     List.addButton(label, onclick, "color:gray");
-}
-
-CustomFields.writeSubforms = function (id, label, templateid, formid) {
-    var form = Query.selectId("Forms.forms", formid);
-    var linkedid = formid + ":" + id;
-    var editable = (form != null && form.status == 0);
-    if (editable) List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid})", "color:gray");
 }
 
 CustomFields.onButton = function (recordId, fieldid) {

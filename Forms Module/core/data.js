@@ -214,8 +214,8 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
 Forms.canEdit = function (form) {
     // Admin and manager can always edit
     if (User.isManager()) return true;
-    // user who created the form can edit it in Draft mode = 0
-    if (form.owner == User.getName() && form.status == 0) return true;
+    // user(s) who own the form can edit it in Draft mode = 0
+    if (MultiValue.contains(form.owner, User.getName()) && form.status == 0) return true;
     return false;
 }
 
