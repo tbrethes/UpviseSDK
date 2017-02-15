@@ -42,7 +42,7 @@ namespace com.upvise.samples {
 
         private static void testJob() {
             // Login : replace with your Upvise email and password
-            string token = Query.login("res@verticalmatters.com.au", "UjW^z75@");
+            string token = Query.login("email", "password");
             Query query = new Query(token);
 
             // 1. insert one job
