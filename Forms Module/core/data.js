@@ -8,6 +8,15 @@ Forms._EDITFORM = "Forms.editForm";
 Forms._VIEWFORM = "Forms.viewForm";
 Forms._VIEWFILE = null;
 
+Forms.GET_STATE = function() {
+    return { valueObj: _valueObj, formid: _formid };
+}
+
+Forms.RESTORE_STATE = function (state) {
+    _valueObj = state.valueObj;
+    _formid = state.formid;
+}
+
 function _updateValue(formid, fieldname, fieldvalue) {
 
     _valueObj[fieldname] = fieldvalue;
@@ -69,7 +78,7 @@ Forms.writeViewFields = function (form) {
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.type == "button") {
-            if (field.status == 0 || field.status == -1 || form.status == field.status) {
+            if (field.status == -1 || form.status == field.status) { // removed field,status == 0
                 CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
             }
         } else if (form.status >= field.status || form.status == -1) {
@@ -93,15 +102,17 @@ Forms._getValues = function (form) {
 Forms.getFields = function (form, type) {
     var where = "formid={form.templateid}";
     if (type != null) where += " AND type={type}";
-    var fields = Query.select("Forms.fields", "name;label;value;type;seloptions;status;mandatory;onchange", where, "rank");
+    var fields = Query.select("Forms.fields", "*", where, "rank");
     var formValues = Forms._getFullValues(form, fields);
+    var lang = "en";
+    if (Settings.getLanguage) lang = Settings.getLanguage();
 
     var list = [];
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var field2 = {};
         field2.id = field.name;
-        field2.label = field.label;
+        field2.label = Forms.getFieldLabel(field, lang);
         field2.type = field.type;
         field2.status = field.status;
         field2.value = Forms._getValue(formValues, field, form);
@@ -120,6 +131,15 @@ Forms.getFields = function (form, type) {
     }
     return list;
 }
+
+Forms.getFieldLabel = function (field, lang) {
+    lang = lang.toUpperCase();
+    if (lang == "DE" && field.labelDE) return field.labelDE;
+    else if (lang == "FR" && field.labelFR) return field.labelFR;
+    else if (lang == "ES" && field.labelES) return field.labelES;
+    else return field.label;
+}
+
 
 /////////////////////////////////// Private
 
@@ -154,8 +174,11 @@ Forms._getLink = function (form) {
 }
 
 Forms._getValue = function (valuesObj, field, form) {
-    if (field.type == "header" || field.type == "label" || field.type == "image" || field.type == "button") {
+    if (field.type == "header" || field.type == "label" || field.type == "button") {
         return field.value;
+    } else if (field.type == "image") {
+        var value = valuesObj[field.name];
+        return value ? value : field.value;
     } else if (field.type == "photo") {
         return form.id + ":" + field.name;
     } else if (field.type == "formula") {
@@ -201,8 +224,8 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
         return result;
     } catch (e) {
         if (WEB()) {
-            var msg = "Form Eval Formula Error:\n" + e.message + "\nForm: " + form.name + "\nSource: " + sourceURL; 
-            if (window.console != null) window.console.log(msg);
+            var msg = "%cForm Eval Formula Error:\n" + e.message + "\nForm: " + form.name + "\nSource: " + sourceURL; 
+            if (console != null) console.log(msg, "color:red");
         }
         return "Error: " + e.message;
     }
@@ -297,7 +320,7 @@ Forms.writeSubformsTable = function (forms, editable) {
         var values = [];
         for (var j = 0; j < fields.length; j++) {
             var field = fields[j];
-            if (field.type != "signature" && field.type != "photo" && field.type != "button" && field.type != "label" && field.type != "header") {
+            if (field.type != "signature" && field.type != "photo" && field.type != "image" && field.type != "button" && field.type != "label" && field.type != "header") {
                 var value = CustomFields.formatValue(field.value, field.type, field.options);
                 if (field.type == "longtext") value = Format.text(value);
                 header.push(field.label);

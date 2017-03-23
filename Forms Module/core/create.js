@@ -109,7 +109,7 @@ Forms.setDefaultValues = function (form, values, status) {
                     values[field.name + "S"] = risk.severity;
                     values[field.name + "P"] = risk.probability;
                 }
-            } else if (field.type != "header" && field.type != "label" && field.type != "image" && field.type != "button" && field.type != "formula") {
+            } else if (field.type != "header" && field.type != "label"  /*&& field.type != "image"*/ && field.type != "button" && field.type != "formula") {
                 value = Forms._eval(field.value, form, "DEFAULTVALUE_" + field.name); // to use javacript:// feature
                 if (value != "") values[field.name] = value;
             }

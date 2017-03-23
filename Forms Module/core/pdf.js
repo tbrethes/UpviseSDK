@@ -3,6 +3,11 @@
 function FormsPdf() {}
 
 FormsPdf.export = function (formid, action, email, subject, body) {
+
+    // ccapture the current form memory state, before generating the Form PDF, because it then calls Forms._getValues() which changes global _valuesObj variable.
+    // then retore it at the end of the function
+    var state = Forms.GET_STATE();
+
     var form = Query.selectId("Forms.forms", formid);
     var template = Query.selectId("Forms.templates", form.templateid);
     
@@ -31,6 +36,8 @@ FormsPdf.export = function (formid, action, email, subject, body) {
     else {
         Pdf2.download();
     }
+
+    Forms.RESTORE_STATE(state);
 }
 
 FormsPdf.getOptions = function (template) {
@@ -121,12 +128,15 @@ FormsPdf.write = function (form, template, index) {
     }
     title += template.name;// + " " + form.name;
 
-    // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields()
+    var _CURRENT_VALUES = _valueObj;
+    // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields() and in writeCustom(
     _valueObj = Forms._getValues(form);
     _formid = form.id;
 
     if (template.htmlpdf != "") {
         FormsPdf.writeCustom(form, template);
+
+        _CURRENT_VALUES = _valueObj;
         return filename;
     }
   
@@ -137,7 +147,8 @@ FormsPdf.write = function (form, template, index) {
         return filename;
     }
 
-    Pdf2.startTitleBlock(title, options.headercolor);
+    var headerColor = form.color ? form.color : options.headercolor;
+    Pdf2.startTitleBlock(title, headerColor);
     if (options.caption == "1") {
         var creator = Forms.getCreator(form);
         if (form.status == Forms.DRAFT) creator += " [" +  R.DRAFT + "]";
@@ -147,14 +158,9 @@ FormsPdf.write = function (form, template, index) {
         if (linkedItem) values.push(linkedItem.label, linkedItem.value)
         else values.push("", "");
         Pdf2.addRow(values);
-
-        //var values = [];
-        //if (linkedItem) values.push(linkedItem.label, linkedItem.value);
         if (options.location == "1") {
             Pdf2.addRow([R.LOCATION, form.address ? form.address : form.geo, "", ""]);
         }
-        //if (values.length == 2) values.push("", "");
-        //if (values.length > 0)  Pdf2.addRow(values);
     }
     Pdf2.stopTable();
 
@@ -245,6 +251,18 @@ FormsPdf.addFields = function (fields, form) {
 
 FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
     if (subforms.length == 0) return;
+
+
+    var template = Query.selectId("Forms.templates", parentTemplateid);
+    var pdfoptions = FormsPdf.getOptions(template);
+    if (pdfoptions.subformlist == "1") {
+        for (var i = 0; i < subforms.length; i++) {
+            var subform = subforms[i];
+            var template = Query.selectId("Forms.templates", subform.templateid);
+            FormsPdf.write(subform, template, (i+1));
+        }
+        return;
+    }
 
     var photos = [];
 
