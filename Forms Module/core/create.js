@@ -17,7 +17,7 @@ Forms.newForm = function (templateid, linkedtable, linkedid, remove, name) {
     }
 }
 
-Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name) {
+Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name, projectid) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
@@ -34,6 +34,7 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     } else {
         form.linkedtable = template.linkedtable;
     }
+    if (projectid) form.projectid = projectid;
 
     if (values == null) values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
@@ -42,7 +43,7 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     return Query.insert("Forms.forms", form);
 }
 
-Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, linkedid) {
+Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, linkedid, projectid) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
@@ -51,6 +52,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     form.templateid = templateid;
     form.date = Date.now();
     form.owner = User.getName();
+    if (projectid) form.projectid = projectid;
 
     form.planid = fileid;
     form.geo = geo
