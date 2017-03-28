@@ -15,21 +15,25 @@
  */
 
 Config.appid = "chartsample";
-Config.version = "8";
+Config.version = "11";
 Config.title = "Chart Sample";
 
 function main(tab) {
-    List.addItem("Bar Chart", "viewBarChart()", "img:arrow");
-    List.addItem("Bar Chart with 2 series", "viewBarChart2()", "img:arrow");
-    List.addItem("Stack Bar Chart", "viewStackBarChart()", "img:arrow");
-  	List.addItem("Horizontal Bar Chart", "viewBarChart(true)", "img:arrow");
-    List.addItem("Horizontal Stack Bar Chart", "viewStackBarChart(true)", "img:arrow");
-    List.addItem("Pie Chart", "viewPieChart()", "img:arrow");
+    List.addItemTitle("Charts")
+    List.addItem("Vertical Bar", "viewBarChart()", "img:chart;icon:arrow");
+    List.addItem("Vertical Bar with 2 series", "viewBarChart2()", "img:chart;icon:arrow");
+    List.addItem("Vertical Stacked Bar", "viewStackBarChart()", "img:chart;icon:arrow");
+  	List.addItem("Horizontal Bar", "viewBarChart(true)", "img:chart;icon:arrow");
+    List.addItem("Horizontal Stacked Bar", "viewStackBarChart(true)", "img:chart;icon:arrow");
+    List.addItem("Pie Chart", "viewPieChart()", "img:chart;icon:arrow");
+    List.addItem("Donut Chart", "viewPieChart(true)", "img:chart;icon:arrow");
+    List.addItem("Line Chart", "viewLineChart()", "img:chart;icon:arrow");
     List.show();
 }
 
 function viewBarChart(horizontal) {
     Chart.init();
+    Chart.setColors(Color.GREEN);
     Chart.addColumn("string", "Date");
     Chart.addColumn("number", "Amuount");
     
@@ -44,6 +48,7 @@ function viewBarChart(horizontal) {
 
 function viewBarChart2() {
     Chart.init();
+    Chart.setColors(Color.ORANGE + ";" + Color.BROWN);
     Chart.addColumn("string", "Date");
     Chart.addColumn("number", "Amount");
     Chart.addColumn("number", "Confirmed");
@@ -60,6 +65,7 @@ function viewBarChart2() {
 
 function viewStackBarChart(horizontal) {
     Chart.init();
+    Chart.setColors(Color.ORANGE + ";" + Color.BROWN);
     Chart.addColumn("string", "Date");
     Chart.addColumn("number", "Open");
     Chart.addColumn("number", "Confirmed");
@@ -74,7 +80,7 @@ function viewStackBarChart(horizontal) {
   	if (WEB()) List.show();
 }
 
-function viewPieChart() {
+function viewPieChart(isDonut) {
     Chart.init();
     Chart.addColumn("string", "Staff");
     Chart.addColumn("number", "Amount");
@@ -85,7 +91,25 @@ function viewPieChart() {
         var amount = Math.random()*10000;
         Chart.addRow(staff, amount);
     }
-    Chart.show("pie");
+  	Chart.show(isDonut ? "donut" : "pie");
+  	if (WEB()) List.show();
+}
+
+
+function viewLineChart() {
+    Chart.init();
+    Chart.setColors(Color.ORANGE + ";" + Color.BROWN);
+    Chart.addColumn("string", "Date");
+    Chart.addColumn("number", "Open");
+    Chart.addColumn("number", "Confirmed");
+    
+    for (var i = 0; i < 15; i++) {
+        var date = Date.addDays(Date.today(), i);
+        var amount = Math.random()*10000;
+        var amount2 = Math.random()*5000;
+        Chart.addRow(Format.date(date), amount, amount2);
+    }
+  	Chart.show("line");
   	if (WEB()) List.show();
 }
 
