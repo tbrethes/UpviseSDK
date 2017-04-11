@@ -4,7 +4,7 @@ function FormsPdf() {}
 
 FormsPdf.export = function (formid, action, email, subject, body) {
 
-    // ccapture the current form memory state, before generating the Form PDF, because it then calls Forms._getValues() which changes global _valuesObj variable.
+    // capture the current form memory state, before generating the Form PDF, because it then calls Forms._getValues() which changes global _valuesObj variable.
     // then retore it at the end of the function
     var state = Forms.GET_STATE();
 
@@ -158,8 +158,12 @@ FormsPdf.write = function (form, template, index) {
         if (linkedItem) values.push(linkedItem.label, linkedItem.value)
         else values.push("", "");
         Pdf2.addRow(values);
-        if (options.location == "1") {
-            Pdf2.addRow([R.LOCATION, form.address ? form.address : form.geo, "", ""]);
+        var values2 = [];
+        if (template.version) values2.push("Version", template.version);
+        if (options.location == "1" && form.address) values2.push(R.LOCATION, form.address);
+        if (values2.length > 0) {
+            if (values2.length == 2) values2.push("", "");
+            Pdf2.addRow(values2);
         }
     }
     Pdf2.stopTable();

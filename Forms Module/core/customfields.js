@@ -95,6 +95,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         if (value == 0) return; // Otherwise on Android value = 0 is displayed as a default time, i.e 7:30
         List.addItemLabel(label, Format.time(parseFloat(value)));
     } else if (type == 'datetime') {
+        if (value == 0) return;  // do not display One day...
         List.addItemLabel(label, Format.datetime(parseFloat(value)));
     } else if (type == 'duration') {
         List.addItemLabel(label, Format.duration(parseInt(value)));
@@ -381,6 +382,7 @@ CustomFields.formatValue = function (value, type, options) {
     else if (type == "photo") return CustomFields.formatImages(value);
     else if (type == "drawing" || type == "image") return CustomFields.formatDrawing(value);
 
+    else if (type == "formula") return Number(value) ? Number(value).toLocaleString() : value; // try to converrt to number
 
     else return String(value);
 }
@@ -424,10 +426,12 @@ CustomFields.writePdf = function (table, recordId) {
     if (item == null) return;
     var customFields = CustomFields.get(table, item.custom);
     if (customFields.length > 0) {
+        Pdf2.startTable([R.DETAILS, ""]);
         for (var i = 0; i < customFields.length; i++) {
             var field = customFields[i];
             if (field.value != "") Pdf2.addRow([field.label, field.value]);
         }
+        Pdf2.stopTable();
     }
 }
 

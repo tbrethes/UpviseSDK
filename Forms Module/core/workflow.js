@@ -27,7 +27,7 @@ Forms.checkEmptyFields = function (form) {
             if (isEmpty) {
                 if (Forms._EDITFORM != null) {
                     if (App.confirm(R.EDITMANDATORYFIELD + ": " + field.label) == true) {
-                        History.replace(Forms._EDITFORM + "({form.id})");
+                        History.replace(Forms._EDITFORM + "({form.id},null,{i})");
                     }
                 } else {
                     App.alert("Mandatory field: " + field.label);

@@ -8,9 +8,9 @@ if (typeof (Forms) === "undefined") {
 
 //////////////////////////// Form Creation
 
-Forms.newForm = function (templateid, linkedtable, linkedid, remove, name) {
+Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, projectid) {
     if (remove == 1) History.remove(1);
-    var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name);
+    var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid);
     if (id != null) {
         if (linkedtable != "Forms.forms") History.add(Forms._VIEWFORM + "({id})");
         History.redirect(Forms._EDITFORM +  "({id})");

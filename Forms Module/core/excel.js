@@ -27,6 +27,9 @@ Forms.writeToCsv = function (csv, forms, template, zip) {
         header.push(field.label);
     }
 
+
+    var state = Forms.GET_STATE();
+
     csv.writeLine(header);
 
     Format.forprint();
@@ -34,7 +37,7 @@ Forms.writeToCsv = function (csv, forms, template, zip) {
     for (var i = 0; i < forms.length; i++) {
         var form = forms[i];
         var values = new Array();
-        values.push(form.name, template.name, Format.datetime(form.date), form.status, form.address, form.geo, form.owner);
+        values.push(form.name, template.name, ExcelFile.format(form.date, "datetime"), form.status, form.address, form.geo, form.owner);
 
         if (hasLinkedItems) {
             if (form.linkeditem != null) {
@@ -43,6 +46,10 @@ Forms.writeToCsv = function (csv, forms, template, zip) {
                 values.push("", "", "");
             }
         }
+
+        // we need this because getFields uses scripting
+        _valueObj = Forms._getValues(form); // we need this because Risk.view access it
+        _formid = form.id;
 
         var fields = Forms.getFields(form);
         for (var j = 0; j < fields.length; j++) {
@@ -61,14 +68,15 @@ Forms.writeToCsv = function (csv, forms, template, zip) {
             } else if (field.type == "signature") {
                 displayValue = (field.value != "") ? R.YES : "";
             } else {
-                displayValue = CustomFields.formatValue(field.value, field.type, field.options);
+                displayValue = ExcelFile.format(field.value, field.type, field.options);
             }
             values.push(displayValue);
         }
         csv.writeLine(values);
     }
-}
 
+    Forms.RESTORE_STATE(state);
+}
 
 Forms.getFilesLinkedIdMap = function (table) {
     var where = (table != null) ? "linkedtable=" + esc(table) : "";

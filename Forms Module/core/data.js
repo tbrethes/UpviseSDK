@@ -327,7 +327,10 @@ Forms.writeSubformsTable = function (forms, editable) {
                 values.push(value);
             }
         }
-        if (i == 0) List.addHeader(header);
+        if (i == 0) {
+            List.addHeader(header);
+            if (WEB()) NextPrevious.addSection();
+        }
         var func = editable ? Forms._EDITFORM : Forms._VIEWFORM;
         var style = color ? "priority:" + color : "";
         List.add(values, func + "({forms[i].id})", style);
