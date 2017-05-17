@@ -15,7 +15,7 @@
  */
 
 Config.appid = "sample";
-Config.version = "3";
+Config.version = "4";
 Config.title = "Camera";
 Config.tables["leads"] = "id;name";
 Config.uses = "Files"; // need this to make a call for the Standard File app to view the photo.
@@ -38,13 +38,16 @@ function viewLead(id) {
     List.addItemTitle(lead.name);
 
     var files = Query.select("system.files", "id;name;date", "linkedtable='sample.leads' AND linkedrecid={id}", "date");
-    List.addHeader("Photos (" + files.length + ")");
     List.addButton("New Photo", "App.takePicture('sample.leads',{id})");
     List.addHeader("Photos (" + files.length + ")");
     for (var i = 0; i < files.length; i++) {
         var file = files[i];
-        var img = Settings.getFileUrl(file.id);
-        List.addItem(Format.datetime(file.date), "Files.viewFile({file.id})", "scale:crop;img:" + img);
+        if (WEB()) {
+            List.addThumbnail(file.name,file.id, "Files.viewFile({file.id})");
+        } else {
+            var img = Settings.getFileUrl(file.id);
+            List.addItem(Format.datetime(file.date), "Files.viewFile({file.id})", "scale:crop;img:" + img);
+        }
     }
     List.show();
 }
