@@ -33,9 +33,11 @@ namespace com.upvise.samples {
             //BackupClient sample = new BackupClient();
             //UserSample sample = new UserSample();
 
-            //sample.Run();
+            PurchaseOrderSample sample = new PurchaseOrderSample();
 
-            testJob();
+            sample.Run();
+
+            //testJob();
 
 
         }

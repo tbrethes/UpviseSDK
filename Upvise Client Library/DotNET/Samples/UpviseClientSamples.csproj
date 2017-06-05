@@ -60,7 +60,7 @@
     <Compile Include="jobs\JobSampleBatch2.cs" />
     <Compile Include="jobs\JobSampleBatch.cs" />
     <Compile Include="jobs\JobSampleHolidays.cs" />
-    <Compile Include="projects\PurchaseOrderSample.cs" />
+    <Compile Include="purchaseorders\PurchaseOrderSample,js.cs" />
     <Compile Include="restore\RestoreSample.cs" />
     <Compile Include="tasks\TaskSample.cs" />
     <Compile Include="files\FileSample.cs" />
