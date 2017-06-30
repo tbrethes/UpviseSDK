@@ -28,6 +28,10 @@ function main(tab) {
     List.addItem("Pie Chart", "viewPieChart()", "img:chart;icon:arrow");
     List.addItem("Donut Chart", "viewPieChart(true)", "img:chart;icon:arrow");
     List.addItem("Line Chart", "viewLineChart()", "img:chart;icon:arrow");
+    List.addItem("WEB ONLY")
+    List.addItem("Gantt Chart", "viewGantChart(true)", "img:chart;icon:arrow");
+    List.addItem("Calendar Chart", "viewCalendarChart()", "img:chart;icon:arrow");
+    
     List.show();
 }
 
@@ -113,3 +117,36 @@ function viewLineChart() {
   	if (WEB()) List.show();
 }
 
+////////////// WEB ONLY
+
+function viewGantChart() {
+    var previousid = null;
+    var startdate = Date.addMonths(Date.today(), -6);
+    GanttChart.init();
+    for (var i = 0; i < 10; i++) {
+        var name = "Milestone " + i;
+        var id = "id" + i;
+        var startdate = Date.addMonths(startdate, 2);
+        var enddate = Date.addDays(startdate, 3*30);
+        var percentComplete = Math.round(Math.random()*100);
+        GanttChart.addRow(id, name, startdate, enddate, percentComplete , previousid);
+        Chart.addRowClick("App.alert({id})");
+        previousid = id;
+    }
+    GanttChart.show();
+    List.show();
+}
+
+function viewCalendarChart() {
+	Chart.init();
+    Chart.addColumn("date");
+    Chart.addColumn("number");
+    
+    for (var i = 0; i < 60; i++) {
+        var date = new Date(2017, 1, i);
+        var amount = Math.random()*10000;
+        Chart.addRow(date, amount);
+    }
+  	Chart.show("calendar");
+  	List.show();
+}
