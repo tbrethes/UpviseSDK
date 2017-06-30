@@ -138,15 +138,16 @@ function viewGantChart() {
 }
 
 function viewCalendarChart() {
-	Chart.init();
+	 Chart.init();
     Chart.addColumn("date");
     Chart.addColumn("number");
     
-    for (var i = 0; i < 60; i++) {
+    for (var i = 0; i < 9*30; i++) {
         var date = new Date(2017, 1, i);
         var amount = Math.random()*10000;
         Chart.addRow(date, amount);
+        Chart.addRowClick("App.alert({i})");
     }
-  	Chart.show("calendar");
+    Chart.show("calendar");	
   	List.show();
 }
