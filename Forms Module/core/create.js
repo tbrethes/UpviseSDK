@@ -8,16 +8,16 @@ if (typeof (Forms) === "undefined") {
 
 //////////////////////////// Form Creation
 
-Forms.newForm = function (templateid, linkedtable, linkedid, remove, name) {
+Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, projectid) {
     if (remove == 1) History.remove(1);
-    var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name);
+    var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid);
     if (id != null) {
         if (linkedtable != "Forms.forms") History.add(Forms._VIEWFORM + "({id})");
         History.redirect(Forms._EDITFORM +  "({id})");
     }
 }
 
-Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name) {
+Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name, projectid) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
@@ -34,6 +34,7 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     } else {
         form.linkedtable = template.linkedtable;
     }
+    if (projectid) form.projectid = projectid;
 
     if (values == null) values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
@@ -42,7 +43,7 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     return Query.insert("Forms.forms", form);
 }
 
-Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, linkedid) {
+Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, linkedid, projectid) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
@@ -51,6 +52,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     form.templateid = templateid;
     form.date = Date.now();
     form.owner = User.getName();
+    if (projectid) form.projectid = projectid;
 
     form.planid = fileid;
     form.geo = geo
@@ -109,7 +111,7 @@ Forms.setDefaultValues = function (form, values, status) {
                     values[field.name + "S"] = risk.severity;
                     values[field.name + "P"] = risk.probability;
                 }
-            } else if (field.type != "header" && field.type != "label" && field.type != "image" && field.type != "button" && field.type != "formula") {
+            } else if (field.type != "header" && field.type != "label"  /*&& field.type != "image"*/ && field.type != "button" && field.type != "formula") {
                 value = Forms._eval(field.value, form, "DEFAULTVALUE_" + field.name); // to use javacript:// feature
                 if (value != "") values[field.name] = value;
             }

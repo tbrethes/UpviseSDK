@@ -47,7 +47,8 @@ Forms.createForm = function (name, linkedtable, linkedid, values) {
     var formid = Forms.newFormInternal(templateid, linkedtable, linkedid, values);
 
     History.add(Forms._VIEWFORM + "({formid})");
-    History.replace(Forms._EDITFORM + "({formid})");
+    if (WEB() || Config.appid == "Forms") History.replace(Forms._EDITFORM + "({formid})");
+    else App.open(Forms._EDITFORM + "({formid})"); // bug on mobile.....
     return 2;
 }
 

@@ -89,11 +89,13 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         if (WEB()) List.addItemLabel("", label, "App.web({value})");
         else List.addItemLabel(label, value, "App.web({value})");
     } else if (type == 'date') {
-        List.addItemLabel(label, Format.date(parseFloat(value)));
+        // do not display Someday date for forms
+        if (value > 0) List.addItemLabel(label, Format.date(parseFloat(value)));
     } else if (type == 'time') {
         if (value == 0) return; // Otherwise on Android value = 0 is displayed as a default time, i.e 7:30
         List.addItemLabel(label, Format.time(parseFloat(value)));
     } else if (type == 'datetime') {
+        if (value == 0) return;  // do not display One day...
         List.addItemLabel(label, Format.datetime(parseFloat(value)));
     } else if (type == 'duration') {
         List.addItemLabel(label, Format.duration(parseInt(value)));
@@ -150,7 +152,7 @@ CustomFields.onButton = function (recordId, fieldid) {
             var form = Query.selectId("Forms.forms", recordId); // this is for button inside forms
             var link = (form && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
             if (form == null) form = { id: recordId }; // this is for button inside other records
-            eval(onclick);
+            eval(onclick + "\n//# sourceURL=http://FORM/BUTTON.js");
         } catch (e) {
             App.alert(e.message);
         }
@@ -217,7 +219,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'selectmulti') {
         List.addComboBoxMulti(id, label, value, onchange, options);
     } else if (type == 'toggle') {
-        label = Utils.xmlEncode(label);
+        //label = Utils.xmlEncode(label);
         onchange += ";CustomFields.onPunch({formid},{label},this.value,{id})";
         List.addToggleBox(id, label, value, onchange, options);
     } else if (type == 'checkbox') {
@@ -316,7 +318,10 @@ CustomFields.onNewCompany = function(formid, fieldname, name) {
 }
 
 CustomFields.loadValues = function (custom) {
-    if (custom == null || custom == "") return new Object();
+    if (custom == null || custom == "") return {};
+
+    // avoid try catch for malformed custom
+    if (custom.indexOf("{") == -1) return {};
     try {
         var values = JSON.parse(custom);
         return values;
@@ -375,6 +380,9 @@ CustomFields.formatValue = function (value, type, options) {
     else if (type == "numeric" || type == "decimal") return Number(value).toLocaleString();
     else if (type == "signature") return CustomFields.formatSignature(value);
     else if (type == "photo") return CustomFields.formatImages(value);
+    else if (type == "drawing" || type == "image") return CustomFields.formatDrawing(value);
+
+    else if (type == "formula") return Number(value) ? Number(value).toLocaleString() : value; // try to converrt to number
 
     else return String(value);
 }
@@ -406,15 +414,24 @@ CustomFields.formatImages = function (value) {
     return buf.join("");
 }
 
+CustomFields.formatDrawing = function (value) {
+    var buf = [];
+    var file = Query.selectId("System.files", value);
+    if (file) buf.push('<img height="300" class="photo" src="##BASE##', file.id, '"/>');
+    return buf.join("");
+}
+
 CustomFields.writePdf = function (table, recordId) {
     var item = Query.selectId(table, recordId);
     if (item == null) return;
     var customFields = CustomFields.get(table, item.custom);
     if (customFields.length > 0) {
+        Pdf2.startTable([R.DETAILS, ""]);
         for (var i = 0; i < customFields.length; i++) {
             var field = customFields[i];
             if (field.value != "") Pdf2.addRow([field.label, field.value]);
         }
+        Pdf2.stopTable();
     }
 }
 
@@ -453,13 +470,7 @@ CustomFields.addFileBox = function (label, table, id, action) {
 }
 
 CustomFields.addScoreBox = function (label, value) {
-    /*var parts = value.split(":");
-    if (parts.length == 2) {
-        value = parts[0];
-        color = parts[1];
-    }*/
     var onchange = "";
     var options = "";
     List.addToggleBox('', label, value, onchange, options);
-    //List.addItemLabelScore(label, value, "", options); // options is color
 }

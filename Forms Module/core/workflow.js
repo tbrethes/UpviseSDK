@@ -26,8 +26,8 @@ Forms.checkEmptyFields = function (form) {
             }
             if (isEmpty) {
                 if (Forms._EDITFORM != null) {
-                    if (App.confirm("Edit mandatory field: " + field.label) == true) {
-                        History.replace(Forms._EDITFORM + "({form.id})");
+                    if (App.confirm(R.EDITMANDATORYFIELD + ": " + field.label) == true) {
+                        History.replace(Forms._EDITFORM + "({form.id},null,{i})");
                     }
                 } else {
                     App.alert("Mandatory field: " + field.label);
@@ -217,9 +217,11 @@ function Forms_nextState(id, currentStatus) {
     if (newstate.sign == 1) {
         if (WEB() == true) {
             signature = Forms.getLastSignature(User.getName());
-            if (signature == null) {
+            if (signature) {
+                if (App.confirm(R.FORMSIGNATURECONFIRM) == false) signature = "";
+            } /* else {
                 if (App.confirm("No previous mobile signature found. Are you sure you want to continue?") == false) return;
-            }
+            }*/
         } else {
             signature = App.prompt("Signature", "", "signature");
             if (signature == "" || signature == null) return;
