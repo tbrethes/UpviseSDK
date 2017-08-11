@@ -4,7 +4,7 @@ Config.title = "Excel File Test";
 
 function main() {
   	Toolbar.addButton("Export", "exportExcel()", "download");
-	List.addItem("Hello World");
+	List.addItem("Click export button");
     List.show();
 }
 
