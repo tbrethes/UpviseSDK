@@ -16,7 +16,7 @@
 
 Config.appid = "dashboard4";
 Config.version = "3";
-Config.title = "Dashbaord Table";
+Config.title = "Dashboard Table";
 
 function leftpane() {
   List.show("leftpane");
