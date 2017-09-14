@@ -32,7 +32,7 @@ namespace com.upvise.samples {
             // This will archive linked notes, tasks, milestones, forms, jobs and linked files/photos
             // Quotes & Invoices for the project are NOT ARCHUVED
             string projectid = ""; // some id
-            Project.Archive(projectid, query);
+            Project.archive(projectid, query);
            
         }
 
@@ -47,7 +47,7 @@ namespace com.upvise.samples {
                 string formid = job.getString("id");
 
                 // NOTE: Job.Archive() will archive related records for the job, like notes, tasks, forms and linked files and photos but NOT Quotes or Invoices
-                Form.Archive(formid, query);
+                Form.archive(formid, query);
             }
         }
 
@@ -61,7 +61,7 @@ namespace com.upvise.samples {
                 string jobid = job.getString("id");
 
                 // NOTE: Job.Archive() will archive related records for the job, like notes, tasks, forms and linked files and photos but NOT Quotes or Invoices
-                Job.Archive(jobid, query);
+                Job.archive(jobid, query);
             }
         }
 
