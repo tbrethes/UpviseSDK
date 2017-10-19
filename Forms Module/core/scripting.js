@@ -40,7 +40,7 @@ Forms.getTemplateId = function (name) {
     return (templates.length > 0) ? templates[0].id : null;
 }
 
-Forms.createForm = function (name, linkedtable, linkedid, values) {
+Forms.createForm = function (name, linkedtable, linkedid, values) { // QUESTION Should we also support counterid here?
     var templateid = Forms.getTemplateId(name);
     if (templateid == null) { App.alert("No Template not found!"); return 1; }
 
@@ -172,10 +172,10 @@ Forms.getAllFields = function (form) {
         field2.type = field.type;
         field2.options = field.seloptions;
         field2.mandatory = field.mandatory;
-     
+
         var value = formValues[field.name];
         if (value == null) value = "";
-        
+
         field2.value = value;
 
         list.push(field2);
