@@ -103,7 +103,8 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         if (Settings.getPlatform() != "web") value = Format.text(value);
         List.addItemLabel(label, value);
     } else if (type == 'numeric' || type == 'decimal') {
-        List.addItemLabel(label, Number(value).toLocaleString());
+        //List.addItemLabel(label, Number(value).toLocaleString());
+        List.addItemLabel(label, "" + value); // we do this : because toLocaleString() rounds to 3 decimals only.....
     } else if (type == 'formula') {
         List.addItemLabel(label, value);
     } else if (type == 'risk') {
@@ -120,6 +121,8 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
 }
 
 CustomFields.addButton = function (id, label, value, options, formid) {
+    // if (label.startsWith("__")) return; Sep 2017 we replace startsWith because of Javascript errors on Android 4 devices
+    if (label.indexOf("__") == 0) return;
     var onclick = null;
     if (value == "newtask") onclick = "Tasks.newTask()";
     else if (value == "newnote") onclick = "Notes.newNote()";
@@ -226,10 +229,10 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
         List.addCheckBox(id, label, parseInt(value), onchange);
     } else if (type == 'contact') {
         if (CustomFields.contactOptions == null) CustomFields.contactOptions = Query.options("Contacts.contacts");
-        List.addComboBoxMulti(id, label, value, onchange, CustomFields.contactOptions, (formid != null) ? "CustomFields.onNewContact({formid},{id},this.value)" : null);
+        List.addComboBoxMulti(id, label, value, onchange, CustomFields.contactOptions, "CustomFields.onNewContact({formid},{id},this.value)");
     } else if (type == 'company') {
         if (CustomFields.companyOptions == null) CustomFields.companyOptions = Query.options("Contacts.companies");
-        List.addComboBoxMulti(id, label, value, onchange, CustomFields.companyOptions, (formid != null) ? "CustomFields.onNewCompany({formid},{id},this.value)" : null);
+        List.addComboBoxMulti(id, label, value, onchange, CustomFields.companyOptions, "CustomFields.onNewCompany({formid},{id},this.value)");
     } else if (type == 'project') {
         List.addComboBoxMulti(id, label, value, onchange, Query.options("Projects.projects", "status=0"));
     } else if (type == 'opp') {
@@ -303,7 +306,7 @@ CustomFields.onNewContact = function (formid, fieldname, name) {
     var newid = Query.insert("Contacts.contacts", { name: name, creationdate: Date.now() });
     var value = _valueObj ? _valueObj[fieldname] : null ;
     value = value ? value + "|" + newid : newid;
-    _updateValue(formid, fieldname, value);
+    if (formid) _updateValue(formid, fieldname, value);
     CustomFields.contactOptions = null;
     History.reload();
 }
@@ -312,7 +315,7 @@ CustomFields.onNewCompany = function(formid, fieldname, name) {
     var newid = Query.insert("Contacts.companies", {name: name, creationdate: Date.now() });
     var value = _valueObj ? _valueObj[fieldname] : null;
     value = value ? value + "|" + newid : newid;
-    _updateValue(formid, fieldname, value);
+    if (formid) _updateValue(formid, fieldname, value);
     CustomFields.companyOptions = null;
     History.reload();
 }
@@ -375,14 +378,16 @@ CustomFields.formatValue = function (value, type, options) {
     else if (type == 'tool') return Query.names("Tools.tools", value);
     else if (type == 'button' || type == "header") return "";
     else if (type == "select" || type == "selectmulti" || type == "toggle") return Format.options(value, options);
-    //else if (type == 'textarea') return Format.text(value);
+        //else if (type == 'textarea') return Format.text(value);
     else if (type == 'checkbox') return value == 1 ? R.YES : R.NO;
-    else if (type == "numeric" || type == "decimal") return Number(value).toLocaleString();
+    else if (type == "numeric" || type == "decimal") return value; // Number(value).toLocaleString();
     else if (type == "signature") return CustomFields.formatSignature(value);
     else if (type == "photo") return CustomFields.formatImages(value);
     else if (type == "drawing" || type == "image") return CustomFields.formatDrawing(value);
 
     else if (type == "formula") return Number(value) ? Number(value).toLocaleString() : value; // try to converrt to number
+
+    else if (type == "score") return ToggleBox.formatScore(value);
 
     else return String(value);
 }
@@ -394,7 +399,7 @@ CustomFields.getHtml = function (table, custom) {
     for (var i = 0; i < items.length; i++) {
         var item = items[i];
         if (EXCLUDE.indexOf(item.type) == -1 && item.value != null && item.value != "") {
-            var value = item.value.split("|").join(", ");
+            var value = String(item.value).split("|").join(", ");
             html.push("<b>" + item.label + "</b>: " + value);
         }
     }

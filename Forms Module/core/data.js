@@ -24,7 +24,9 @@ function _updateValue(formid, fieldname, fieldvalue) {
     var onchange = _changeObj[fieldname];
     if (onchange) {
         var form = Query.selectId("Forms.forms", formid);
-        var ok = Forms._evalFormula(onchange, {value: fieldvalue}, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
+        var fields = Query.select("Forms.fields", "*", "formid={form.templateid} AND name={fieldname}");
+        var fieldlabel = fields.length > 0 ? fields[0].label : null;
+        var ok = Forms._evalFormula(onchange, { value: fieldvalue, label: fieldlabel }, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
         if (ok === false) return; 
     }
 
@@ -52,9 +54,14 @@ Forms.writeEditFields = function (form) {
             if (field.onchange != "") _changeObj[field.id] = field.onchange;
             if (field.mandatory == 1) field.label += " (*)";
 
-            if (field.type == "button" && field.value == "scan") {
-                var onscan = "Forms.onScan({form.id},{field.id},this.value)";
-                List.addButton(field.label, "App.scanCode({onscan})");
+            if (field.type == "button") {
+                if (field.value == "scan") {
+                    var onscan = "Forms.onScan({form.id},{field.id},this.value)";
+                    List.addButton(field.label, "App.scanCode({onscan})");
+                } else if (form.linkedtable == "Forms.forms") {
+                    // display button in edit mode only for subform 
+                    CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
+                }
             } else {
                 CustomFields.writeEditItem(field.id, field.type, field.label, field.value, onchange, field.options, form.id);
             }
@@ -67,7 +74,7 @@ Forms.onScan = function (formid, fieldid, value) {
     if (onchange != null && onchange != "") {
         var js = "function f1() { var value=" + esc(value) + "; var formid=" + esc(formid) + ";" + onchange + "};f1();";
         var form = Query.selectId("Forms.forms", formid);
-        var ok = Forms._evalFormula(js, {}, form, "ONSCAN_" + fieldid);
+        var ok =  Forms._evalFormula(js, {}, form, "ONSCAN_" + fieldid);
     }
 }
 
@@ -214,18 +221,22 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
    
     var buffer = [];
     for (var member in valuesObj) {
-        buffer.push('var ' + member + '=' + esc(valuesObj[member]));
+        buffer.push('var ' + member + '=' + esc(valuesObj[member]) + ";");
     }
-    buffer.push("\n" + js);
+    buffer.push(js);
+    if (WEB()) buffer.push("//# sourceURL=http://FORM/" + sourceURL + ".js");
+    buffer = buffer.join('\n');
     try {
         // link var is available in eval buffer, as well as form object
         var link = Forms._getLink(form);
-        var result = eval(buffer.join(';') + "\n//# sourceURL=http://FORM/" + sourceURL + ".js");
+        var result = eval(buffer);
         return result;
     } catch (e) {
         if (WEB()) {
             var msg = "%cForm Eval Formula Error:\n" + e.message + "\nForm: " + form.name + "\nSource: " + sourceURL; 
             if (console != null) console.log(msg, "color:red");
+        } else {
+            App.confirm("Error: " + e.message + "\n" + buffer);
         }
         return "Error: " + e.message;
     }
@@ -238,11 +249,14 @@ Forms.canEdit = function (form) {
     // Admin and manager can always edit
     if (User.isManager()) return true;
     // user(s) who own the form can edit it in Draft mode = 0
-    if (MultiValue.contains(form.owner, User.getName()) && form.status == 0) return true;
-    // is current user part of the current workflow state
-    var state = Forms.getState(form);
-    if (state.onclick) return true
-    return false;
+    if (form.status == 0) {
+        return MultiValue.contains(form.owner, User.getName()); 
+    } else {
+        // is current user part of the current workflow state
+        var state = Forms.getState(form);
+        if (state && state.onclick) return true
+        else return false;
+    }
 }
 
 Forms.hasRight = function (action, form) {
@@ -313,8 +327,17 @@ Forms.addHistory = function (form, name, note, signature) {
 ////////////////
 // WEB ONLY
 Forms.writeSubformsTable = function (forms, editable) {
+
+    // remember the current form state (coming from +valueObj ....)
+    var state = Forms.GET_STATE();
+
     for (var i = 0; i < forms.length; i++) {
-        var color = forms[i].color;
+        var form = forms[i];
+        
+        // we need this because getFields uses scripting with options
+        _valueObj = Forms._getValues(form); // we need this because Risk.view access it
+        _formid = form.id;
+
         var fields = Forms.getFields(forms[i]);
         var header = [];
         var values = [];
@@ -332,8 +355,11 @@ Forms.writeSubformsTable = function (forms, editable) {
             if (WEB()) NextPrevious.addSection();
         }
         var func = editable ? Forms._EDITFORM : Forms._VIEWFORM;
-        var style = color ? "priority:" + color : "";
+        var style = form.color ? "priority:" + form.color : "";
         List.add(values, func + "({forms[i].id})", style);
     }
+
+    // restore the current form state (we changed it with valueObj = xxx)
+    Forms.RESTORE_STATE(state);
 }
 

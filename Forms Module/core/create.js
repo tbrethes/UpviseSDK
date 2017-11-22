@@ -10,6 +10,13 @@ if (typeof (Forms) === "undefined") {
 
 Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, projectid) {
     if (remove == 1) History.remove(1);
+
+    // we auto link job forms to project for standard user ownership...
+    if (!projectid && linkedtable == "Jobs.jobs") {
+        var job = Query.selectId("Jobs.jobs", linkedid);
+        if (job) projectid = job.projectid;
+    }
+
     var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid);
     if (id != null) {
         if (linkedtable != "Forms.forms") History.add(Forms._VIEWFORM + "({id})");
@@ -207,6 +214,22 @@ Forms.selectSubForms = function (form) {
     }
     return subforms;
 }
+
+////////////////////////////////////////////////////////////////////
+
+Forms.editAddress = function (id) {
+    var form = Query.selectId("forms", id);
+    if (form == null) { History.back(); return; }
+    var onchange = "Query.updateId('forms',{id},this.id,this.value)";
+
+    List.forceNewLine = true;
+    List.addTextBox('date', R.DATE, form.date, onchange, "datetime");
+    List.addComboBoxMulti('owner', R.OWNER, form.owner, "Forms.changeOwner({id},this.value)", User.getOptions());
+    List.addTextBox('address', R.ADDRESS, form.address, onchange);
+    List.addTextBox('geo', R.POSITION, form.geo, onchange);
+    List.show();
+}
+
 
 Forms.changeOwner = function (id, owner) {
     var form = Query.selectId("Forms.forms", id);

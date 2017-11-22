@@ -49,8 +49,12 @@ Forms.evalSubmit = function (form) {
     var fields = Query.select("Forms.fields", "name;label;value;type;seloptions", "formid=" + esc(form.templateid), "rank");
     var formValues = Forms._getFullValues(form, fields);
 
-    var js = "function f1() {" + onsubmit + "};f1();";
+    var js = "function f1() {\n" + onsubmit + "\n};f1();";
     var returnValue = Forms._evalFormula(js, formValues, form, "ONSUBMIT");
+
+    // if no return value and the submit code contains App.open, we decide you navigated to a new page.
+    if (returnValue == null && onsubmit.indexOf("App.open") > -1) returnValue = 2;
+
     if (returnValue != undefined && returnValue != 0 && returnValue != 1 && returnValue != 2) {
         App.alert("Javascript Error: " + returnValue);
     }
@@ -148,7 +152,7 @@ function Forms_submit(id, goBack) {
 
     // Execute on Submit
     var returnValue = Forms.evalSubmit(form);
-    if (returnValue == 0) return;
+    if (returnValue === 0) return;
 
     Forms.LOCK = 1;
     try {

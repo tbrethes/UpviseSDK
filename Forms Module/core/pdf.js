@@ -19,6 +19,8 @@ FormsPdf.export = function (formid, action, email, subject, body) {
 
     // Download or Email
     Pdf2.setFilename(filename);
+    if (!Pdf2.footer) Pdf2.footer = filename.replace(".pdf", "");
+
     if (action == "email") {
         var emails = email ? email : FormsPdf.getEmails(form);
         Pdf2.subject = subject ? subject : FormsPdf.replaceCustom(template.subject, form, template);
@@ -256,13 +258,22 @@ FormsPdf.addFields = function (fields, form) {
 FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
     if (subforms.length == 0) return;
 
-
+    /*
     var template = Query.selectId("Forms.templates", parentTemplateid);
     var pdfoptions = FormsPdf.getOptions(template);
-    if (pdfoptions.subformlist == "1") {
+    var asList = (pdfoptions.subformlist == "1");
+    */
+    var asList = false;
+    if (subforms.length > 0) {
+        var subtemplate = Query.selectId("Forms.templates", subforms[0].templateid);
+        var subpdfoptions = FormsPdf.getOptions(subtemplate);
+        var asList = (subpdfoptions.subformlist == "1");
+    }
+    if (asList == true) {
         for (var i = 0; i < subforms.length; i++) {
             var subform = subforms[i];
             var template = Query.selectId("Forms.templates", subform.templateid);
+            Pdf2.addPageBreak();
             FormsPdf.write(subform, template, (i+1));
         }
         return;
@@ -294,7 +305,7 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
     Pdf2.stopTable();
 
     // Add subform photos
-    if (photos.length > 0) Pdf2.addImages(null, photos);
+    if (photos.length > 0) Pdf2.addImages(null, photos, Pdf2.photoheight);
 }
 
 FormsPdf.isFieldHidden = function (field) {
@@ -420,13 +431,18 @@ FormsPdf.addHistory = function (history) {
 FormsPdf.addPunch = function (items) {
     if (items.length == 0) return;
 
-    Pdf2.startTable([R.PUNCHITEM, R.DATE, R.STATUS, "Assigned To"], [null, "150px", "50px", "150px"], "punch");
+    //Pdf2.startTable([R.PUNCHITEM, R.DATE, R.STATUS, "Assigned To"], [null, "150px", "50px", "150px"], "punch");
+    Pdf2.addPageBreak();
+    Pdf2.addHeader(R.PUNCHITEMS);
+    Pdf2.startTable([R.PUNCHITEM, R.ASSET, R.DATE, R.STATUS, R.ASSIGNEDTO], [null, null, null, null]);
     for (var i = 0; i < items.length; i++) {
         var item = items[i];
+        var asset = Query.selectId("assets", item.assetid);
+        var assetname = (asset != null) ? asset.model + " " + asset.name : "";
         var name = item.name;
         if (item.question != "") name += "<br/><small>" + "Related to:" + item.question + "</small>";
         var status = (item.status == 0) ? R.OPEN : R.CLOSED;
-        Pdf2.addRow([name, Format.date(item.date), status, item.owner]);
+        Pdf2.addRow([name, assetname, Format.date(item.date), status, item.owner]);
     }
     Pdf2.stopTable();
 }
