@@ -61,6 +61,21 @@ Forms.evalSubmit = function (form) {
     return returnValue;
 }
 
+// return=0 : do not submit, return=1: submit, return=2 : submit but do no go back because we navigated to a new page...
+Forms.evalReject = function (form) {
+    var template = Query.selectId("Forms.templates", form.templateid);
+    if (template == null) return ;
+    if (!template.onreject) return;
+    var onreject = template.onreject.trim();
+    if (onreject == "") return;
+
+    var fields = Query.select("Forms.fields", "name;label;value;type;seloptions", "formid=" + esc(form.templateid), "rank");
+    var formValues = Forms._getFullValues(form, fields);
+
+    var js = "function f1() {\n" + onreject + "\n};f1();";
+    var returnValue = Forms._evalFormula(js, formValues, form, "ONREJECT");
+}
+
 // staff is a pipe separated list of user names
 Forms.notify = function (form, statename, staff) {
     var template = Query.selectId("Forms.templates", form.templateid);
@@ -184,6 +199,8 @@ function Forms_reject(id) {
     Forms.notify(form, R.REJECTED, Forms.getCreator(form));
     Forms.archive(id);
 
+    Forms.evalReject(form);
+
     History.reload();
 }
 
@@ -209,7 +226,7 @@ function Forms_nextState(id, currentStatus) {
 
     // ensure no empty mandatory fiels
     if (Forms.checkEmptyFields(form) == false) return;
-    
+
     // Execute the onload script for this state - if any. If the onload script retrun a non null string, display the message and do not continue to next state
     var errorMsg = Forms.evalOnLoad(form, newstate.onload);
     if (errorMsg) return App.alert(errorMsg);
@@ -249,7 +266,7 @@ function Forms_nextState(id, currentStatus) {
     // notify the state staff + form owner
     var users = newstaff + "|" + Forms.getCreator(form);
     if (template.notifusers != "") users += "|" + template.notifusers;
-    Forms.notify(form, newstate.name, users); 
+    Forms.notify(form, newstate.name, users);
 
     // If this is the last stage, ie no action button, archive the form
     if (Forms.shouldArchive(newstate)) Forms.archive(id);
