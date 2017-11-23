@@ -8,7 +8,7 @@ if (typeof (Forms) === "undefined") {
 
 //////////////////////////// Form Creation
 
-Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, projectid, counterid) {
+Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, projectid) {
     if (remove == 1) History.remove(1);
 
     // we auto link job forms to project for standard user ownership...
@@ -17,19 +17,19 @@ Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, proje
         if (job) projectid = job.projectid;
     }
 
-    var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid, counterid);
+    var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid);
     if (id != null) {
         if (linkedtable != "Forms.forms") History.add(Forms._VIEWFORM + "({id})");
         History.redirect(Forms._EDITFORM +  "({id})");
     }
 }
 
-Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name, projectid, counterid) {
+Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name, projectid) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
     var form = {};
-    form.name = name ? name : Forms.getNewName(templateid, counterid);
+    form.name = name ? name : Forms.getNewName(templateid);
     form.templateid = templateid;
     form.date = Date.now();
     form.owner = User.getName();
@@ -42,7 +42,6 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
         form.linkedtable = template.linkedtable;
     }
     if (projectid) form.projectid = projectid;
-    if (counterid) form.counterid = counterid;
 
     if (values == null) values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
@@ -51,17 +50,16 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     return Query.insert("Forms.forms", form);
 }
 
-Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, linkedid, projectid, name, counterid) {
+Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, linkedid, projectid) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
     var form = {};
-    form.name = name ? name : Forms.getNewName(templateid, counterid);
+    form.name = Forms.getNewName(templateid);
     form.templateid = templateid;
     form.date = Date.now();
     form.owner = User.getName();
     if (projectid) form.projectid = projectid;
-    if (counterid) form.counterid = counterid;
 
     form.planid = fileid;
     form.geo = geo
@@ -72,7 +70,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
         linkedtable = file.linkedtable;
         if (linkedtable == "unybiz.projects.projects") linkedtable = "Projects.projects";
     }
-
+    
     form.linkedtable = linkedtable;
     form.linkedid = linkedid;
 
@@ -92,14 +90,10 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     return Query.insert("Forms.forms", form);
 }
 
-Forms.getNewName = function (templateid, counterid) {
-    var counter;
-    if (counterid) counter = "[NEW]"
-    else {
-        var template = Query.selectId("Forms.templates", templateid);
-        var counter = 1 + template.counter;
-        Query.updateId("Forms.templates", templateid, "counter", counter);
-    }
+Forms.getNewName = function (templateid) {
+    var template = Query.selectId("Forms.templates", templateid);
+    var counter = 1 + template.counter;
+    Query.updateId("Forms.templates", templateid, "counter", counter);
 
     if (AccountSettings.get("forms.initials") == "1") {
         counter = User.getInitials() + "-" + counter;
@@ -151,9 +145,9 @@ Forms.deleteForm = function(formid, goBack) {
 
 ///////////////////// Duplicate
 
-Forms.duplicateForm = function (id, counterid) {
+Forms.duplicateForm = function (id) {
     var form = Query.selectId("Forms.forms", id);
-    var newid = Forms.duplicateInternal(form, form.linkedid, counterid);
+    var newid = Forms.duplicateInternal(form, form.linkedid);
 
     // Also duplicate all sub forms if any
     var subforms = Forms.selectSubForms(form);
@@ -163,31 +157,24 @@ Forms.duplicateForm = function (id, counterid) {
         var parts = subform.linkedid.split(":");
         parts[0] = newid;
         var linkedid = parts.join(":");
-        Forms.duplicateInternal(subform, linkedid, counterid);
+        Forms.duplicateInternal(subform, linkedid);
     }
-
+  
     History.add(Forms._VIEWFORM + "({newid})");
     History.redirect(Forms._EDITFORM + "({newid})");
 }
 
-Forms.duplicateInternal = function (form, linkedid, counterid) {
+Forms.duplicateInternal = function (form, linkedid) {
     var form2 = {};
     form2.templateid = form.templateid;
     form2.status = Forms.DRAFT;
-    form2.name = Forms.getNewName(form.templateid, counterid);
+    form2.name = Forms.getNewName(form.templateid);
     form2.owner = User.getName();
     form2.date = Date.now();
-    if (form.planid) {
-        form2.planid = form.planid;
-        form2.geo = form.geo;
-    } else {
-        form2.geo = Settings.getLocation();
-        form2.address = Settings.getAddress(form.geo);
-    }
+    form2.geo = Settings.getLocation();
+    form2.address = Settings.getAddress(form.geo);
     form2.linkedtable = form.linkedtable;
     form2.linkedid = linkedid;
-    if (form.projectid) form2.projectid = form.projectid;
-    if (counterid) form2.counterid = counterid;
 
 
     var values2 = JSON.parse(form.value);

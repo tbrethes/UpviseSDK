@@ -171,6 +171,8 @@ Templates.viewTemplate = function(id, tab) {
     } else if (tab == 5) {
         List.addTextBox("onsubmit", R.EXECUTEONSUBMIT, template.onsubmit, onchange, "code");
         List.addHelp(R.EXECUTEONSUBMIT_HELP);
+        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
+
     } else if (tab == 6) {
         List.forceNewLine = false;
      
@@ -236,7 +238,6 @@ Templates.editFormTemplate = function(template, onchange) {
     List.addHeader("Display Columns");
     List.addComboBoxMulti('columns', "List Columns", template.columns, onchange, Templates.getColumnsOptions(template.id));
 }
-
 
 Templates.getColumnsOptions = function (templateid) {
     var options = [];
