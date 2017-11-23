@@ -199,7 +199,7 @@ function Forms_reject(id) {
     Forms.notify(form, R.REJECTED, Forms.getCreator(form));
     Forms.archive(id);
 
-    Forms.evalReject();
+    Forms.evalReject(form);
 
     History.reload();
 }
@@ -226,7 +226,7 @@ function Forms_nextState(id, currentStatus) {
 
     // ensure no empty mandatory fiels
     if (Forms.checkEmptyFields(form) == false) return;
-    
+
     // Execute the onload script for this state - if any. If the onload script retrun a non null string, display the message and do not continue to next state
     var errorMsg = Forms.evalOnLoad(form, newstate.onload);
     if (errorMsg) return App.alert(errorMsg);
@@ -266,7 +266,7 @@ function Forms_nextState(id, currentStatus) {
     // notify the state staff + form owner
     var users = newstaff + "|" + Forms.getCreator(form);
     if (template.notifusers != "") users += "|" + template.notifusers;
-    Forms.notify(form, newstate.name, users); 
+    Forms.notify(form, newstate.name, users);
 
     // If this is the last stage, ie no action button, archive the form
     if (Forms.shouldArchive(newstate)) Forms.archive(id);
