@@ -13,7 +13,7 @@ Templates.editTemplates = function(tab) {
     var groups = Query.select("Forms.groups", "id;name", null, "rank");
     for (var i = 0; i < groups.length; i++) {
         var group = groups[i];
-        var count = Query.count("templates", Where.addOwner("groupid={group.id}"));
+        var count = Query.count("Forms.templates", Where.addOwner("groupid={group.id}"));
         Toolbar.addTab(group.name, "Templates.editTemplates({group.id})", "count:" + count);
     }
     if (groups.length > 0) {
@@ -32,7 +32,7 @@ Templates.editTemplates = function(tab) {
         var name = template.name + " " + Format.text(template.prefix, "gray");
         var fields = Query.select("Forms.fields", "_date", "formid={template.id}", "_date DESC");
         var date = (fields.length > 0) ? Format.date(fields[0]._date) : "";
-        var linkedto = (template.linkedtable) != "" ? Format.options(template.linkedtable, Forms.getLinkedOptions()) : "";
+        var linkedto = template.linkedtable && Forms.getLinkedOptions ? Format.options(template.linkedtable, Forms.getLinkedOptions()) : "";
         var group = Query.names("Forms.groups", template.groupid);
         List.add([name, linkedto, group, date, Format.owner(template.owner)], "Templates.viewTemplate({template.id})", { id: template.id });
     }
@@ -148,7 +148,7 @@ Templates.viewTemplate = function(id, tab) {
         Templates.editFormTemplate(template, onchange);
     } else if (tab == 2) {
         Toolbar.addButton(R.NEWSTATE, "newState({id})", "new");
-        writeStates(states);
+        writeStates(template, states);
     } else if (tab == 3) {
         if (template.public == 1) {
             List.addButton(R.DISABLEPUBLIC, "setTemplatePublic({id},false)");
@@ -171,7 +171,6 @@ Templates.viewTemplate = function(id, tab) {
     } else if (tab == 5) {
         List.addTextBox("onsubmit", R.EXECUTEONSUBMIT, template.onsubmit, onchange, "code");
         List.addHelp(R.EXECUTEONSUBMIT_HELP);
-        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
     } else if (tab == 6) {
         List.forceNewLine = false;
 
@@ -408,7 +407,7 @@ Templates.onImportLocalize = function (rows) {
     var fields = Query.select("fields", "*");
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
-        var template = Query.selectId("templates", field.formid);
+        var template = Query.selectId("Forms.templates", field.formid);
         if (template) {
             var key = template.name + ":" + field.name;
             map.set(key, field);
