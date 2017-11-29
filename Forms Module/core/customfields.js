@@ -31,7 +31,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == "button") {
         CustomFields.addButton(id, label, "code", options, formid);
         return;
-    } 
+    }
     if (value == null || value === "") return;
 
     if (type == 'select' || type == 'selectmulti') {
@@ -56,7 +56,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == 'tool') {
         CustomFields.writeMultivalueItem(label, value, "Tools.tools", "Tools.viewTool", "job");
     } else if (type == 'form') {
-        CustomFields.writeMultivalueItem(label, value, "Forms.forms", "Forms.viewForm");
+        CustomFields.writeMultivalueItem(label, value, "Forms.forms",  Forms._VIEWFORM);
     } else if (type == 'user') {
         var owners = value.split("|");
         var contactids = [];
@@ -200,7 +200,7 @@ CustomFields.edit = function (table, recordId, ids, fieldsTable) {
     if (fields.length == 0) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
-    
+
     CustomFields.companyOptions = null;
     CustomFields.contactOptions = null;
 
