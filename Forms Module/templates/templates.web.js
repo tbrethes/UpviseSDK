@@ -237,6 +237,8 @@ Templates.editFormTemplate = function(template, onchange) {
     List.addTextBox("version", "Version", template.version, onchange, "longtext");
     List.addHeader("Display Columns");
     List.addComboBoxMulti('columns', "List Columns", template.columns, onchange, Templates.getColumnsOptions(template.id));
+    List.addComboBox('sortby', R.SORTBY, template.sortby, onchange, ":Most Recent|name:Name|priority:Priority");
+
 }
 
 Templates.getColumnsOptions = function (templateid) {
