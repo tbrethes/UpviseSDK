@@ -1,11 +1,15 @@
 
-function writeStates(states) {
+function writeStates(template, states) {
     List.addHeader([R.RANK, R.STATENAME, R.ACTIONBUTTON, R.STAFF]);
     List.add([0, R.DRAFT, R.SUBMIT, R.EVERYONE], "App.alert(" + R.STATEEDITALERT + ")");
     for (var i = 0; i < states.length; i++) {
         var state = states[i];
         List.add([state.status, state.name, state.action, state.staff], "editState({state.id})");
     }
+    var onchange = "Query.updateId('Forms.templates', {template.id}, this.id, this.value)";
+    List.addHeader(["On Reject"])
+    List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
+    List.addHelp(R.EXECUTEONSUBMIT_HELP);
 }
 
 /////////////////////////////////////
@@ -14,7 +18,7 @@ function newState(templateid) {
     Toolbar.setTitle(R.NEWSTATE);
     Toolbar.addButton(R.SAVE, "saveNewState({templateid})", "save");
     List.forceNewLine = true;
-    var name = Query.count("states", "templateid={templateid}") == 0 ? "Submitted" : "";
+    var name = Query.count("Forms.states", "templateid={templateid}") == 0 ? "Submitted" : "";
     List.addTextBox("name", R.STATENAME, name, null);
     List.addTextBox("action", R.ACTIONBUTTON, "", null);
     List.addHelpPane(R.STATE_HELP2);
@@ -42,15 +46,15 @@ function saveNewState(templateid) {
     } else {
         values.status = 1;
     }
-        
+
     var id = Query.insert("Forms.states", values);
     History.reload();
 }
 
 function editState(id) {
-    var state = Query.selectId("states", id);
+    var state = Query.selectId("Forms.states", id);
     if (state == null) { History.back(); return; }
-    var onchange = "Query.updateId('states',{id},this.id,this.value)";
+    var onchange = "Query.updateId('Forms.states',{id},this.id,this.value)";
 
     Toolbar.setStyle("edit");
     Toolbar.addButton(R.DELETE, "deleteState({id})", "delete");
@@ -83,14 +87,14 @@ function getStateStaffOptions(statestaff) {
         for (var i = 0; i < users.length; i++) {
             var user = users[i];
             if (!MultiValue.contains(options, user+":"+user)) options = MultiValue.add(options, user+":"+user);
-        }        
+        }
     }
 
     return options;
 }
 
 function deleteState(id) {
-    Query.deleteId("states", id);
+    Query.deleteId("Forms.states", id);
     History.back();
 }
 
