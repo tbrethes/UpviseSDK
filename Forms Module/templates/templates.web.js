@@ -13,14 +13,14 @@ Templates.editTemplates = function(tab) {
     var groups = Query.select("Forms.groups", "id;name", null, "rank");
     for (var i = 0; i < groups.length; i++) {
         var group = groups[i];
-        var count = Query.count("templates", Where.addOwner("groupid={group.id}"));
+        var count = Query.count("Forms.templates", Where.addOwner("groupid={group.id}"));
         Toolbar.addTab(group.name, "Templates.editTemplates({group.id})", "count:" + count);
     }
     if (groups.length > 0) {
         var count = Query.count("Forms.templates", "groupid=''");
         if (count > 0) Toolbar.addTab(R.UNCLASSIFIED, "Templates.editTemplates('')", "count:" + count);
     }
-  
+
     List.addItemTitle(R.TEMPLATES);
 
     var where = (tab != null) ? "groupid={tab}" : "";
@@ -32,7 +32,7 @@ Templates.editTemplates = function(tab) {
         var name = template.name + " " + Format.text(template.prefix, "gray");
         var fields = Query.select("Forms.fields", "_date", "formid={template.id}", "_date DESC");
         var date = (fields.length > 0) ? Format.date(fields[0]._date) : "";
-        var linkedto = (template.linkedtable) != "" ? Format.options(template.linkedtable, Forms.getLinkedOptions()) : "";
+        var linkedto = template.linkedtable && Forms.getLinkedOptions ? Format.options(template.linkedtable, Forms.getLinkedOptions()) : "";
         var group = Query.names("Forms.groups", template.groupid);
         List.add([name, linkedto, group, date, Format.owner(template.owner)], "Templates.viewTemplate({template.id})", { id: template.id });
     }
@@ -93,7 +93,7 @@ Templates.viewTemplate = function(id, tab) {
     if (Templates.WORKFLOW) Toolbar.addTab(R.WORKFLOW, "Templates.viewTemplate({id},2)", "count:" + states.length);
     if (Templates.SHARING) Toolbar.addTab(R.SHARING, "Templates.viewTemplate({id},3)");
     if (Templates.DASHBOARD) Toolbar.addTab(R.DASHBOARD, "Templates.viewTemplate({id},4)");
-    
+
     if (tab == null) Toolbar.addButton(R.HELP, "App.help('forms/help/template/fieldtypes.htm')", 'support');
     else if (tab == 1) Toolbar.addButton(R.HELP, "App.help('forms/help/template/info.htm')", 'support');
     else if (tab == 2) Toolbar.addButton(R.HELP, "App.help('forms/help/template/workflow.htm')", 'support');
@@ -110,7 +110,7 @@ Templates.viewTemplate = function(id, tab) {
     //Toolbar.addButton("Download Archive", "Forms.downloadArchive({id})", "more");
 
     var templateName = template.name + " " + Format.text(template.prefix, "gray");
-  
+
     if (tab == null) writeNewFieldToolbar(id);
 
     List.addItemBox(R.TEMPLATE, templateName, "", "img:form");
@@ -143,12 +143,12 @@ Templates.viewTemplate = function(id, tab) {
                     List.add([field.rank, label, type, mandatory, field.name], "editFieldTemplate({field.id})", style);
                 }
             }
-        } 
+        }
     } else if (tab == 1) {
         Templates.editFormTemplate(template, onchange);
     } else if (tab == 2) {
         Toolbar.addButton(R.NEWSTATE, "newState({id})", "new");
-        writeStates(states);
+        writeStates(template, states);
     } else if (tab == 3) {
         if (template.public == 1) {
             List.addButton(R.DISABLEPUBLIC, "setTemplatePublic({id},false)");
@@ -171,19 +171,17 @@ Templates.viewTemplate = function(id, tab) {
     } else if (tab == 5) {
         List.addTextBox("onsubmit", R.EXECUTEONSUBMIT, template.onsubmit, onchange, "code");
         List.addHelp(R.EXECUTEONSUBMIT_HELP);
-        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
-
     } else if (tab == 6) {
         List.forceNewLine = false;
-     
+
         List.addComboBox("columnwidth", R.COLUMNWIDTH, Templates.pdfoptions.columnwidth, onchange2, "200px|300px|400px|500px|600px|700px|800px|900px|1000px|:Dynamic");
         List.addComboBox("fontsize", R.FONTSIZE, Templates.pdfoptions.fontsize, onchange2, "1.0em|1.2em|1.4em|1.6em|1.8em|2.0em");
         List.addComboBox("columns", R.COLUMNS, Templates.pdfoptions.columns, onchange2, "1:" + R.SINGLECOL + "|2:" + R.TWOCOL);
         List.addComboBox("headercolor", "Header Background Color", Templates.pdfoptions.headercolor, onchange2, Color.getOptions());
-        
+
         List.addComboBox("photoheight", "Photo height", Templates.pdfoptions.photoheight, onchange2, "200px|250px|275px|300px|350px|400px|410px|450px|500px|fullsize:Full Size");
         List.addComboBox("photocaption", "Add Photo Caption", Templates.pdfoptions.photocaption, onchange2, "0:" + R.NO + "|1:" + R.YES);
-   
+
         List.addHeader(R.WATERMARK);
         List.addTextBox("watermark", R.TEXT, Templates.pdfoptions.watermark, onchange2);
         List.addTextBox("watermarkcolor", R.COLOR, Templates.pdfoptions.watermarkcolor, onchange2, "color");
@@ -200,7 +198,7 @@ Templates.viewTemplate = function(id, tab) {
         List.addTextBox("footer", R.FOOTER, Templates.pdfoptions.footer, onchange2, "longtext");
 
   //      List.addHeader("Watermark");
-      
+
         Toolbar.addButton(R.INSERTPLACEHOLDER, "Templates.popupInsertPlaceholder({id},'html')", "popup");
         //Toolbar.addButton("HTML Source", "Templates.viewTemplate({id},'htmlcode')");
         List.addHeader(R.CUSTOMIZELAYOUT);
@@ -352,7 +350,7 @@ Templates.onDuplicate = function(templateid) {
     if (name == "") {App.alert("Please enter a Template Name");return; }
 
     var template = Query.selectId("Forms.templates", templateid);
-    
+
     // create the new blank template form
     var newid = Query.insert("Forms.templates", { name: name, linkedtable: template.linkedtable, onsubmit: template.onsubmit, groupid: template.groupid });
 
@@ -379,7 +377,7 @@ Templates.onDuplicate = function(templateid) {
     History.replace("Templates.viewTemplate({newid})");
 }
 
-// type="html" for HTML text area or "text" for text-only text ares and input fields 
+// type="html" for HTML text area or "text" for text-only text ares and input fields
 Templates.popupInsertPlaceholder = function (templateid, type) {
     var callback = (type == "html") ? "Templates.onInsertHtmlPdf" : "TextBox.insertTextAtCursor";
 
@@ -411,7 +409,7 @@ Templates.onImportLocalize = function (rows) {
     var fields = Query.select("fields", "*");
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
-        var template = Query.selectId("templates", field.formid);
+        var template = Query.selectId("Forms.templates", field.formid);
         if (template) {
             var key = template.name + ":" + field.name;
             map.set(key, field);

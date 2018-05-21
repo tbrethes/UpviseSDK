@@ -1,5 +1,5 @@
 ﻿
-////////////////////////////////////////////////// 
+//////////////////////////////////////////////////
 ////////////////// Template Form Fields
 
 Templates.onDropField = function (sourceFieldId, targetFieldId) {
@@ -155,7 +155,7 @@ function newfieldTemplateValues(templateId) {
 
     // find the max index and add 1
     var rank = 0;
-    var fieldId = 0; // 
+    var fieldId = 0; //
     var fields = Query.select("Forms.fields", null, "formid={templateId}", "rank");
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
@@ -228,7 +228,7 @@ function editFieldTemplate(id) {
 
     var help = ' <br/>See <a target=_blank href="http://developer.upvise.com/guide/forms.htm"><b>Form Scripting Guide</b></a>';
 
-   
+
     // Default Value field
     if (type == "button") {
         var options = Templates.getOptions(Templates.getButtonOptions());
@@ -275,7 +275,7 @@ function editFieldTemplate(id) {
         List.addCheckBox("mandatory", R.MANDATORYFIELD, item.mandatory, onchange);
         List.addHelp("Check this if the field must be filled in order to move to the next state");
     }
-    if (Query.count("states", "templateid={item.formid}") > 0) {
+    if (Query.count("Forms.states", "templateid={item.formid}") > 0) {
         List.addComboBox("status", R.EDITABLE, item.status, onchange, Templates.getStateOptions(item.formid));
         List.addHelp("Defines in which state this field can be edited");
     }
@@ -299,7 +299,7 @@ function writeEditFieldTooblar(item) {
 function editFieldTemplateLocal(id) {
     var item = Query.selectId("Forms.fields", id);
     var onchange = "Query.updateId('Forms.fields',{id},this.id,this.value)";
-    
+
     writeEditFieldTooblar(item);
     List.addTextBox("label", "Default", item.label, onchange, "longtext");
     List.addTextBox("labelDE", "German", item.labelDE, onchange, "longtext");
@@ -428,7 +428,7 @@ Templates.getSubTypeFields = function (id) {
     var COMBO = Templates.getComboBoxOptions();
     var DATE = Templates.getDateBoxOptions();
     var PHOTO = Templates.getPhotoBoxOptions();
-    
+
     var items = [TEXT, COMBO, DATE, PHOTO];
     for (var i = 0; i < items.length; i++) {
         var list = items[i];
