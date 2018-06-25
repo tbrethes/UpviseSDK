@@ -1,0 +1,27 @@
+Config.appid = "testasset";
+Config.version = "5";
+Config.title = "Test Asset";
+
+function main() {
+   // get the first asset from assets table
+  var where = "";
+  var assets = Query.select("Assets.assets", "id;name", where);
+  var asset = assets[0];
+  
+  List.addItemTitle("Test Asset App", "version " + Config.version);
+  
+  var onclick1 = "onButtonClick1(" + esc(asset.id) + ")";
+  var onclick2 = "onButtonClick2(" + esc(asset.id) + ")";
+  List.addItemSubtitle("View Asset", asset.name, onclick1, "img:product");
+  List.addItemSubtitle("Edit Asset", asset.name, onclick2, "img:edit");
+  List.show();
+}
+
+function onButtonClick1(id) {
+  // to start another Upvise, use App.open()
+  App.open("Assets.viewAsset(" + esc(id) + ")"); 
+}
+
+function onButtonClick2(id) {
+  App.open("Assets.editAsset(" + esc(id) + ")"); 
+}
