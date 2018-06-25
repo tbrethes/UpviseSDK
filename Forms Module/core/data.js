@@ -39,15 +39,17 @@ function _updateValue(formid, fieldname, fieldvalue) {
     }
 }
 
-Forms.writeEditFields = function (form) {
+Forms.writeEditFields = function (form, showButtons) {
+    var stateCount = Query.count("Forms.states", "templateid={form.templateid}");
+
     // form.value contains a json string of array values indexed by field names
-    _valueObj = Forms._getValues(form);
-    _formid = form.id;
     _changeObj = {};
     var onchange = "_updateValue({form.id},this.id,this.value)";
 
-    var stateCount = Query.count("Forms.states", "templateid={form.templateid}");
+    _valueObj = Forms._getValues(form);
+    _formid = form.id;
     var fields = Forms.getFields(form);
+
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (stateCount == 0 || field.status == -1 || field.status == form.status) {
@@ -58,7 +60,7 @@ Forms.writeEditFields = function (form) {
                 if (field.value == "scan") {
                     var onscan = "Forms.onScan({form.id},{field.id},this.value)";
                     List.addButton(field.label, "App.scanCode({onscan})");
-                } else if (form.linkedtable == "Forms.forms") {
+                } else if (form.linkedtable == "Forms.forms" || showButtons) {
                     // display button in edit mode only for subform 
                     CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
                 }
@@ -82,6 +84,7 @@ Forms.writeViewFields = function (form) {
     _valueObj = Forms._getValues(form); // we need this because Risk.view access it
     _formid = form.id;
     var fields = Forms.getFields(form);
+
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.type == "button") {
@@ -144,6 +147,8 @@ Forms.getFieldLabel = function (field, lang) {
     if (lang == "DE" && field.labelDE) return field.labelDE;
     else if (lang == "FR" && field.labelFR) return field.labelFR;
     else if (lang == "ES" && field.labelES) return field.labelES;
+    else if (lang == "ZH" && field.labelZH) return field.labelZH;
+    else if (lang == "ZHT" && field.labelZH) return field.labelZH;
     else return field.label;
 }
 
@@ -254,7 +259,7 @@ Forms.canEdit = function (form) {
     } else {
         // is current user part of the current workflow state
         var state = Forms.getState(form);
-        if (state && state.onclick) return true
+        if (state && state.onclick) return true;
         else return false;
     }
 }
@@ -278,6 +283,32 @@ Forms.canEditTemplates = function () {
 
 Forms.punchCount = function(id) {
     return Query.count("Forms.punchitems", "formid={id}");
+}
+
+Forms.punchCountSubforms = function (id) {
+    var count = 0;
+    var form = Query.selectId("Forms.forms", id);
+    var subforms = Forms.selectSubForms(form);
+    for (var i = 0; i < subforms.length; i++) {
+        var subformid = subforms[i].id;
+        count += Query.count("Forms.punchitems", "formid={subformid}");
+    }
+    return count;
+}
+
+// Including subforms
+Forms.getPunchData = function (id) {
+    var items = Query.select("Forms.punchitems", "*", "formid={id}", "creationdate");
+
+    var form = Query.selectId("Forms.forms", id);
+    var subforms = Forms.selectSubForms(form);
+    for (var i = 0; i < subforms.length; i++) {
+        var subformid = subforms[i].id;
+        var subformitems = Query.select("Forms.punchitems", "*", "formid={subformid}", "creationdate");
+        items = items.concat(subformitems);
+    }
+
+    return Punch.groupByStatus(items);
 }
 
 /////////////////////
@@ -334,21 +365,24 @@ Forms.writeSubformsTable = function (forms, editable) {
     for (var i = 0; i < forms.length; i++) {
         var form = forms[i];
         
-        // we need this because getFields uses scripting with options
+        // we need this because Forms.getFields uses scripting with options
         _valueObj = Forms._getValues(form); // we need this because Risk.view access it
         _formid = form.id;
-
         var fields = Forms.getFields(forms[i]);
+
         var header = [];
         var values = [];
+        // When there are too many columns, the table does not display in the Web browser
+        var nbcolumns = Math.min(fields.length, 10);
         for (var j = 0; j < fields.length; j++) {
             var field = fields[j];
             if (field.type != "signature" && field.type != "photo" && field.type != "image" && field.type != "button" && field.type != "label" && field.type != "header") {
-                var value = CustomFields.formatValue(field.value, field.type, field.options);
+                var value = CustomFields.formatValue(field.value, field.type, field.options, true); // isWeb=true
                 if (field.type == "longtext") value = Format.text(value);
                 header.push(field.label);
                 values.push(value);
             }
+            if (values.length > nbcolumns) break;
         }
         if (i == 0) {
             List.addHeader(header);

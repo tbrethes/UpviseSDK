@@ -50,8 +50,8 @@ Forms.writeToCsv = function (csv, forms, template, zip) {
         // we need this because getFields uses scripting
         _valueObj = Forms._getValues(form); // we need this because Risk.view access it
         _formid = form.id;
-
         var fields = Forms.getFields(form);
+
         for (var j = 0; j < fields.length; j++) {
             var field = fields[j];
             var displayValue = null;

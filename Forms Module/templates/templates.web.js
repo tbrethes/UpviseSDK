@@ -107,8 +107,6 @@ Templates.viewTemplate = function(id, tab) {
     Toolbar.addButton(R.EXPORT, "Templates.exportTemplate({id})", "download");
     Toolbar.addButton(R.DELETE, "Templates.deleteTemplate({id})", "more");
 
-    //Toolbar.addButton("Download Archive", "Forms.downloadArchive({id})", "more");
-
     var templateName = template.name + " " + Format.text(template.prefix, "gray");
   
     if (tab == null) writeNewFieldToolbar(id);
@@ -119,9 +117,7 @@ Templates.viewTemplate = function(id, tab) {
         Toolbar.addButton(R.PREVIEW, "Templates.preview({id})");
         Toolbar.addButton(R.DUPLICATE, "Templates.duplicate({id})", "more");
 
-  //      writeNewFieldToolbar(id);
-  //      List.addItemTitle("", ""); // because of space taken by toolbox
-
+ 
         if (fields.length == 0) {
             _writeEmpty(R.NOFIELD + ".<br/><br/>" + R.ADDFIELDS);
         } else {
@@ -149,6 +145,7 @@ Templates.viewTemplate = function(id, tab) {
     } else if (tab == 2) {
         Toolbar.addButton(R.NEWSTATE, "newState({id})", "new");
         writeStates(states);
+        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
     } else if (tab == 3) {
         if (template.public == 1) {
             List.addButton(R.DISABLEPUBLIC, "setTemplatePublic({id},false)");
@@ -184,6 +181,8 @@ Templates.viewTemplate = function(id, tab) {
         List.addComboBox("photoheight", "Photo height", Templates.pdfoptions.photoheight, onchange2, "200px|250px|275px|300px|350px|400px|410px|450px|500px|fullsize:Full Size");
         List.addComboBox("photocaption", "Add Photo Caption", Templates.pdfoptions.photocaption, onchange2, "0:" + R.NO + "|1:" + R.YES);
    
+        List.addComboBox("orientation", "Orientation", Templates.pdfoptions.orientation, onchange2, "portrait:" + "Portrait" + "|landscape:" + "Landscape");
+
         List.addHeader(R.WATERMARK);
         List.addTextBox("watermark", R.TEXT, Templates.pdfoptions.watermark, onchange2);
         List.addTextBox("watermarkcolor", R.COLOR, Templates.pdfoptions.watermarkcolor, onchange2, "color");

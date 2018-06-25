@@ -76,6 +76,7 @@ FormsPdf.init = function (options) {
     Pdf2.setWatermark(options.watermark, options.watermarkcolor);
     Pdf2.setHeader(options.logoid);
     if (options.footer) Pdf2.setFooter(options.footer);
+    if (options.orientation) Pdf2.orientation = options.orientation;
 
     Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
     Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;min-width:30px;text-align:left;");
@@ -131,9 +132,11 @@ FormsPdf.write = function (form, template, index) {
     title += template.name;// + " " + form.name;
 
     var _CURRENT_VALUES = _valueObj;
+
     // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields() and in writeCustom(
     _valueObj = Forms._getValues(form);
     _formid = form.id;
+    var fields = Forms.getFields(form);
 
     if (template.htmlpdf != "") {
         FormsPdf.writeCustom(form, template);
@@ -170,14 +173,13 @@ FormsPdf.write = function (form, template, index) {
     }
     Pdf2.stopTable();
 
-    var fields = Forms.getFields(form);
     FormsPdf.addFields(fields, form);
 
     var punchs = Query.select("Forms.punchitems", "*", "formid={form.id}", "creationdate");
     if (punchs.length > 0 && typeof (Punch) != "undefined") {
         Pdf2.addHeader(R.PUNCHITEMS, "text-align:center;font-size:20px;margin-top:20px;margin-bottom:20px;");
         for (var i = 0; i < punchs.length; i++) {
-            Punch.writePdf(punchs[i], i + 1, {link:false, history:false});
+            Punch.writePdf(punchs[i], i + 1, {link:false});
         }
     }
 
@@ -224,6 +226,10 @@ FormsPdf.addFields = function (fields, form) {
 
     for (var j = 0; j < fields.length; j++) {
         var field = fields[j];
+
+        // hidden fields not belonging to the form workflow state
+        if (form.status < field.status && form.status != -1) continue;
+
         if (FormsPdf.isFieldHidden(field) == true) continue;
         if (field.type == "header") {
             FormsPdf.stop();
@@ -240,7 +246,8 @@ FormsPdf.addFields = function (fields, form) {
 
             if (field.type == "drawing" || field.type == "image") {
                 FormsPdf.stop();
-                Pdf2.addHeader(field.label);
+                Pdf2.add('<table class="form t', form.templateid, '"><thead><tr><td colspan=4>', field.label, '</td></tr></thead></table>');
+                //Pdf2.addHeader(field.label);
                 Pdf2.addImage(field.value, null);
             } else if (field.type == "button" && field.value == "newsubform") {
                 FormsPdf.stop();
@@ -258,11 +265,6 @@ FormsPdf.addFields = function (fields, form) {
 FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
     if (subforms.length == 0) return;
 
-    /*
-    var template = Query.selectId("Forms.templates", parentTemplateid);
-    var pdfoptions = FormsPdf.getOptions(template);
-    var asList = (pdfoptions.subformlist == "1");
-    */
     var asList = false;
     if (subforms.length > 0) {
         var subtemplate = Query.selectId("Forms.templates", subforms[0].templateid);
@@ -281,9 +283,16 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
 
     var photos = [];
 
+    // remember the current form state (coming from +valueObj ....)
+    // we can then use Forms.getFields() and we restore the state at the end of this function
+    var state = Forms.GET_STATE();
  
     for (var i = 0; i < subforms.length; i++) {
-        var fields = Forms.getFields(subforms[i]);
+        var subform = subforms[i];
+        _valueObj = Forms._getValues(subform);
+        _formid = subform.id;
+        var fields = Forms.getFields(subform);
+
         var header = [];
         var values = [];
         for (var j = 0; j < fields.length; j++) {
@@ -292,9 +301,8 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
                 var files = Query.select("System.files", "id;name;mime", "linkedtable='Forms.forms' AND linkedrecid=" + esc(field.value), "date");
                 photos = photos.concat(files);
             } else if (field.type != "button" && field.type != "label" && field.type != "header") {
-                var value = CustomFields.formatValue(field.value, field.type, field.options);
+                var value = CustomFields.formatValue(field.value, field.type, field.options, true); // isWeb=true
                 if (field.type == "longtext") value = Format.text(value);
-                //var label = field.label.replace();
                 header.push(field.label);
                 values.push(value);
             }
@@ -306,6 +314,9 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
 
     // Add subform photos
     if (photos.length > 0) Pdf2.addImages(null, photos, Pdf2.photoheight);
+
+    // restore the current form state (we changed it with valueObj = xxx)
+    Forms.RESTORE_STATE(state);
 }
 
 FormsPdf.isFieldHidden = function (field) {
@@ -384,10 +395,7 @@ FormsPdf.addField = function (field, form) {
         var c = (field.value == "1") ? '&#9745;' : '&#9744;';
         Pdf2.add('<td colspan=2 class="checkbox"><span class="bigger">', c, '</span><span>', field.label, '</span></td>');
     } else {
-        var value = CustomFields.formatValue(field.value, field.type, field.options);
-        if (field.type == "selectmulti") value = value.split("|").join("<br/>");
-        else if (field.type == "toggle") value = FormsPdf.formatToggle(value, field);
-        else if (field.type == "score") value = FormsPdf.formatScore(value);
+        var value = CustomFields.formatValue(field.value, field.type, field.options, true); // isWeb=true
         Pdf2.add('<td class="label">', field.label, '</td><td>', value, '</td>');
     }
 
@@ -395,23 +403,14 @@ FormsPdf.addField = function (field, form) {
     Pdf2.fieldIndex += increment;
 }
 
-// Aligned with ToggleBox.getSelectedStyle in framework/web/edit/ToogleBox
-FormsPdf.formatToggle = function (value, field) {
-    var color = "";
-    if (field.value == "0" || field.value == "5") color = Color.RED;
-    else if (field.value == "1") color = Color.GREEN;
-    else if (field.value == "2" || field.value == "3") color = Color.YELLOW;
-    else if (field.value == "4" || field.value == "P") color = Color.ORANGE;
-    else color = Color.BLUE;
-    return '<span style="font-weight:bold;color:' + color + '">' + value + '</span>';
-}
+FormsPdf.formatToggle = function (value, label) {
+    var color = Color.BLUE;
+    if (value == "0" || value == "5") color = Color.RED;
+    else if (value == "1") color = Color.GREEN;
+    else if (value == "2" || value == "3") color = Color.YELLOW;
+    else if (value == "4" || value == "P") color = Color.ORANGE;
 
-FormsPdf.formatScore = function (value) {
-    if (!value) value = "";
-    var parts = value.split(":");
-    var label = parts[0];
-    var color = (parts.length == 2) ? parts[1] : Color.BLUE;
-    return '<span style="font-weight:bold;color:' + color + '">' + label + '</span>';
+    return '<span style="font-weight:bold;color:' + color + '">' + value + '</span>';
 }
 
 FormsPdf.addHistory = function (history) {
@@ -431,7 +430,6 @@ FormsPdf.addHistory = function (history) {
 FormsPdf.addPunch = function (items) {
     if (items.length == 0) return;
 
-    //Pdf2.startTable([R.PUNCHITEM, R.DATE, R.STATUS, "Assigned To"], [null, "150px", "50px", "150px"], "punch");
     Pdf2.addPageBreak();
     Pdf2.addHeader(R.PUNCHITEMS);
     Pdf2.startTable([R.PUNCHITEM, R.ASSET, R.DATE, R.STATUS, R.ASSIGNEDTO], [null, null, null, null]);
@@ -441,8 +439,8 @@ FormsPdf.addPunch = function (items) {
         var assetname = (asset != null) ? asset.model + " " + asset.name : "";
         var name = item.name;
         if (item.question != "") name += "<br/><small>" + "Related to:" + item.question + "</small>";
-        var status = (item.status == 0) ? R.OPEN : R.CLOSED;
-        Pdf2.addRow([name, assetname, Format.date(item.date), status, item.owner]);
+        var status = Punch.formatStatus(item.status);
+        Pdf2.addRow([name, assetname, Punch.formatDate(item), status, item.owner]);
     }
     Pdf2.stopTable();
 }

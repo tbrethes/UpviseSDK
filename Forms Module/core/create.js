@@ -16,6 +16,11 @@ Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, proje
         var job = Query.selectId("Jobs.jobs", linkedid);
         if (job) projectid = job.projectid;
     }
+    // we auto link tools forms to project for standard user ownership...
+    if (!projectid && linkedtable == "Tools.tools") {
+        var tool = Query.selectId("Tools.tools", linkedid);
+        if (tool) projectid = tool.projectid;
+    }
 
     var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid, counterid);
     if (id != null) {

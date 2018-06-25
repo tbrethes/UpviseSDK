@@ -257,8 +257,11 @@ function editFieldTemplate(id) {
         List.addHelp("Enter any valid Javascript code. " + help);
     } else if (type == "drawing" || type == "image") {
         List.addFileBox("value", "Default Image", item.value, onchange);
-    } else if (type == "header" || type == "photo" || type == "signature") {
+    } else if (type == "header" || type == "photo" /* || type == "signature" */) {
         // do not show default value
+    } else if (type == "signature") {
+        List.addTextBox("onchange", "On Change", item.onchange, onchange, "code");
+        List.addHelp("Enter any valid Javascript code. " + help);
     } else if (type == "file") {
         List.addComboBox("seloptions", "Choose Folder", item.seloptions, onchange, Query.options("Files.folders"));
     } else if (type == "formula") {
@@ -305,7 +308,7 @@ function editFieldTemplateLocal(id) {
     List.addTextBox("labelDE", "German", item.labelDE, onchange, "longtext");
     List.addTextBox("labelFR", "French", item.labelFR, onchange, "longtext");
     List.addTextBox("labelES", "Spanish", item.labelES, onchange, "longtext");
-
+    List.addTextBox("labelZH", "Chinese", item.labelZH, onchange, "longtext");
     List.show();
 }
 

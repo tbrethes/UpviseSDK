@@ -12,6 +12,7 @@ Forms.checkEmptyFields = function (form) {
     var template = Query.selectId("Forms.templates", form.templateid);
     if (template == null) return true;
     var fields = Forms.getFields(form);
+    var subforms = [];
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var isMandatory = (field.mandatory == 1 && (field.status == form.status || field.status == -1));
@@ -21,7 +22,7 @@ Forms.checkEmptyFields = function (form) {
             else if (field.type == "photo") {
                 var count = Query.count("System.files", "linkedtable='Forms.forms' AND linkedrecid={field.value}");
                 if (count == 0) isEmpty = true;
-            } else if (field.value == null || field.value == "") {
+            } else if (field.value === null || field.value === "") { // use === because 0 should not be empty
                 isEmpty = true;
             }
             if (isEmpty) {
@@ -35,7 +36,21 @@ Forms.checkEmptyFields = function (form) {
                 return false;
             }
         }
+        if (field.type == "button" && field.value == "newsubform") {
+            var linkedid = form.id + ":" + field.id;
+            var subitems = Query.select("Forms.forms", "*", "linkedtable='Forms.forms' AND linkedid={linkedid}");
+            subforms = subforms.concat(subitems);
+        }
     }
+
+    // check for subforms mandatory fields
+    for (var i = 0; i < subforms.length; i++) {
+        var subform = subforms[i];
+        if (Forms.checkEmptyFields(subform) == false) {
+            return false;
+        }
+    }
+    
     return true;
 }
 
@@ -100,6 +115,9 @@ Forms.archive = function (id) {
 /////////////////////////////
 
 Forms.getState = function (form) {
+    // empty state for subforms
+    if (form.linkedtable == "Forms.forms") return {};
+
     var count = Query.count("Forms.states", "templateid={form.templateid}");
 
     if (count == 0) {
@@ -227,7 +245,7 @@ function Forms_nextState(id, currentStatus) {
     // ensure no empty mandatory fiels
     if (Forms.checkEmptyFields(form) == false) return;
 
-    // Execute the onload script for this state - if any. If the onload script retrun a non null string, display the message and do not continue to next state
+    // Execute the onload script for this state - if any. If the onload script returns a non null string, display the message and do not continue to next state
     var errorMsg = Forms.evalOnLoad(form, newstate.onload);
     if (errorMsg) return App.alert(errorMsg);
 

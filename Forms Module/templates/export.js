@@ -1,5 +1,5 @@
 ﻿/////////////////// Import / Export Templates
-Templates.CSV_HEADER = ["templatename", "templateprefix", "fieldrank", "fieldname", "fieldlabel", "fieldlabelDE", "fieldlabelFR", "fieldlabelES", "fieldtype", "fieldoptions", "fieldvalue", "mandatory", "onchange", "group", "linkedtable", "onsubmit", "dashboardjs", "pdfoptions"];
+Templates.CSV_HEADER = ["templatename", "templateprefix", "fieldrank", "fieldname", "fieldlabel", "fieldlabelDE", "fieldlabelFR", "fieldlabelES", "fieldlabelZH", "fieldtype", "fieldoptions", "fieldvalue", "mandatory", "onchange", "group", "linkedtable", "onsubmit", "dashboardjs", "pdfoptions"];
 
 Templates.exportTemplate = function(templateId) {
     Templates.exportTemplates([templateId]);
