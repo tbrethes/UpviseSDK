@@ -22,6 +22,8 @@ Forms.checkEmptyFields = function (form) {
             else if (field.type == "photo") {
                 var count = Query.count("System.files", "linkedtable='Forms.forms' AND linkedrecid={field.value}");
                 if (count == 0) isEmpty = true;
+            } else if (field.type == "date" || field.type == "datetime" || field.type == "time" || field.type == "duration") {
+                isEmpty = field.value === 0;
             } else if (field.value === null || field.value === "") { // use === because 0 should not be empty
                 isEmpty = true;
             }
@@ -50,7 +52,7 @@ Forms.checkEmptyFields = function (form) {
             return false;
         }
     }
-    
+
     return true;
 }
 
