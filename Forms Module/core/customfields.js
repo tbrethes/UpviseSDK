@@ -90,7 +90,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         else List.addItemLabel(label, value, "App.web({value})");
     } else if (type == 'date') {
         // do not display Someday date for forms
-        if (value > 0) List.addItemLabel(label, Format.date(parseFloat(value)));
+        if (value != 0) List.addItemLabel(label, Format.date(parseFloat(value)));
     } else if (type == 'time') {
         if (value == 0) return; // Otherwise on Android value = 0 is displayed as a default time, i.e 7:30
         List.addItemLabel(label, Format.time(parseFloat(value)));
@@ -123,20 +123,20 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
 CustomFields.addButton = function (id, label, value, options, formid) {
     // if (label.startsWith("__")) return; Sep 2017 we replace startsWith because of Javascript errors on Android 4 devices
     if (label.indexOf("__") == 0) return;
+    var form = formid ? Query.selectId("Forms.forms", formid) : null;
     var onclick = null;
-    if (value == "newtask") onclick = "Tasks.newTask()";
+    if (value == "newtask") onclick = WEB() ? "TaskUtils.newTask()" : "Tasks.newTask()";
     else if (value == "newnote") onclick = "Notes.newNote()";
     else if (value == "newevent") onclick = "Calendar.newEvent()";
     else if (value == "newform") {
         var templateid = options;
-        var form = formid ? Query.selectId("Forms.forms", formid) : null;
         var linkedtable = form ? form.linkedtable : "";
         var linkedid = form ? form.linkedid : "";
         onclick = "Forms.newForm({templateid},{linkedtable},{linkedid})";
     } else if (value == "newsubform") {
         var templateid = options;
         var linkedid = formid + ":" + id;
-        List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid})", "color:gray");
+        List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid},null,null,{form.projectid})", "color:gray");
         return;
     }
     else if (value == "code") {
@@ -362,8 +362,11 @@ CustomFields.get = function (table, custom) {
     return list;
 }
 
-CustomFields.formatValue = function (value, type, options) {
+
+// isWeb = true for HTML output (web and pdf)
+CustomFields.formatValue = function (value, type, options, isWeb) {
     if (value == null || value === "") return "";
+    if (value == 0 && type == 'time') return ""; // Otherwise on Android value = 0 is displayed as Unix time 1 Jan 1970, i.e 7:30 for GMT +8
 
     if (type == 'date') return Format.date(parseFloat(value));
     else if (type == 'time') return Format.time(parseFloat(value));
@@ -377,19 +380,46 @@ CustomFields.formatValue = function (value, type, options) {
     else if (type == 'asset') return Query.names("Assets.assets", value);
     else if (type == 'tool') return Query.names("Tools.tools", value);
     else if (type == 'button' || type == "header") return "";
-    else if (type == "select" || type == "selectmulti" || type == "toggle") return Format.options(value, options);
-        //else if (type == 'textarea') return Format.text(value);
+    else if (type == "select" || type == "selectmulti") return Format.options(value, options);
+    else if (type == "toggle") return CustomFields.formatToggle(value, options, isWeb);
     else if (type == 'checkbox') return value == 1 ? R.YES : R.NO;
     else if (type == "numeric" || type == "decimal") return value; // Number(value).toLocaleString();
     else if (type == "signature") return CustomFields.formatSignature(value);
     else if (type == "photo") return CustomFields.formatImages(value);
     else if (type == "drawing" || type == "image") return CustomFields.formatDrawing(value);
 
-    else if (type == "formula") return Number(value) ? Number(value).toLocaleString() : value; // try to converrt to number
+    else if (type == "formula") return Number(value) ? Number(value).toLocaleString() : value; // try to convert to number
 
-    else if (type == "score") return ToggleBox.formatScore(value);
+    else if (type == "score") return CustomFields.formatScore(value, isWeb);
 
     else return String(value);
+}
+
+CustomFields.formatScore = function (value, isWeb) {
+    if (!value) value = "";
+    var parts = value.split(":");
+    var label = parts[0];
+    var color = (parts.length == 2) ? parts[1] : Color.BLUE;
+
+    if (isWeb === true) {
+        return '<span style="font-weight:bold;color:' + color + '">' + label + '</span>';
+    } else {
+        return label;
+    }
+}
+
+// Aligned with ToggleBox.getSelectedStyle in framework/web/edit/ToogleBox
+CustomFields.formatToggle = function (value, options, isWeb) {
+    var label = Format.options(value, options);
+    if (isWeb === true) {
+        var color = Color.BLUE;
+        if (value == "0" || value == "5") color = Color.RED;
+        else if (value == "1") color = Color.GREEN;
+        else if (value == "2" || value == "3") color = Color.YELLOW;
+        else if (value == "4" || value == "P") color = Color.ORANGE;
+        return '<span style="font-weight:bold;color:' + color + '">' + label + '</span>';
+    }
+    return label;
 }
 
 CustomFields.getHtml = function (table, custom) {
