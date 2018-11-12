@@ -2,13 +2,14 @@
 
     Toolbar.addButton(R.HELP, "App.help('forms/help/options/roles.htm')", 'support');
     Toolbar.addButton(R.NEW, "Templates.newRolePane()", "new");
-    var roles = Query.select("System.roles", "*", "name");
+    var roles = Query.select("System.roles", "*", "", "name");
 
     List.addItemBox("", R.EDITROLES, "", "img:group");
     List.addHeader([R.ROLE, R.FORMGROUPS, R.FORMS]);
     for (var i = 0; i < roles.length; i++) {
         var role = roles[i];
-        List.add([role.name, Templates.formatGroupNames(role.groupid), Templates.formatTemplateNames(role.templateid)], "Templates.editRole({role.id})", "img:group");
+        var style = "img:group;oncontext:Templates.showRolePopup({role.id})";
+        List.add([role.name, Templates.formatGroupNames(role.groupid), Templates.formatTemplateNames(role.templateid)], "Templates.editRole({role.id})", style);
     }
     List.show();
 }
@@ -94,3 +95,17 @@ Templates.getTemplateOptions = function (groupids) {
 
     return options.join("|");
 }
+
+Templates.duplicateRole = function (roleid) {
+    var role = Query.selectId("System.roles", roleid);
+    var newRole = Utils.clone(role);
+    newRole.name += " Copy";
+    Query.insert("System.roles", newRole);
+    History.reload();
+}
+
+Templates.showRolePopup = function (roleid) {
+    Popup.add(R.DUPLICATE, "Templates.duplicateRole({roleid})", "img:duplicate");
+    Popup.show();
+}
+

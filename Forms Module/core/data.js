@@ -116,6 +116,7 @@ Forms.getFields = function (form, type) {
     var formValues = Forms._getFullValues(form, fields);
     var lang = "en";
     if (Settings.getLanguage) lang = Settings.getLanguage();
+    var hiddenFields = form.hidden ? JSON.parse(form.hidden) : [];
 
     var list = [];
     for (var i = 0; i < fields.length; i++) {
@@ -137,7 +138,10 @@ Forms.getFields = function (form, type) {
                 field2.options = risk.measures;
             }
         }
-        list.push(field2);
+        // do not add the hidden fields
+        if (hiddenFields.indexOf(field.name) == -1) {
+            list.push(field2);
+        }
     }
     return list;
 }

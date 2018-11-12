@@ -228,3 +228,47 @@ Forms.getFormIds = function (fieldname, formid) {
     }
     return list;
 }
+
+// returns a pipe separated string for options combo box. recordid is the id of the current record to be added to the option
+// if not found in the where clause.
+Forms.options = function (table, where, recordid) {
+    var options = Query.options(table, where);
+    var record = recordid ? Query.selectId(table, recordid) : null;
+    // add id:label for the record if not found in the options
+    if (record && options.indexOf(recordid + ":") == -1) options += "|" + record.id + ":" + record.name;
+    return options;
+}
+
+
+Forms.showFields = function (toShow, toHide) {
+    // load the hidden field list
+    if (!_formid) return; // error
+    var form = Query.selectId("Forms.forms", _formid);
+    if (!form) return;
+    var hiddenFields = form.hidden ? JSON.parse(form.hidden) : [];
+    var changed = false;
+        
+    for (var i = 0; i < toShow.length; i++) {
+        var name = toShow[i];
+        var index = hiddenFields.indexOf(name);
+        // remove the field from the hidden array if it exist
+        if (index !== -1) {
+            hiddenFields.splice(index, 1);
+            changed = true;
+        }
+    }
+
+    for (var i = 0; i < toHide.length; i++) {
+        var name = toHide[i];
+        var index = hiddenFields.indexOf(name);
+        // add the field to the hidden array if it does not exist already
+        if (index == -1) {
+            hiddenFields.push(name);
+            changed = true;
+        }
+    }
+
+    if (changed == true) {
+        Query.updateId("Forms.forms", _formid, "hidden", JSON.stringify(hiddenFields));
+    }
+}

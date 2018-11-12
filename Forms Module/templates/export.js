@@ -1,5 +1,5 @@
 ﻿/////////////////// Import / Export Templates
-Templates.CSV_HEADER = ["templatename", "templateprefix", "fieldrank", "fieldname", "fieldlabel", "fieldlabelDE", "fieldlabelFR", "fieldlabelES", "fieldlabelZH", "fieldtype", "fieldoptions", "fieldvalue", "mandatory", "onchange", "group", "linkedtable", "onsubmit", "dashboardjs", "pdfoptions"];
+Templates.CSV_HEADER = ["templatename", "templateprefix", "fieldrank", "fieldname", "fieldlabel", "fieldlabelDE", "fieldlabelFR", "fieldlabelES", "fieldlabelZH", "fieldtype", "fieldoptions", "fieldvalue", "mandatory", "onchange", "hidden", "group", "linkedtable", "onsubmit", "dashboardjs", "pdfoptions"];
 
 Templates.exportTemplate = function(templateId) {
     Templates.exportTemplates([templateId]);
@@ -16,12 +16,11 @@ Templates.exportTemplates = function (templateIds) {
         var fields = Query.select("Forms.fields", null, "formid={template.id}", "rank");
         for (var j = 0; j < fields.length; j++) {
             var field = fields[j];
-            var line = [template.name, template.prefix, field.rank, field.name, field.label, field.labelDE, field.labelFR, field.labelES, field.type, field.seloptions, field.value, field.mandatory, field.onchange];
+            var line = [template.name, template.prefix, field.rank, field.name, field.label, field.labelDE, field.labelFR, field.labelES, field.labelZH, field.type, field.seloptions, field.value, field.mandatory, field.onchange, field.hidden];
             if (j == 0) {
                 var group = Query.names("Forms.groups", template.groupid);
                 line.push(group, template.linkedtable, template.onsubmit, template.dashboardjs, template.pdfoptions);
             } else line.push("", "", "", "", "");
-            //csv.writeLine([template.name, template.prefix, field.rank, field.name, field.label, field.type, field.seloptions, field.value, field.mandatory, field.onchange,  (j == 0) ? group : "", (j == 0) ? template.linkedtable : "", (j == 0) ? template.onsubmit : "", template.dashboardjs, template.pdfoptions]);
             csv.writeLine(line);
         }
     }
@@ -68,6 +67,7 @@ Templates.onImportTemplates = function (lines) {
             var fieldvalue = Import.getLineValue("fieldvalue");
             var mandatory = Import.getLineValue("mandatory");
             var onchange = Import.getLineValue("onchange");
+            var hidden = Import.getLineValue("hidden");
 
             var group = Import.getLineValue("group");
             var linkedtable = Import.getLineValue("linkedtable");
@@ -83,7 +83,7 @@ Templates.onImportTemplates = function (lines) {
                 templatesMap[templateName] = templateId;
             }
 
-            var values2 = { formid: templateId, rank: rank, name: name, label: label, type: type, seloptions: fieldoptions, value: fieldvalue, mandatory: mandatory, onchange: onchange };
+            var values2 = { formid: templateId, rank: rank, name: name, label: label, type: type, seloptions: fieldoptions, value: fieldvalue, mandatory: mandatory, onchange: onchange, hidden: hidden };
             values2.labelDE = labelDE;
             values2.labelFR = labelFR;
             values2.labelES = labelES;

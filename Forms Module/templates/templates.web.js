@@ -238,6 +238,8 @@ Templates.editFormTemplate = function(template, onchange) {
     List.addComboBoxMulti('columns', "List Columns", template.columns, onchange, Templates.getColumnsOptions(template.id));
     List.addComboBox('sortby', R.SORTBY, template.sortby, onchange, ":Most Recent|name:Name|priority:Priority");
 
+    List.addHeader("Auto Archive");
+    List.addTextBox('archivedays', "Archive after nb days", template.archivedays, onchange, "numeric");
 }
 
 Templates.getColumnsOptions = function (templateid) {

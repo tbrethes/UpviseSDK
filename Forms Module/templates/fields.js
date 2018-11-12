@@ -282,6 +282,8 @@ function editFieldTemplate(id) {
         List.addComboBox("status", R.EDITABLE, item.status, onchange, Templates.getStateOptions(item.formid));
         List.addHelp("Defines in which state this field can be edited");
     }
+    List.addCheckBox("hidden", "Hidden", item.hidden, onchange);
+
     List.show();
 }
 

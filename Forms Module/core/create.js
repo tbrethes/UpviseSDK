@@ -52,6 +52,7 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     if (values == null) values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     form.value = JSON.stringify(values);
+    form.hidden = Forms.getDefaultHidden(template.id);
 
     return Query.insert("Forms.forms", form);
 }
@@ -93,6 +94,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     var values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     form.value = JSON.stringify(values);
+    form.hidden = Forms.getDefaultHidden(template.id);
 
     return Query.insert("Forms.forms", form);
 }
@@ -135,6 +137,16 @@ Forms.setDefaultValues = function (form, values, status) {
             }
         }
     }
+}
+
+Forms.getDefaultHidden = function (templateid) {
+    var hiddenFields = Query.select("Forms.fields", "name", "formid={templateid} AND hidden=1");
+    var array = [];
+    for (var i = 0; i < hiddenFields.length; i++) {
+        var field = hiddenFields[i];
+        array.push(field.name);
+    }
+    return JSON.stringify(array);
 }
 
 /////////////////////
@@ -193,7 +205,7 @@ Forms.duplicateInternal = function (form, linkedid, counterid) {
     form2.linkedid = linkedid;
     if (form.projectid) form2.projectid = form.projectid;
     if (counterid) form2.counterid = counterid;
-
+    form2.hidden = form.hidden;
 
     var values2 = JSON.parse(form.value);
     var fields = Query.select("Forms.fields", "name;type", "formid={form.templateid}", "rank");

@@ -163,6 +163,7 @@ CustomFields.onButton = function (recordId, fieldid) {
 }
 
 CustomFields.writeMultivalueItem = function (label, id, table, func, img) {
+    id = String(id); // make sure its a string
     var items = Query.select(table, "id;name", "id IN " + list(id), "name");
     if (items.length == 0) return;
 
@@ -228,11 +229,16 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'checkbox') {
         List.addCheckBox(id, label, parseInt(value), onchange);
     } else if (type == 'contact') {
-        if (CustomFields.contactOptions == null) CustomFields.contactOptions = Query.options("Contacts.contacts");
-        List.addComboBoxMulti(id, label, value, onchange, CustomFields.contactOptions, "CustomFields.onNewContact({formid},{id},this.value)");
+        var groupid = options;  // options field may contain the groupid to filter
+        var where = groupid ? "groupid CONTAINS {options}" : "";
+        //if (CustomFields.contactOptions == null) CustomFields.contactOptions = Query.options("Contacts.contacts", where);
+        var contactOptions = Query.options("Contacts.contacts", where);
+        List.addComboBoxMulti(id, label, value, onchange, contactOptions, "CustomFields.onNewContact({formid},{id},this.value,{groupid})");
     } else if (type == 'company') {
-        if (CustomFields.companyOptions == null) CustomFields.companyOptions = Query.options("Contacts.companies");
-        List.addComboBoxMulti(id, label, value, onchange, CustomFields.companyOptions, "CustomFields.onNewCompany({formid},{id},this.value)");
+        var groupid = options;  // options field may contain the groupid to filter
+        var where = groupid ? "groupid CONTAINS {options}" : "";
+        var companyOptions = Query.options("Contacts.companies", where);
+        List.addComboBoxMulti(id, label, value, onchange, companyOptions, "CustomFields.onNewCompany({formid},{id},this.value,{groupid})");
     } else if (type == 'project') {
         List.addComboBoxMulti(id, label, value, onchange, Query.options("Projects.projects", "status=0"));
     } else if (type == 'opp') {
@@ -302,8 +308,9 @@ CustomFields.getToolOptions = function (formid) {
 
 }
 
-CustomFields.onNewContact = function (formid, fieldname, name) {
-    var newid = Query.insert("Contacts.contacts", { name: name, creationdate: Date.now() });
+CustomFields.onNewContact = function (formid, fieldname, name, groupid) {
+    if (!groupid) groupid = "";
+    var newid = Query.insert("Contacts.contacts", { name: name, groupid:groupid, creationdate: Date.now() });
     var value = _valueObj ? _valueObj[fieldname] : null ;
     value = value ? value + "|" + newid : newid;
     if (formid) _updateValue(formid, fieldname, value);
@@ -311,8 +318,9 @@ CustomFields.onNewContact = function (formid, fieldname, name) {
     History.reload();
 }
 
-CustomFields.onNewCompany = function(formid, fieldname, name) {
-    var newid = Query.insert("Contacts.companies", {name: name, creationdate: Date.now() });
+CustomFields.onNewCompany = function (formid, fieldname, name, groupid) {
+    if (!groupid) groupid = "";
+    var newid = Query.insert("Contacts.companies", { name: name, groupid: groupid, creationdate: Date.now() });
     var value = _valueObj ? _valueObj[fieldname] : null;
     value = value ? value + "|" + newid : newid;
     if (formid) _updateValue(formid, fieldname, value);
@@ -379,6 +387,7 @@ CustomFields.formatValue = function (value, type, options, isWeb) {
     else if (type == 'opp') return Query.names("Sales.opportunities", value);
     else if (type == 'asset') return Query.names("Assets.assets", value);
     else if (type == 'tool') return Query.names("Tools.tools", value);
+    else if (type == 'file') return Query.names("System.files", value);
     else if (type == 'button' || type == "header") return "";
     else if (type == "select" || type == "selectmulti") return Format.options(value, options);
     else if (type == "toggle") return CustomFields.formatToggle(value, options, isWeb);
