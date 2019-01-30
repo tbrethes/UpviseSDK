@@ -40,9 +40,8 @@ namespace com.upvise.samples {
         
         public void run() {
             // Login : replace with your Upvise email and password
-            string token = Query.login("email", "password");
-            mQuery = new Query(token);
-
+            mQuery = Query.login("email", "password");
+         
             // Step 1: make a query to Upvise Cloud and get all contacts
             //store them as a (name, id) dictionary in mUpviseContactIndex
             selectUpviseContacts();

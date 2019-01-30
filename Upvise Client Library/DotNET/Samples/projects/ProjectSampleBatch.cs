@@ -36,9 +36,8 @@ namespace com.upvise.samples {
 
         public void run() {
             // Login : replace with your Upvise email and password
-            string token = Query.login("email", "password");
-            mQuery = new Query(token);
-
+            mQuery = Query.login("email", "password");
+           
 
             // Step 0: Insert into Upbise the correct Project Groups and Stages
             // This should be done once at startup, at least

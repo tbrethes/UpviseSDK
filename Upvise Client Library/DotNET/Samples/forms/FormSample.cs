@@ -21,8 +21,7 @@ namespace com.upvise.samples {
     class FormSample {
 
         public void run() {
-            string token = Query.login("demobiz@upvise.com", "demobiz");
-            Query query = new Query(token);
+            Query query = Query.login("email", "password");
 
             // 1. Get the Template Id for a given Template Name
             string where = "name='My Template'";

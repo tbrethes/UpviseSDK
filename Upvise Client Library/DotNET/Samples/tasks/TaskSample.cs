@@ -26,12 +26,9 @@ namespace com.upvise.samples {
         public void run() {
             try {
                 // Login
-                string token = Query.login("demobiz@upvise.com", "demobiz");
+                Query query = Query.login("demobiz@upvise.com", "demobiz");
                 Console.WriteLine("Login OK");
-
-                // Create an instance of hte query class
-                Query query = new Query(token);
-
+                
                 // Select all open tasks from the "Tasks.tasks" table 
                 // You can go to your Upvise web account in the Task app and create some tasks first
                 string where = "status=0";

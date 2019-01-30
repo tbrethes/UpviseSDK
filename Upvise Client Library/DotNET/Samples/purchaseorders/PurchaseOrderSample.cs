@@ -45,9 +45,8 @@ namespace com.upvise.samples {
 
         public void Run() {
             // Login : replace with your Upvise email and password
-            string token = Query.login("email", "password");
-            mQuery = new Query(token);
-
+            mQuery = Query.login("email", "password");
+            
             // Load All contacts from Upvise Cloud
             JSONObject[] purchaseOrderList = mQuery.select("Sales.quotes", "status=6 OR status=8"); // 6 : PO, 8 : confirmed PO
 

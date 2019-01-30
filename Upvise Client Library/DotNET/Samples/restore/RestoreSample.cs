@@ -23,8 +23,7 @@ namespace com.upvise.samples {
         public void run() {
 
             // Find all forms for a given projects and restore them
-            string token = Query.login("email", "password");
-            Query query = new Query(token);
+            Query query = Query.login("email", "password");
             
             string where = "linkedtable='Projects.projects' AND linkedid='35b3ef435c3df630'";
             JSONObject[] deletedForms = query.select("forms.forms", where);

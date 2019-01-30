@@ -22,9 +22,8 @@ namespace com.upvise.samples {
         
         public void Run() {
 
-            string token = Query.login("email", "password");
-            Query query = new Query(token);
-            
+            Query query = Query.login("email", "password");
+             
             ArchiveJobs(query);
             ArchiveForms(query);
 

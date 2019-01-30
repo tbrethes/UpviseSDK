@@ -10,10 +10,9 @@ namespace com.upvise.samples {
 
             string[] EMAILS = { "testx1@upvise.com", "testx2@upvise.com", "testx3@upvise.com" };
             string[] NAMES = { "Name1 Changed", "Name2", "Name3" };
-            
-            string token = Query.login("email", "password");
-            Query query = new Query(token);
 
+            Query query = Query.login("email", "password");
+           
             Dictionary<string, User> UpviseUsersIndex = new Dictionary<string, User>();
              
             // Select Upvise users and adds them in a Dictionarry

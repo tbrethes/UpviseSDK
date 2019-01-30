@@ -44,9 +44,8 @@ namespace com.upvise.samples {
 
         private static void testJob() {
             // Login : replace with your Upvise email and password
-            string token = Query.login("email", "password");
-            Query query = new Query(token);
-
+            Query query = Query.login("email", "password");
+           
             // 1. insert one job
             Job newjob = new Job();
             newjob.id = "ID1";

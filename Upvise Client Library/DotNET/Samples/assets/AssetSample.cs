@@ -24,9 +24,8 @@ namespace com.upvise.samples {
         public void run() {
             try {
                 // Login : replace with your Upvise email and password
-                string token = Query.login("email", "password");
-                Query query = new Query(token);
-
+                Query query = Query.login("email", "password");
+                 
                 // 3. Returns all Assets with no geocode
                 string where = "geo=''";
                 JSONObject[] assets = query.select("Assets.assets", where);

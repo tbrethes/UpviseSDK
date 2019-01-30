@@ -34,9 +34,8 @@ namespace com.upvise.samples {
         Dictionary<string, JSONObject> mUpviseCompanyIndex;
 
         public void run() {
-            string token = Query.login("email", "password");
-            mQuery = new Query(token);
-
+            mQuery = Query.login("email", "password");
+            
             // Step 1: make a select query to Upvise Cloud and get all Upvise projects
             //store them in mUpviseContactIndex
             loadUpviseCompanies();

@@ -33,10 +33,9 @@ namespace com.upvise.samples {
         public void login() {
             logStart("Start Login...");
             // Login : replace with your Upvise email and password
-            string token = Query.login("email", "password");
+            mQuery = Query.login("email", "password");
             logFinish("Login OK");
-
-            mQuery = new Query(token);
+            
         }
 
         public void run() {

@@ -24,9 +24,8 @@ namespace com.upvise.samples {
         public void run() {
             try {
                 // Login : replace with your Upvise email and password
-                string token = Query.login("email", "password");
-                Query query = new Query(token);
-
+                Query query = Query.login("email", "password");
+              
                 
                 // Create a new test Contact
                 string contactId = "TESTCONTACT1";

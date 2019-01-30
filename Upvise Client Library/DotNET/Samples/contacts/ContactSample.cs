@@ -24,9 +24,8 @@ namespace com.upvise.samples {
         public void run() {
             try {
                 // Login
-                string token = Query.login("email", "password");
-                Query query = new Query(token);
-
+                Query query = Query.login("email", "password");
+                 
                 // 1. Select All Contacts
                 JSONObject[] items = query.select(Contact.TABLE, "");
                 foreach (JSONObject item in items) {
