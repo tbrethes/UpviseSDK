@@ -109,18 +109,21 @@ Forms._getValues = function (form) {
     return new Object();
 }
 
-Forms.getFields = function (form, type) {
-    var where = "formid={form.templateid}";
-    if (type != null) where += " AND type={type}";
-    var fields = Query.select("Forms.fields", "*", where, "rank");
-    var formValues = Forms._getFullValues(form, fields);
+// templateFields is an optional param to optimize code if  passed
+Forms.getFields = function (form, type, templateFields) {
+    if (templateFields == null) {
+        var where = "formid={form.templateid}";
+        if (type != null) where += " AND type={type}";
+        var templateFields = Query.select("Forms.fields", "*", where, "rank");
+    }
+    var formValues = Forms._getFullValues(form, templateFields);
     var lang = "en";
     if (Settings.getLanguage) lang = Settings.getLanguage();
     var hiddenFields = form.hidden ? JSON.parse(form.hidden) : [];
 
     var list = [];
-    for (var i = 0; i < fields.length; i++) {
-        var field = fields[i];
+    for (var i = 0; i < templateFields.length; i++) {
+        var field = templateFields[i];
         var field2 = {};
         field2.id = field.name;
         field2.label = Forms.getFieldLabel(field, lang);
@@ -266,6 +269,12 @@ Forms.canEdit = function (form) {
         if (state && state.onclick) return true;
         else return false;
     }
+}
+
+Forms.canDelete = function (form) {
+    var values = Forms._getValues(form);
+    if (values["NODELETE"] == 1) return false;
+    else return true;
 }
 
 Forms.hasRight = function (action, form) {

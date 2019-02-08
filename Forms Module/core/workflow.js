@@ -258,16 +258,18 @@ function Forms_nextState(id, currentStatus) {
             signature = Forms.getLastSignature(User.getName());
             if (signature) {
                 if (App.confirm(R.FORMSIGNATURECONFIRM) == false) signature = "";
-            } /* else {
-                if (App.confirm("No previous mobile signature found. Are you sure you want to continue?") == false) return;
-            }*/
+            }
         } else {
             signature = App.prompt("Signature", "", "signature");
             if (signature == "" || signature == null) return;
         }
     }
 
+
+    
     // Set the form default values for the new state
+    // Bug fix. TBR: Feb. 8th 2019 : we need to re select the form from the daabase because Forms.evalOnLoad may have modified it....
+    form = Query.selectId("Forms.forms", id);
     var values = Forms._getValues(form);
     Forms.setDefaultValues(form, values, newstate.status);
     Query.updateId("Forms.forms", id, "value", JSON.stringify(values));

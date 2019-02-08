@@ -19,8 +19,7 @@ FormsPdf.export = function (formid, action, email, subject, body) {
 
     // Download or Email
     Pdf2.setFilename(filename);
-    if (!Pdf2.footer) Pdf2.footer = filename.replace(".pdf", "");
-
+    
     if (action == "email") {
         var emails = email ? email : FormsPdf.getEmails(form);
         Pdf2.subject = subject ? subject : FormsPdf.replaceCustom(template.subject, form, template);
@@ -76,6 +75,7 @@ FormsPdf.init = function (options) {
     Pdf2.setWatermark(options.watermark, options.watermarkcolor);
     Pdf2.setHeader(options.logoid);
     if (options.footer) Pdf2.setFooter(options.footer);
+    if (options.footerid) Pdf2.footerid = options.footerid;
     if (options.orientation) Pdf2.orientation = options.orientation;
 
     Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
