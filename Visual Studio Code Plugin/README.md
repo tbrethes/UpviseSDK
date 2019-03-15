@@ -4,7 +4,7 @@ This plugin enables you to create, debug and deploy Upvise Javascript apps (Andr
 
 # System Requirements:
 1. Windows 10
-2. Microsoft Visual Studio Code.
+2. [Microsoft Visual Studio Code](https://code.visualstudio.com/)
 
 Note : Macos is not currently supported.
 
