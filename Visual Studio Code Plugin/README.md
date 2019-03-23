@@ -10,15 +10,16 @@ Note : Macos is not currently supported.
 
 # Installation
 Download the Upvise Visual StudioCode Plugin.ZIP file 
-Unzip it.
+Unzip it into a folder location on your PC.
 
 # How to create a new UpviseJS Application
-Open  a DOS command prompt
-navigate to the folder you want to create your UpviseJS source folder.
-Type in : **UpviseDev.exe -create myappid**
-Where myappid is the ApplicationID of you app (no white space, just letters in lower case).
+Start Visual Studio Code. Click on **Terminal / New Terminal** on the menu bar
+navigate to the location where the UpviseJS Plugin was unzipped using the **dir** command
+Type in : **upvisedev.exe -create [myfolder] [myappid]**
+Where **myfolder** is the base folder your want to create your UpviseJS app
+and **myappid** is the ApplicationID of you app (no white space, just letters in lower case).
 
-This will create a new folder containing your source files and required files to work with Visual Studio Code.
+This will create a new folder named myappid containing your source files and required files to work with Visual Studio Code.
 
 # Edit your UpviseJS App files with Visual Studio
 Start Visual Studio Code
