@@ -33,9 +33,11 @@ Add the relative path of the javaacript file as a new item to the Config.include
 For example, if you created 2 additional files named "file2.js" and "lib\utils.js" at thr project root, the Config.include variable should look like this:
 Config.include = ["file2.js", "lib\utils.js"]l
 
-
 # Auto Completion.
 You can start typing the beginning of any support UpviseJS API like List.addItem() or Toolbar.addButton() and see all available methods signature
+
+# Source Code Control
+You can use Microsoft support for source code control integration like Git. [More info here](https://code.visualstudio.com/docs/editor/versioncontrol) 
 
 # Ressource Strings localization (optional)
 If you want to localize our app in multiple languages, you can use R.XXX javascript variables in your code and define the actual translation in multiple languages in the **strings.xslx** file at the root of your project folder. You need Microsoft Excel to edit the file
