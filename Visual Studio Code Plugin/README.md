@@ -4,9 +4,10 @@ This plugin enables you to create, debug and deploy Upvise Javascript apps (Andr
 
 # System Requirements:
 1. Windows 10
-2. [Microsoft Visual Studio Code](https://code.visualstudio.com/)
+2. .NET Framework 4.6 or higher 
+3. [Microsoft Visual Studio Code](https://code.visualstudio.com/)
 
-Note : Macos is not currently supported.
+Note : MacOs is not currently supported.
 
 # Installation
 1. Download the Upvise Visual StudioCode Plugin **upvisedev.zip** file 
@@ -22,9 +23,9 @@ and **myappid** is the ApplicationID of you app (no white space, just letters in
 This will create a new folder named myappid containing your source files and required files to work with Visual Studio Code.
 
 # Edit your UpviseJS App files with Visual Studio
-Start Visual Studio Code
-Open the newly created folder
-Start editing your javascript files! 
+1. Start Visual Studio Code
+2. Open the newly created application folder by clicking on **File / Open Folder** in the menu bar
+3. Start editing your javascript files! 
 
 # Add multiple source files
 Create a new javascript file with Visual studio code
