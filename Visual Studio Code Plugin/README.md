@@ -36,10 +36,10 @@ For example, if you created 2 additional files named "file2.js" and "lib\utils.j
 Config.include = ["file2.js", "lib\utils.js"]l
 
 # Auto Completion.
-You can start typing the beginning of any support UpviseJS API like List.addItem() or Toolbar.addButton() and see all available methods signature
+Start typing the beginning of any support UpviseJS API like List.addItem() or Toolbar.addButton() and see all available methods signature
 
 # Source Code Control
-You can use Microsoft support for source code control integration like Git. [More info here](https://code.visualstudio.com/docs/editor/versioncontrol) 
+You can use Microsoft Visual Studio Code support for source code control integration like Git. [More info here](https://code.visualstudio.com/docs/editor/versioncontrol) 
 
 # Ressource Strings localization (optional)
 1. If you want to localize our app in multiple languages, you can use **R.XXX** javascript variables in your code
@@ -48,10 +48,11 @@ You can use Microsoft support for source code control integration like Git. [Mor
 4. To generate the javascript resource files for your app, use **Ctrl+Shift+B** to display Visual Studio Code command palette and select **"Upvise Localize Strings"**
 
 # Debug UpviseJS app
-1. You can debug Upvise JS App using the Upvise VS Code plugin **built-in web server**.
-2. Type **Ctrl+Shift+B** to display Visual Studio Code **command palette** and select **Upvise Web Debug**. This will launch your default web browser. You will first be asked to log in to your Upvise Account then your app will be executed.
-3. You can then use your **browser's developer tools** (Type **Ctrl+Shit+I** on Chrome) and click on the **Source** tab. You can then set breakpoints and debug your code.
-4. You can make changes to your sources files and just reload the web browser to test your code changes **without stopping and relaunching** your debug session. 
+You can debug Upvise JS App using the Upvise VS Code plugin **built-in web server**.
+
+1. Type **Ctrl+Shift+B** to display Visual Studio Code **command palette** and select **Upvise Web Debug**. This will launch your default web browser. You will first be asked to log in to your Upvise Account then your app will be executed.
+2. Open your **browser's developer tools** (Type **Ctrl+Shit+I** on Chrome) and click on the **Source** tab. You can then set breakpoints and debug your code.
+3. Make changes to your sources files and just reload the web browser to test your code changes **without stopping and relaunching** your debug session. 
 
 # Deploy Upvise JS app
 1. Once you tested your app on the web, deploy it on your Upvise account and test it on your mobile phone (Android or iPhone)
