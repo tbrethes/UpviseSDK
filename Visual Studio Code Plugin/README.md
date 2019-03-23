@@ -9,13 +9,13 @@ This plugin enables you to create, debug and deploy Upvise Javascript apps (Andr
 Note : Macos is not currently supported.
 
 # Installation
-Download the Upvise Visual StudioCode Plugin.ZIP file 
-Unzip it into a folder location on your PC.
+1. Download the Upvise Visual StudioCode Plugin **upvisedev.zip** file 
+2. Unzip it into a folder location on your PC.
 
 # How to create a new UpviseJS Application
-Start Visual Studio Code. Click on **Terminal / New Terminal** on the menu bar
-navigate to the location where the UpviseJS Plugin was unzipped using the **dir** command
-Type in : **upvisedev.exe -create [myfolder] [myappid]**
+1. Start Visual Studio Code. Click on **Terminal / New Terminal** on the menu bar
+2. navigate to the location where the UpviseJS Plugin was unzipped using the **dir** command
+3. Type in : **upvisedev.exe -create [myfolder] [myappid]**
 Where **myfolder** is the base folder your want to create your UpviseJS app
 and **myappid** is the ApplicationID of you app (no white space, just letters in lower case).
 
