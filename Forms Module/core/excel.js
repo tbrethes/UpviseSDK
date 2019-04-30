@@ -21,9 +21,9 @@ Forms.writeToCsv = function (csv, forms, template, zip) {
     var header = ["Id", "Template", "Date", "Status", "Location", "Geo", "Owner"];
     if (hasLinkedItems) header.push("LinkedID", "LinkedRecord", "LinkedName");
 
-    var fields = Query.select("Forms.fields", "label", "formid={template.id}", "rank");
-    for (var i = 0; i < fields.length; i++) {
-        var field = fields[i];
+    var fieldsinit = Query.select("Forms.fields", "label", "formid={template.id}", "rank");
+    for (var i = 0; i < fieldsinit.length; i++) {
+        var field = fieldsinit[i];
         header.push(field.label);
     }
 
@@ -50,7 +50,8 @@ Forms.writeToCsv = function (csv, forms, template, zip) {
         // we need this because getFields uses scripting
         _valueObj = Forms._getValues(form); // we need this because Risk.view access it
         _formid = form.id;
-        var fields = Forms.getFields(form);
+        var includeHidden = true; // for export, we need to include the hidden fields
+        var fields = Forms.getFields(form, fieldsinit, includeHidden);
 
         for (var j = 0; j < fields.length; j++) {
             var field = fields[j];

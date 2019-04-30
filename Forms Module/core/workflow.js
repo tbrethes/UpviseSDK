@@ -22,6 +22,8 @@ Forms.checkEmptyFields = function (form) {
             else if (field.type == "photo") {
                 var count = Query.count("System.files", "linkedtable='Forms.forms' AND linkedrecid={field.value}");
                 if (count == 0) isEmpty = true;
+            } else if (field.type == "date" || field.type == "datetime" || field.type == "time") {
+                isEmpty = !(parseInt(field.value) > 0);
             } else if (field.value === null || field.value === "") { // use === because 0 should not be empty
                 isEmpty = true;
             }
@@ -247,8 +249,15 @@ function Forms_nextState(id, currentStatus) {
 
     // Execute the onload script for this state - if any. If the onload script returns a non null string, display the message and do not continue to next state
     var errorMsg = Forms.evalOnLoad(form, newstate.onload);
-    if (errorMsg) return App.alert(errorMsg);
-
+    if (errorMsg) {
+        if (errorMsg.startsWith("#")) {
+            var newStatus = parseInt(errorMsg.substring(1)) - 1;
+            Query.updateId("Forms.forms", id, "status", newStatus);
+            Forms_nextState(id, newStatus);
+            return;
+        }
+        return App.alert(errorMsg);
+    }
     if (newstate.note != "" && App.confirm(newstate.note) == false) return;
 
     // ask for signature
@@ -268,7 +277,7 @@ function Forms_nextState(id, currentStatus) {
 
     
     // Set the form default values for the new state
-    // Bug fix. TBR: Feb. 8th 2019 : we need to re select the form from the daabase because Forms.evalOnLoad may have modified it....
+    // Bug fix. TBR: Feb. 8th 2019 : we need to re select the form from the database because Forms.evalOnLoad may have modified it....
     form = Query.selectId("Forms.forms", id);
     var values = Forms._getValues(form);
     Forms.setDefaultValues(form, values, newstate.status);

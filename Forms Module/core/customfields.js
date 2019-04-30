@@ -31,7 +31,9 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == "button") {
         CustomFields.addButton(id, label, "code", options, formid);
         return;
-    } 
+    } else if (type == "buttonbox") { // buttonbox are displayed separataly
+        return;
+    }
     if (value == null || value === "") return;
 
     if (type == 'select' || type == 'selectmulti') {
@@ -147,6 +149,48 @@ CustomFields.addButton = function (id, label, value, options, formid) {
     List.addButton(label, onclick, "color:gray");
 }
 
+/////////////////////
+
+CustomFields.addButtonBoxes = function (table, recordId) {
+    var where = "formid={table} AND type='buttonbox'";
+    var fields = Query.select("Notes.fields", "id;label;style", where, "rank");
+    if (fields.length == 0) return;
+    var item = Query.selectId(table, recordId);
+    if (item == null) return;
+
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var style = field.style ? field.style : "img:app";
+        Grid.add(field.label, "CustomFields.onButtonBox({field.id},{recordId})", style);
+    }
+}
+
+CustomFields.onButtonBox = function (fieldid, recordId) {
+    var field = Query.selectId("Notes.fields", fieldid);
+    if (field == null) {
+        return;
+    }
+
+    var onclick = field.seloptions;
+    if (onclick) {
+        try {
+            // the onclick script needs the form object.
+            var form = Query.selectId("Forms.forms", recordId); // this is for button inside forms
+            if (form == null) form = { id: recordId }; // this is for button inside other records
+
+            var js = "";
+            if (WEB()) js += "//# sourceURL=BUTTONBOX." + field.name.toUpperCase() + "\n";
+            js += onclick; // we cannot interpolate becuase this is common mobile + desktop code.....
+            eval(js);
+        } catch (e) {
+            WEB() ? alert(e.message) : App.alert(e.message);
+        }
+    }
+}
+
+/////////////////////
+
+
 CustomFields.onButton = function (recordId, fieldid) {
     var onclick = CustomFields.buttons[fieldid];
     if (onclick) {
@@ -155,9 +199,13 @@ CustomFields.onButton = function (recordId, fieldid) {
             var form = Query.selectId("Forms.forms", recordId); // this is for button inside forms
             var link = (form && form.linkedtable) ? Query.selectId(form.linkedtable, form.linkedid) : null;
             if (form == null) form = { id: recordId }; // this is for button inside other records
-            eval(onclick + "\n//# sourceURL=http://FORM/BUTTON.js");
+
+            var js = "";
+            if (WEB()) js += "//# sourceURL=FORM.BUTTON." + fieldid.toUpperCase() + "\n";
+            js += onclick; // we cannot interpolate becuase this is common mobile + desktop code.....
+            eval(js);
         } catch (e) {
-            App.alert(e.message);
+            WEB() ? alert(e.message) : App.alert(e.message);
         }
     }
 }
@@ -223,7 +271,6 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'selectmulti') {
         List.addComboBoxMulti(id, label, value, onchange, options);
     } else if (type == 'toggle') {
-        //label = Utils.xmlEncode(label);
         onchange += ";CustomFields.onPunch({formid},{label},this.value,{id})";
         List.addToggleBox(id, label, value, onchange, options);
     } else if (type == 'checkbox') {
@@ -231,7 +278,6 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'contact') {
         var groupid = options;  // options field may contain the groupid to filter
         var where = groupid ? "groupid CONTAINS {options}" : "";
-        //if (CustomFields.contactOptions == null) CustomFields.contactOptions = Query.options("Contacts.contacts", where);
         var contactOptions = Query.options("Contacts.contacts", where);
         List.addComboBoxMulti(id, label, value, onchange, contactOptions, "CustomFields.onNewContact({formid},{id},this.value,{groupid})");
     } else if (type == 'company') {
@@ -265,7 +311,7 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
         List.addSignatureBox(id, label, value, onchange);
     } else if (type == 'barcode') {
         List.addBarcodeBox(id, label, value, onchange, options); // options if for custom action
-    } else if (type == 'button') {
+    } else if (type == 'button' || type == "buttonbox") {
         // do not display button in edit mode
     } else if (type == 'label') {
         List.addItemLabel(label, " ", null, "color:gray");

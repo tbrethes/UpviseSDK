@@ -1,6 +1,6 @@
 //////////////////////// FORM DATA ACCESS
 var _valueObj;
-var _valueTable;
+//var _valueTable;
 var _changeObj;
 var _formid;
 
@@ -18,22 +18,26 @@ Forms.RESTORE_STATE = function (state) {
 }
 
 function _updateValue(formid, fieldname, fieldvalue) {
-
-    _valueObj[fieldname] = fieldvalue;
-
-    var onchange = _changeObj[fieldname];
+    // 1. get the form
+    var table = "Forms.Forms";
+    if (Config.appid == "maintenance") table = "Maintenance.forms";
+   
+    // 2. Execute onchange if any
+    var onchange = _changeObj ? _changeObj[fieldname] : null;
     if (onchange) {
-        var form = Query.selectId("Forms.forms", formid);
+        var form = Query.selectId(table, formid)
         var fields = Query.select("Forms.fields", "*", "formid={form.templateid} AND name={fieldname}");
         var fieldlabel = fields.length > 0 ? fields[0].label : null;
         var ok = Forms._evalFormula(onchange, { value: fieldvalue, label: fieldlabel }, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
-        if (ok === false) return; 
+        if (ok === false) return;
     }
 
-    var values = JSON.stringify(_valueObj);
-    var table = (_valueTable != null) ? _valueTable : "Forms.forms";
-    Query.updateId(table, formid, 'value', values);
+    // 3. Update the value
+    var values = Forms._getValuesFromId(formid);
+    values[fieldname] = fieldvalue;
+    Query.updateId(table, formid, 'value', JSON.stringify(values));
 
+    // 4. Reload if onchange
     if (onchange) {
         History.reload();
     }
@@ -99,22 +103,29 @@ Forms.writeViewFields = function (form) {
 
 ///////////////////////
 
+Forms._getValuesFromId = function (formid) {
+    var table = "Forms.Forms";
+    if (Config.appid == "maintenance") table = "Maintenance.forms";
+
+    var form = Query.selectId(table, formid)
+    return Forms._getValues(form);
+}
+
 // return an object for the Form values
 Forms._getValues = function (form) {
-    if (form.value != null && form.value != "") {
+    if (form && form.value) {
         try {
             return JSON.parse(form.value);
         } catch (err) { }
     }
-    return new Object();
+    // error
+    return {};
 }
 
 // templateFields is an optional param to optimize code if  passed
-Forms.getFields = function (form, type, templateFields) {
+Forms.getFields = function (form, templateFields, includeHidden) {
     if (templateFields == null) {
-        var where = "formid={form.templateid}";
-        if (type != null) where += " AND type={type}";
-        var templateFields = Query.select("Forms.fields", "*", where, "rank");
+        templateFields = Query.select("Forms.fields", "*", "formid={form.templateid}", "rank");
     }
     var formValues = Forms._getFullValues(form, templateFields);
     var lang = "en";
@@ -141,8 +152,8 @@ Forms.getFields = function (form, type, templateFields) {
                 field2.options = risk.measures;
             }
         }
-        // do not add the hidden fields
-        if (hiddenFields.indexOf(field.name) == -1) {
+        // do not add the hidden fields unless asked
+        if (hiddenFields.indexOf(field.name) == -1 || includeHidden === true) {
             list.push(field2);
         }
     }
@@ -224,6 +235,7 @@ Forms._eval = function (value, form, sourceURL) {
 }
 
 Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
+    js = String(js);
     js = js.trim();
     if (js.substring(0, 1) == "=") js = js.substring(1);
     else if (js.indexOf("javascript:") == 0) js = js.substr("javascript:".length);
@@ -272,6 +284,7 @@ Forms.canEdit = function (form) {
 }
 
 Forms.canDelete = function (form) {
+    if (User.isAdmin()) return true;
     var values = Forms._getValues(form);
     if (values["NODELETE"] == 1) return false;
     else return true;

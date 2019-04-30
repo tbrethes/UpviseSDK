@@ -1,9 +1,8 @@
 
-
 if (typeof (Forms) === "undefined") {
     // This is super wierd but if we use the line commented below, on Safari, it resets the Forms class and the left pane does not work when Forms > Files....
     //function Forms() { }
-    var Forms = new Function("{" + "}");
+    var Forms = new function () { }
 }
 
 //////////////////////////// Form Creation
@@ -11,15 +10,10 @@ if (typeof (Forms) === "undefined") {
 Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, projectid, counterid) {
     if (remove == 1) History.remove(1);
 
-    // we auto link job forms to project for standard user ownership...
-    if (!projectid && linkedtable == "Jobs.jobs") {
-        var job = Query.selectId("Jobs.jobs", linkedid);
-        if (job) projectid = job.projectid;
-    }
-    // we auto link tools forms to project for standard user ownership...
-    if (!projectid && linkedtable == "Tools.tools") {
-        var tool = Query.selectId("Tools.tools", linkedid);
-        if (tool) projectid = tool.projectid;
+    // we auto link job, assets and tools linked forms to project for standard user ownership...
+    if (!projectid && (linkedtable == "Jobs.jobs" || linkedtable == "Projects.assets" || linkedtable == "Tools.tools")) {
+        var linkedItem = Query.selectId(linkedtable, linkedid);
+        if (linkedItem) projectid = linkedItem.projectid;
     }
 
     var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid, counterid);
@@ -39,7 +33,8 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     form.date = Date.now();
     form.owner = User.getName();
     form.geo = Settings.getLocation();
-    form.address = Settings.getAddress(form.geo);
+    // TBR April 29, 2019 : we stopped getting the addresse because it is synchronous and delays too much when slow network
+    //form.address = Settings.getAddress(form.geo);
     if (linkedtable != null) {
         form.linkedtable = linkedtable;
         form.linkedid = linkedid;
@@ -131,7 +126,7 @@ Forms.setDefaultValues = function (form, values, status) {
                     values[field.name + "S"] = risk.severity;
                     values[field.name + "P"] = risk.probability;
                 }
-            } else if (field.type != "header" && field.type != "label"  /*&& field.type != "image"*/ && field.type != "button" && field.type != "formula") {
+            } else if (field.type != "header" && field.type != "label"  && field.type != "button" && field.type != "formula") {
                 value = Forms._eval(field.value, form, "DEFAULTVALUE_" + field.name); // to use javacript:// feature
                 if (value != "") values[field.name] = value;
             }

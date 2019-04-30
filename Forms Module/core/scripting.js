@@ -85,29 +85,22 @@ Forms.emailPdf = function (formid, email, subject, body) {
 
 // set the value for the current form only
 Forms.setValue = function (id, value) {
-    if (_formid == null || _formid == "" || id == null || id == "") return;
-    _valueObj[id] = value;
-    var values = JSON.stringify(_valueObj);
-    Query.updateId("Forms.forms", _formid, "value", values);
+    if (!_formid || !id) return;
+    
+    var values = Forms._getValuesFromId(_formid);
+    values[id] = value;
+    Query.updateId("Forms.forms", _formid, "value", JSON.stringify(values));
 }
 
 // second parameter formid is optional, if null, it means current form
 Forms.getValue = function (fieldid, formid) {
-    if (!fieldid) return null; // error
-    var value;
-    if (formid == null) {
-        // the current form
-        if (_formid == null || _formid == "") return null; // error
-        value = _valueObj[fieldid];
-    } else {
-        // a specific form
-        var form = Query.selectId("Forms.forms", formid);
-        if (form == null) return "";
-        var values = JSON.parse(form.value);
-        value = values[fieldid];
-    }
-    if (value == null) value = "";
-    return value;
+    if (!fieldid) return ""; // error
+    // if formid is not set, use the current _formid
+    if (formid == null) formid = _formid;
+    
+    var values = Forms._getValuesFromId(formid);
+    var value = values[fieldid];
+    return value ? value  : "";
 }
 
 Forms.getIntValue = function (fieldid, formid) {
