@@ -74,6 +74,7 @@ Forms.evalSubmit = function (form) {
 
     if (returnValue != undefined && returnValue != 0 && returnValue != 1 && returnValue != 2) {
         App.alert("Javascript Error: " + returnValue);
+        return 0;
     }
     return returnValue;
 }
