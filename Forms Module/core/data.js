@@ -22,20 +22,20 @@ function _updateValue(formid, fieldname, fieldvalue) {
     var table = "Forms.Forms";
     if (Config.appid == "maintenance") table = "Maintenance.forms";
    
-    // 2. Execute onchange if any
+    // 2. Update the value : BEFORE calling the onchange
+    var values = Forms._getValuesFromId(formid);
+    values[fieldname] = fieldvalue;
+    Query.updateId(table, formid, 'value', JSON.stringify(values));
+
+    // 3. Execute onchange if any
     var onchange = _changeObj ? _changeObj[fieldname] : null;
     if (onchange) {
-        var form = Query.selectId(table, formid)
+        var form = Query.selectId(table, formid);
         var fields = Query.select("Forms.fields", "*", "formid={form.templateid} AND name={fieldname}");
         var fieldlabel = fields.length > 0 ? fields[0].label : null;
         var ok = Forms._evalFormula(onchange, { value: fieldvalue, label: fieldlabel }, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
         if (ok === false) return;
     }
-
-    // 3. Update the value
-    var values = Forms._getValuesFromId(formid);
-    values[fieldname] = fieldvalue;
-    Query.updateId(table, formid, 'value', JSON.stringify(values));
 
     // 4. Reload if onchange
     if (onchange) {
