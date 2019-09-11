@@ -44,12 +44,16 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     if (projectid) form.projectid = projectid;
     if (counterid) form.counterid = counterid;
 
-    if (values == null) values = {}; // must be an object not array for stringify
-    Forms.setDefaultValues(form, values, Forms.DRAFT);
-    form.value = JSON.stringify(values);
     form.hidden = Forms.getDefaultHidden(template.id);
 
-    return Query.insert("Forms.forms", form);
+    var formid = Query.insert("Forms.forms", form);
+
+    // Warning : setDefaultValues needs form.id for drawing duplication
+    form.id = formid;
+    if (values == null) values = {}; // must be an object not array for stringify
+    Forms.setDefaultValues(form, values, Forms.DRAFT);
+    Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
+    return formid;
 }
 
 Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, linkedid, projectid, name, counterid) {
@@ -86,12 +90,14 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
         form.linkedid = file.linkedrecid;
     }
 
-    var values = {}; // must be an object not array for stringify
-    Forms.setDefaultValues(form, values, Forms.DRAFT);
-    form.value = JSON.stringify(values);
-    form.hidden = Forms.getDefaultHidden(template.id);
+    var formid = Query.insert("Forms.forms", form);
 
-    return Query.insert("Forms.forms", form);
+    // Warning : setDefaultValues needs form.id for drawing duplication
+    form.id = formid;
+    if (values == null) values = {}; // must be an object not array for stringify
+    Forms.setDefaultValues(form, values, Forms.DRAFT);
+    Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
+    return formid;
 }
 
 Forms.getNewName = function (templateid, counterid) {
@@ -120,6 +126,9 @@ Forms.setDefaultValues = function (form, values, status) {
             if (field.type == "drawing") {
                 value = (App.duplicatePicture != null) ? App.duplicatePicture(field.value, "Drawing " + form.name) : "";
                 values[field.name] = value;
+                // TODO :  add linkedtable and linkedid as params in App.duplicatePicture
+                Query.updateId("System.files", value, "linkedtable", "Forms.forms");
+                Query.updateId("System.files", value, "linkedrecid", form.id + ":" + field.name);
             } else if (field.type == "risk") {
                 var risk = Query.selectId("Qhse.risks", field.label);
                 if (risk != null) {
