@@ -94,7 +94,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
 
     // Warning : setDefaultValues needs form.id for drawing duplication
     form.id = formid;
-    if (values == null) values = {}; // must be an object not array for stringify
+    var values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
     return formid;
@@ -127,8 +127,10 @@ Forms.setDefaultValues = function (form, values, status) {
                 value = (App.duplicatePicture != null) ? App.duplicatePicture(field.value, "Drawing " + form.name) : "";
                 values[field.name] = value;
                 // TODO :  add linkedtable and linkedid as params in App.duplicatePicture
-                Query.updateId("System.files", value, "linkedtable", "Forms.forms");
-                Query.updateId("System.files", value, "linkedrecid", form.id + ":" + field.name);
+                if (value && form.id) {
+                    Query.updateId("System.files", value, "linkedtable", "Forms.forms");
+                    Query.updateId("System.files", value, "linkedrecid", form.id + ":" + field.name);
+                }
             } else if (field.type == "risk") {
                 var risk = Query.selectId("Qhse.risks", field.label);
                 if (risk != null) {

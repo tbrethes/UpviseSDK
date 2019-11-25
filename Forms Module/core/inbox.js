@@ -19,7 +19,7 @@ Forms.getInbox = function (templateids) {
 
     var me = User.getName();
     var forms = [];
-    var where = null;
+    var where = "";
     if (templateids) where = "id IN " + list(templateids);
     var allForms = Query.select("Forms.forms", "id;templateid;status;name;date;owner", where, "date DESC");
     for (var i = 0; i < allForms.length; i++) {

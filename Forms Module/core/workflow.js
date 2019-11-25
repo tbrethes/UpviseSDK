@@ -327,3 +327,20 @@ Forms.addStandardUsers = function (formowner, staff) {
     }
     return newowners;
 }
+
+
+//////////////////////
+
+Forms.resetToDraft = function(id) {
+    if (App.confirm("Are you sure?") == false) return;
+
+    var form = Query.selectId("Forms.forms", id);
+    Query.updateId("Forms.forms", form.id, "status", 0);
+    
+    // also reset the subforms
+    var subforms = Forms.selectSubForms(form);
+    for (var i = 0; i < subforms.length; i++) {
+        Query.updateId("Forms.forms", subforms[i].id, "status", 0);
+    }
+    History.reload();
+}

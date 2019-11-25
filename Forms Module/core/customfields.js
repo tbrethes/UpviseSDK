@@ -14,6 +14,13 @@ CustomFields.view = function (table, recordId, fieldsTable) {
     if (fields.length == 0 || item == null) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
+    // Strange bug : reported by K$ May 15th 2019:  CustomFields.values is a string, reparse it a second time
+    var str = CustomFields.values;
+    if (typeof str === 'string' || str instanceof String) {
+        Query.updateId(table, recordId, "custom", str);
+        CustomFields.values = CustomFields.loadValues(str);
+    }
+
     CustomFields.buttons = {}; // to keep the onclick for button fields
 
     if (WEB() == false) List.addHeader(R.CUSTOMFIELDS);
@@ -161,7 +168,12 @@ CustomFields.addButtonBoxes = function (table, recordId) {
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var style = field.style ? field.style : "img:app";
-        Grid.add(field.label, "CustomFields.onButtonBox({field.id},{recordId})", style);
+        var label = field.label;
+        if (field.label.startsWith("=")) {
+            var js = field.label.substr(1); + "\n//# sourceURL=BUTTONBOX.ONLOAD.JS";
+            label = eval(js);
+        }
+        if (label) Grid.add(label, "CustomFields.onButtonBox({field.id},{recordId})", style);
     }
 }
 
@@ -180,7 +192,7 @@ CustomFields.onButtonBox = function (fieldid, recordId) {
 
             var js = "";
             if (WEB()) js += "//# sourceURL=BUTTONBOX." + field.name.toUpperCase() + "\n";
-            js += onclick; // we cannot interpolate becuase this is common mobile + desktop code.....
+            js += onclick; // we cannot interpolate because this is common mobile + desktop code.....
             eval(js);
         } catch (e) {
             WEB() ? alert(e.message) : App.alert(e.message);
@@ -245,7 +257,7 @@ CustomFields.edit = function (table, recordId, ids, fieldsTable) {
     if (fieldsTable == null) fieldsTable = table;
     var where = "formid={fieldsTable}";
     if (ids != null && ids != "") where += " AND id IN " + list(ids);
-    var fields = Query.select("Notes.fields", "name;label;type;seloptions", where, "rank");
+    var fields = Query.select("Notes.fields", "name;label;type;seloptions;onchange;id", where, "rank");
     if (fields.length == 0) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
@@ -259,6 +271,7 @@ CustomFields.edit = function (table, recordId, ids, fieldsTable) {
         var value = CustomFields.values[field.name];
         if (value == null) value = '';
         var onchange = "CustomFields._update({table},{recordId},this.id,this.value)";
+        if (field.onchange) onchange += ";CustomFields._onchange({field.id},{recordId})";
         CustomFields.writeEditItem(field.name, field.type, field.label, value, onchange, field.seloptions, null);
     }
 }
@@ -305,8 +318,9 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
         List.addHeader(label);
         if (value != "") List.addImage(Settings.getFileUrl(value), "App.editPicture({value})");
     } else if (type == "image") {
+        var url = Settings.getFileUrl(value);
         List.addHeader(label);
-        List.addImage(Settings.getFileUrl(value));
+        List.addImage(url, "WebView.showImage({url})");
     } else if (type == 'signature') {
         List.addSignatureBox(id, label, value, onchange);
     } else if (type == 'barcode') {
@@ -316,7 +330,10 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'label') {
         List.addItemLabel(label, " ", null, "color:gray");
     } else if (type == 'formula') {
-        // do not display formula in edit mode
+        // do not display formula in edit mode unless seloptions=1
+        if (options == "1") { // we use the seloptions template field to store if formula is visible in edit mode
+            List.addItemLabel(label, value);
+        }
     } else if (type == 'textarea') {
         if (Settings.getPlatform() == "web") type = "textarea2";
         List.addTextBox(id, label, value, onchange, type);
@@ -391,6 +408,23 @@ CustomFields._update = function (table, recordId, name, value) {
     CustomFields.values[name] = value;
     var custom = JSON.stringify(CustomFields.values);
     Query.updateId(table, recordId, "custom", custom);
+}
+
+CustomFields._onchange = function(fieldId, recordId) {
+    var field = Query.selectId("Notes.fields", fieldId);
+    if (!field) return;
+    var js = field.onchange;
+    if (!js) return;
+
+    // we need the obj id and value variable to be accessible in the JS code
+    var id = recordId;
+    var value = CustomFields.values[field.name];
+    if (WEB()) js += "//# sourceURL=CUSTOMFIELD_ONCHANGE." + field.name.toUpperCase() + "\n";
+    try {
+        eval(js);
+    } catch (e) {
+        WEB() ? alert(e.message) : App.alert(e.message);
+    }
 }
 
 CustomFields._getValue = function (name) {

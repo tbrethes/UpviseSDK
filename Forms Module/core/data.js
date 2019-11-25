@@ -8,6 +8,8 @@ Forms._EDITFORM = "Forms.editForm";
 Forms._VIEWFORM = "Forms.viewForm";
 Forms._VIEWFILE = null;
 
+
+
 Forms.GET_STATE = function() {
     return { valueObj: _valueObj, formid: _formid };
 }
@@ -30,20 +32,37 @@ function _updateValue(formid, fieldname, fieldvalue) {
     // 3. Execute onchange if any
     var onchange = _changeObj ? _changeObj[fieldname] : null;
     if (onchange) {
+        Forms.onChangeReload = true;
         var form = Query.selectId(table, formid);
         var fields = Query.select("Forms.fields", "*", "formid={form.templateid} AND name={fieldname}");
         var fieldlabel = fields.length > 0 ? fields[0].label : null;
-        var ok = Forms._evalFormula(onchange, { value: fieldvalue, label: fieldlabel }, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
+        var fieldid = fields.length > 0 ? fields[0].id : null;
+        var ok = Forms._evalFormula(onchange, { value: fieldvalue, label: fieldlabel, fieldid: fieldid }, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
         if (ok === false) return;
-    }
-
-    // 4. Reload if onchange
-    if (onchange) {
-        History.reload();
+    
+        // 4. Reload if onchange
+        if (onchange && Forms.onChangeReload == true) {
+            History.reload();
+        }
     }
 }
 
-Forms.writeEditFields = function (form, showButtons) {
+Forms.writeEditSections = function (form) {
+    var fields = Forms.getFields(form);
+    var map = Forms.groupByHeader(fields);
+    for (var i = 0; i < map.keys.length; i++) {
+        var key = map.keys[i];
+        var obj = map.get(key);
+        if (obj.fields.length > 0) {
+            var onclick = Forms._EDITFORM + "({form.id},null,null,{key})";
+            var status = Forms.getHeaderStatus(obj.fields);
+            var style = "img:folder;icon:arrow;priority:" + status.color;
+            List.addItemSubtitle(obj.label, status.label, onclick, style);
+        }
+    }
+}
+
+Forms.writeEditFields = function (form, showButtons, sectionId) {
     var stateCount = Query.count("Forms.states", "templateid={form.templateid}");
 
     // form.value contains a json string of array values indexed by field names
@@ -53,6 +72,14 @@ Forms.writeEditFields = function (form, showButtons) {
     _valueObj = Forms._getValues(form);
     _formid = form.id;
     var fields = Forms.getFields(form);
+    if (sectionId != null) {
+        var map = Forms.groupByHeader(fields);
+        var obj = map.get(sectionId);
+        List.addHeader(obj.label);
+        fields = obj.fields;
+        // show buttons in Edit Screen section
+        showButtons = true;
+    }
 
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
@@ -65,7 +92,7 @@ Forms.writeEditFields = function (form, showButtons) {
                     var onscan = "Forms.onScan({form.id},{field.id},this.value)";
                     List.addButton(field.label, "App.scanCode({onscan})");
                 } else if (form.linkedtable == "Forms.forms" || showButtons) {
-                    // display button in edit mode only for subform 
+                    // display button in edit mode only for subform
                     CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
                 }
             } else {
@@ -158,6 +185,35 @@ Forms.getFields = function (form, templateFields, includeHidden) {
         }
     }
     return list;
+}
+
+// like Forms.getFields but group the fields by section header.
+Forms.groupByHeader = function (fields) {
+    var map = new HashMap();
+    var obj = {label: R.GENERAL, fields:[]};
+    map.set("", obj);
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        if (field.type == "header") {
+            obj = { label: field.label, fields: [] };
+            map.set(field.id, obj);
+        }  else {
+            obj.fields.push(field);
+        }
+    }
+    return map;
+}
+
+Forms.getHeaderStatus = function (fields) {
+    var hasMandatory = false;
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        if (field.mandatory == 1) {
+            hasMandatory = true;
+            if (field.value === "") return { label: R.INCOMPLETE, color: Color.ORANGE };
+        }
+    }
+    return hasMandatory ? { label: R.COMPLETED, color: Color.GREEN } : { label: "", color: "" };
 }
 
 Forms.getFieldLabel = function (field, lang) {
@@ -284,10 +340,17 @@ Forms.canEdit = function (form) {
 }
 
 Forms.canDelete = function (form) {
-    if (User.isAdmin()) return true;
+    //if (User.isAdmin()) return true;
     var values = Forms._getValues(form);
     if (values["NODELETE"] == 1) return false;
     else return true;
+}
+
+Forms.canDuplicate = function (form) {
+    //if (User.isAdmin()) return true;
+    var values = Forms._getValues(form);
+    if (values["NODUPLI"] == 1) return false;
+    else return Forms.canEdit(form);
 }
 
 Forms.hasRight = function (action, form) {

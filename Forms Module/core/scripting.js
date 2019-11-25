@@ -182,7 +182,7 @@ Forms.selectDataset = function (name, orderby) {
     if (sets.length == 0) return [];
     var datasetid = sets[0].id;
     if (orderby == null) orderby = "name";
-    return Query.select("Forms.dataitems", "code;name", "datasetid={datasetid}", orderby);
+    return Query.select("Forms.dataitems", "code;name;id", "datasetid={datasetid}", orderby);
 }
 
 Forms.datasetOptions = function (name, orderby) {
@@ -264,4 +264,15 @@ Forms.showFields = function (toShow, toHide) {
     if (changed == true) {
         Query.updateId("Forms.forms", _formid, "hidden", JSON.stringify(hiddenFields));
     }
+}
+
+Forms.getValuePhoto = function (fieldid, formid) {
+    var linkedrecid = formid + ":" + fieldid;
+    var files = Query.select("System.files", "id;name;mime", "linkedtable='Forms.forms' AND linkedrecid={linkedrecid}", "date");
+    var list = [];
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        list.push({ fileName: file.name, fileType: file.mime, fileContent: file.id })
+    }
+    return list;
 }

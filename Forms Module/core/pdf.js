@@ -124,12 +124,12 @@ FormsPdf.write = function (form, template, index) {
     filename += ".pdf";
 
     
-    var title = index ? index + ". " : "";
+    var title = index ? index + " " : "";
     if (AccountSettings.get("forms.pdfgroup") == "1") {
         var name = Query.names("Forms.groups", template.groupid);
         if (name) title = name + " - ";
     }
-    title += template.name;// + " " + form.name;
+    title += template.name;
 
     var _CURRENT_VALUES = _valueObj;
 
@@ -151,7 +151,7 @@ FormsPdf.write = function (form, template, index) {
         FormsPdf.writeCustom2(form, options.pdfid);
         return filename;
     }
-
+    Pdf2.add('<span id="', form.id, '" />');
     var headerColor = form.color ? form.color : options.headercolor;
     Pdf2.startTitleBlock(title, headerColor);
     if (options.caption == "1") {
@@ -252,7 +252,9 @@ FormsPdf.addFields = function (fields, form) {
             } else if (field.type == "button" && field.value == "newsubform") {
                 FormsPdf.stop();
                 var linkedid = form.id + ":" + field.id;
-                var subforms = Query.select("Forms.forms", "*", "linkedtable='Forms.forms' AND linkedid=" + esc(linkedid), "date");
+                var subTemplate = Query.selectId("Forms.templates", field.options);
+                var sortby = (subTemplate != null && subTemplate.sortby) ? subTemplate.sortby : "date";
+                var subforms = Query.select("Forms.forms", "*", "linkedtable='Forms.forms' AND linkedid=" + esc(linkedid), sortby);
                 FormsPdf.addSubFormsTable(subforms, form.templateid);
             } else if (field.type != "label" || (field.type == "label" && field.value == "1")) {
                 FormsPdf.addField(field, form);
