@@ -34,8 +34,20 @@ Forms.exportOneExcel = function (formid) {
     excel.download(title);
 }
 
-// templateid is optional, if not present it will export all checked forms
+Forms.popupExport = function (templateid) {
+    var selectedCount = Table.getChecked().length;
+    var count = Query.count("Forms.forms", "templateid={templateid}");
 
+    if (selectedCount > 0) Popup.add("Selected Forms" + " (" + selectedCount + ")", "Forms.exportMultiple({templateid})", "img:form");
+    else Popup.add("All Forms", "Forms.exportMultiple({templateid})", "img:form");
+    if (AccountSettings.get("system.hasarchive") == "1") Popup.add("All Forms including Archive", "Forms.exportWithArchive({templateid})", "img:archive");
+
+    //if (User.isAdmin()) Popup.add("TEST", "Forms.exportTest({templateid})", "img:form");
+
+    Popup.show();
+}
+
+// templateid is optional, if not present it will export all checked forms
 Forms.exportMultiple = function (templateid) {
     // if some items are checked, select only these
     var forms = null;
@@ -139,3 +151,5 @@ Forms.bindExcelValues = function (excel, form, keyPrefix) {
         if (value) excel.addValue(key, value); // no need to bind empty values
     }
 }
+
+///////////////////////////////

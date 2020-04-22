@@ -75,7 +75,7 @@ function newFieldTemplate(templateId, type, options) {
     values.type = type;
     if (options != null) values.seloptions = options;
     var id = Query.insert("Forms.fields", values);
-    History.replace("editFieldTemplate({id})");
+    History.redirect("editFieldTemplate({id})");
 }
 
 function newButtonFieldTemplate(templateId, value) {
@@ -83,7 +83,7 @@ function newButtonFieldTemplate(templateId, value) {
     values.type = "button";
     values.value = value;
     var id = Query.insert("Forms.fields", values);
-    History.replace("editFieldTemplate({id})");
+    History.redirect("editFieldTemplate({id})");
 }
 
 Templates.newQuestion = function(templateid) {
@@ -224,9 +224,12 @@ function editFieldTemplate(id) {
     if (type == "select" || type == "selectmulti" || type == "toggle") {
         List.addTextBox("seloptions", R.OPTIONS, item.seloptions, "onOptionsChange({id},this.value)", "code");
         List.addHelp(R.FIELD_HELP1);
+    } else if (type == "contact" || type == "company") {
+        var groupOptions = Query.options("Contacts.groups");
+        List.addComboBox("seloptions", R.GROUP, item.seloptions, onchange, groupOptions);
     }
 
-    var help = ' <br/>See <a target=_blank href="http://developer.upvise.com/guide/forms.htm"><b>Form Scripting Guide</b></a>';
+    var help = ' <br/>See <a target=_blank href="https://www.upvise.com/dev/guide/forms.htm"><b>Form Scripting Guide</b></a>';
 
    
     // Default Value field
@@ -250,7 +253,7 @@ function editFieldTemplate(id) {
     } else if (type == "header") {
         List.addCheckBox("value", "Force Page Break in PDF", item.value, onchange);
     } else if (type == "photo") {
-        List.addComboBox("seloptions", "Choose Action",  item.seloptions, onchange, ":Default|camera:Start Camera|scan:Scan Document");
+        List.addComboBox("seloptions", "Choose Action",  item.seloptions, onchange, ":Default|camera:Start Camera|scan:Scan Document|file:Pick File");
     } else if (type == "barcode") {
         List.addComboBox("seloptions", "Choose Action", item.seloptions, onchange, ":Default|barcode:Scan Barcode|ocrcode:Scan Number");
         List.addTextBox("onchange", "On Change", item.onchange, onchange, "code");
@@ -267,6 +270,7 @@ function editFieldTemplate(id) {
     } else if (type == "formula") {
         List.addTextBox("value", "Script", item.value, onchange, "code");
         List.addHelp('Enter any valid JavaScript code. You can reference the other fields in the template by their ID. Example: Math.floor(F1*F2). ' + help);
+        List.addCheckBox("seloptions", "Visible in Edit mode", item.seloptions, onchange);
     } else {
         List.addTextBox("value", R.DEFAULTVALUE, item.value, onchange, "code");
         List.addHelp("Tip : to use a javascript statement, start with a = char. Then use statements like Date.today(), Date.now(), User.getName()." + help);
@@ -311,6 +315,7 @@ function editFieldTemplateLocal(id) {
     List.addTextBox("labelFR", "French", item.labelFR, onchange, "longtext");
     List.addTextBox("labelES", "Spanish", item.labelES, onchange, "longtext");
     List.addTextBox("labelZH", "Chinese", item.labelZH, onchange, "longtext");
+    List.addTextBox("labelMY", "Burmese", item.labelMY, onchange, "longtext");
     List.show();
 }
 

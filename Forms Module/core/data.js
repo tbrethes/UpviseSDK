@@ -8,7 +8,7 @@ Forms._EDITFORM = "Forms.editForm";
 Forms._VIEWFORM = "Forms.viewForm";
 Forms._VIEWFILE = null;
 
-
+Forms.onChangeReload = true;
 
 Forms.GET_STATE = function() {
     return { valueObj: _valueObj, formid: _formid };
@@ -92,7 +92,7 @@ Forms.writeEditFields = function (form, showButtons, sectionId) {
                     var onscan = "Forms.onScan({form.id},{field.id},this.value)";
                     List.addButton(field.label, "App.scanCode({onscan})");
                 } else if (form.linkedtable == "Forms.forms" || showButtons) {
-                    // display button in edit mode only for subform
+                    // display button in edit mode
                     CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
                 }
             } else {
@@ -206,14 +206,34 @@ Forms.groupByHeader = function (fields) {
 
 Forms.getHeaderStatus = function (fields) {
     var hasMandatory = false;
+    var isComplete = true;
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.mandatory == 1) {
             hasMandatory = true;
-            if (field.value === "") return { label: R.INCOMPLETE, color: Color.ORANGE };
+            if (field.type == "photo") {
+                var count = Query.count("System.files", "linkedtable='Forms.forms' AND linkedrecid={field.value}");
+                if (count == 0) {
+                    isComplete = false;
+                    break;
+                }
+            } else if (field.value === "") {
+                isComplete = false;
+                break;
+            }
         }
     }
-    return hasMandatory ? { label: R.COMPLETED, color: Color.GREEN } : { label: "", color: "" };
+
+    if (hasMandatory) {
+        if (isComplete) {
+            return { label: R.COMPLETED, color: Color.GREEN };
+        } else {
+            return { label: R.INCOMPLETE, color: Color.ORANGE };
+        }
+    } else {
+        return { label: "", color: "" };
+    }
+    //return hasMandatory ? { label: R.COMPLETED, color: Color.GREEN } : ;
 }
 
 Forms.getFieldLabel = function (field, lang) {
@@ -223,6 +243,7 @@ Forms.getFieldLabel = function (field, lang) {
     else if (lang == "ES" && field.labelES) return field.labelES;
     else if (lang == "ZH" && field.labelZH) return field.labelZH;
     else if (lang == "ZHT" && field.labelZH) return field.labelZH;
+    else if (lang == "MY" && field.labelMY) return field.labelMY;
     else return field.label;
 }
 
@@ -486,3 +507,15 @@ Forms.writeSubformsTable = function (forms, editable) {
     Forms.RESTORE_STATE(state);
 }
 
+
+/*
+Forms.testClean = function () {
+    var size1 = 0;
+    var size2 = 0;
+    var forms = Query.select("Forms.forms", "*", "");
+    for (var i = 0; i < forms.length; i++) {
+        var form = forms[i];
+        var values = JSON.stringify(form.value);
+    }
+}
+*/

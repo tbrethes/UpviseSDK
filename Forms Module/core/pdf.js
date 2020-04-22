@@ -73,7 +73,7 @@ FormsPdf.init = function (options) {
 
     Pdf2.init(options.fontsize);
     Pdf2.setWatermark(options.watermark, options.watermarkcolor);
-    Pdf2.setHeader(options.logoid);
+    if (options.logoid != "#none") Pdf2.setHeader(options.logoid);
     if (options.footer) Pdf2.setFooter(options.footer);
     if (options.footerid) Pdf2.footerid = options.footerid;
     if (options.orientation) Pdf2.orientation = options.orientation;

@@ -2,6 +2,8 @@
 
     Toolbar.addButton(R.HELP, "App.help('forms/help/options/roles.htm')", 'support');
     Toolbar.addButton(R.NEW, "Templates.newRolePane()", "new");
+    Toolbar.addButton(R.EXPORT, "Templates.exportRoles()", "download");
+
     var roles = Query.select("System.roles", "*", "", "name");
 
     List.addItemBox("", R.EDITROLES, "", "img:group");
@@ -12,6 +14,20 @@
         List.add([role.name, Templates.formatGroupNames(role.groupid), Templates.formatTemplateNames(role.templateid)], "Templates.editRole({role.id})", style);
     }
     List.show();
+}
+
+Templates.exportRoles = function () {
+    var roles = Query.select("System.roles", "*", "", "name");
+
+    var csv = new CsvFile();
+    csv.writeLine(["id", "name", "groupid", "templateid", "hidepunch", "hidephoto"]);
+    for (var i = 0; i < roles.length; i++) {
+        var role = roles[i];
+        csv.writeLine([role.id, role.name, role.groupid, role.templateid, role.hidepunch, role.hidephoto]);
+    }
+    var excel = new ExcelFile();
+    excel.addSheet("Roles", csv.getContent());
+    excel.download("roles");
 }
 
 Templates.formatGroupNames = function (groupid) {
@@ -53,6 +69,8 @@ Templates.editRole = function (id) {
     List.addTextBox("name", R.NAME, role.name, onchange);
     List.addComboBoxMulti("groupid", R.FORMGROUPS, role.groupid, "Templates.onUpdateGroupRights({id},this.value)", "all:" + R.ALL + "|" + Query.options("Forms.groups"));
     List.addComboBoxMulti("templateid", R.FORMS, role.templateid,  "Templates.onUpdateTemplateRights({id},this.value)", Templates.getTemplateOptions(role.groupid));
+    List.addCheckBox("hidepunch", "Hide Project Punch Items", role.hidepunch, onchange);
+    List.addCheckBox("hidephoto", "Hide Project Photos", role.hidephoto, onchange);
     List.show();
 }
 

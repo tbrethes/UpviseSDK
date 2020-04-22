@@ -47,7 +47,7 @@ Forms.createForm = function (name, linkedtable, linkedid, values) { // QUESTION 
     var formid = Forms.newFormInternal(templateid, linkedtable, linkedid, values);
 
     History.add(Forms._VIEWFORM + "({formid})");
-    if (WEB() || Config.appid == "Forms") History.replace(Forms._EDITFORM + "({formid})");
+    if (WEB() || Config.appid == "Forms") History.redirect(Forms._EDITFORM + "({formid})");
     else App.open(Forms._EDITFORM + "({formid})"); // bug on mobile.....
     return 2;
 }
@@ -83,13 +83,16 @@ Forms.emailPdf = function (formid, email, subject, body) {
     FormsPdf.export(formid, "serveremail", email, subject, body);
 }
 
-// set the value for the current form only
-Forms.setValue = function (id, value) {
-    if (!_formid || !id) return;
+// set the value for the current form only (last formid param is optional)
+Forms.setValue = function (id, value, formid) {
+    // if formid is not set, use the current _formid
+    if (formid == null) formid = _formid;
+
+    if (!formid || !id) return;
     
-    var values = Forms._getValuesFromId(_formid);
+    var values = Forms._getValuesFromId(formid);
     values[id] = value;
-    Query.updateId("Forms.forms", _formid, "value", JSON.stringify(values));
+    Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
 }
 
 // second parameter formid is optional, if null, it means current form
@@ -213,7 +216,7 @@ Forms.getForm = function (templateName, formName, linkedid) {
 // return a list of subform ids for this field
 Forms.getFormIds = function (fieldname, formid) {
     if (formid == null) formid = _formid;
-    var linkedid = _formid + ":" + fieldname;
+    var linkedid = formid + ":" + fieldname;
     var list = [];
     var subforms = Query.select("Forms.forms", "id", "linkedtable='Forms.forms' AND linkedid={linkedid}", "date DESC");
     for (var i = 0; i < subforms.length; i++) {
@@ -232,11 +235,11 @@ Forms.options = function (table, where, recordid) {
     return options;
 }
 
-
-Forms.showFields = function (toShow, toHide) {
+Forms.showFields = function (toShow, toHide, formid) {
+    if (!formid) formid = _formid; // get current one if not set
     // load the hidden field list
-    if (!_formid) return; // error
-    var form = Query.selectId("Forms.forms", _formid);
+    if (!formid) return; // error
+    var form = Query.selectId("Forms.forms", formid);
     if (!form) return;
     var hiddenFields = form.hidden ? JSON.parse(form.hidden) : [];
     var changed = false;
@@ -262,7 +265,7 @@ Forms.showFields = function (toShow, toHide) {
     }
 
     if (changed == true) {
-        Query.updateId("Forms.forms", _formid, "hidden", JSON.stringify(hiddenFields));
+        Query.updateId("Forms.forms", formid, "hidden", JSON.stringify(hiddenFields));
     }
 }
 

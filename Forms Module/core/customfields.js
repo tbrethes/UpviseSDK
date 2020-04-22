@@ -7,10 +7,10 @@ CustomFields._VIEWFILE = "Files.viewFile";
 CustomFields.values = null; // Array of values indexed by name
 
 CustomFields.view = function (table, recordId, fieldsTable) {
+    var item = Query.selectId(table, recordId);
     if (fieldsTable == null) fieldsTable = table;
     var where = "formid={fieldsTable}";
-    var fields = Query.select("Notes.fields", "name;label;type;seloptions", where, "rank");
-    var item = Query.selectId(table, recordId);
+    var fields = Query.select("Notes.fields", "name;label;type;seloptions;groupid", where, "rank");
     if (fields.length == 0 || item == null) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
@@ -145,7 +145,7 @@ CustomFields.addButton = function (id, label, value, options, formid) {
     } else if (value == "newsubform") {
         var templateid = options;
         var linkedid = formid + ":" + id;
-        List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid},null,null,{form.projectid})", "color:gray");
+        if (form) List.addButton(label, "Forms.newForm({templateid},'Forms.forms',{linkedid},null,null,{form.projectid})", "color:gray");
         return;
     }
     else if (value == "code") {
@@ -257,7 +257,7 @@ CustomFields.edit = function (table, recordId, ids, fieldsTable) {
     if (fieldsTable == null) fieldsTable = table;
     var where = "formid={fieldsTable}";
     if (ids != null && ids != "") where += " AND id IN " + list(ids);
-    var fields = Query.select("Notes.fields", "name;label;type;seloptions;onchange;id", where, "rank");
+    var fields = Query.select("Notes.fields", "name;label;type;seloptions;onchange;id;groupid", where, "rank");
     if (fields.length == 0) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
@@ -268,11 +268,14 @@ CustomFields.edit = function (table, recordId, ids, fieldsTable) {
     List.addHeader(R.CUSTOMFIELDS);
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
-        var value = CustomFields.values[field.name];
-        if (value == null) value = '';
-        var onchange = "CustomFields._update({table},{recordId},this.id,this.value)";
-        if (field.onchange) onchange += ";CustomFields._onchange({field.id},{recordId})";
-        CustomFields.writeEditItem(field.name, field.type, field.label, value, onchange, field.seloptions, null);
+        var show = (!field.groupid || MultiValue.contains(field.groupid, item.groupid));
+        if (show) {
+            var value = CustomFields.values[field.name];
+            if (value == null) value = '';
+            var onchange = "CustomFields._update({table},{recordId},this.id,this.value)";
+            if (field.onchange) onchange += ";CustomFields._onchange({field.id},{recordId})";
+            CustomFields.writeEditItem(field.name, field.type, field.label, value, onchange, field.seloptions, null);
+        }
     }
 }
 
@@ -320,8 +323,9 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == "image") {
         var url = Settings.getFileUrl(value);
         List.addHeader(label);
-        List.addImage(url, "WebView.showImage({url})");
-    } else if (type == 'signature') {
+        //List.addImage(url, "WebView.showImage({url})");
+        List.addImage(url, "CustomFields.viewImage({value})");
+    } else if (type == 'signature') { 
         List.addSignatureBox(id, label, value, onchange);
     } else if (type == 'barcode') {
         List.addBarcodeBox(id, label, value, onchange, options); // options if for custom action
@@ -349,6 +353,11 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
         // works for text, phone, email, time, duration, currency
         List.addTextBox(id, label, value, onchange, type);
     }
+}
+
+CustomFields.viewImage = function(fileid) {
+    var url = Settings.getFileUrl(fileid);
+    WebView.showImage(url);
 }
 
 CustomFields.onPunch = function (formid, label, value, id) {

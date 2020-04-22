@@ -2,15 +2,17 @@
 // FORM Templates
 
 Templates.editTemplates = function(tab) {
+    var groups = Query.select("Forms.groups", "id;name", null, "rank");
+    if (groups.length > 0) {
+        History.redirect("Templates.editTemplates2()");
+        return;
+    }
 
     Toolbar.addButton(R.NEWTEMPLATE, "Templates.newTemplate({tab})", "new");
     Toolbar.addButton(R.IMPORT, "Templates.importTemplates()", "upload");
     Toolbar.addButton(R.EXPORT, "Templates.exportCheckedTemplates()", "more");
 
-    //if (User.isAdmin()) Toolbar.addButton("Import German Translations", "Templates.importLocalizeDE()", "more");
-
     Toolbar.addTab(R.ALL, "Templates.editTemplates()", "count:" + Query.count("Forms.templates", Where.addOwner()));
-    var groups = Query.select("Forms.groups", "id;name", null, "rank");
     for (var i = 0; i < groups.length; i++) {
         var group = groups[i];
         var count = Query.count("templates", Where.addOwner("groupid={group.id}"));
@@ -39,9 +41,62 @@ Templates.editTemplates = function(tab) {
     List.show();
 }
 
-Templates.exportCheckedTemplates = function() {
-    var ids = Table.getChecked();
-    if (ids.length == 0) { App.alert(R.CHECKFIRST, 'yellow'); return;  }
+Templates.editTemplates2 = function () {
+    Toolbar.addButton(R.NEWTEMPLATE, "Templates.newTemplate()", "new");
+    Toolbar.addButton(R.IMPORT, "Templates.importTemplates()", "upload");
+    Toolbar.addButton(R.EXPORT, "Templates.exportCheckedTemplates(true)", "more");
+
+    var groups = Query.select("Forms.groups", "id;name", null, "rank");
+    List.addItemBox("", R.TEMPLATES, "", "img:product");
+
+    Grid.addHeader();
+    var nocount = Query.count("templates", "groupid=''");
+    if (nocount > 0) Grid.add("#No Group", "Templates.editTemplateGroup('')", "img:form;count:" + nocount);
+    for (var i = 0; i < groups.length; i++) {
+        var group = groups[i];
+        var count = Query.count("templates", Where.addOwner("groupid={group.id}"));
+        var style = "img:folder";
+        Grid.add(group.name, "Templates.editTemplateGroup({group.id})", "img:folder;count:" + count);
+    }
+    Grid.show();
+}
+
+Templates.editTemplateGroup = function (groupid) {
+    Toolbar.addButton(R.NEWTEMPLATE, "Templates.newTemplate({groupid})", "new");
+    Toolbar.addButton(R.EDIT, "Forms.editGroup({groupid})", "edit");
+    Toolbar.addButton(R.IMPORT, "Templates.importTemplates()", "upload");
+    Toolbar.addButton(R.EXPORT, "Templates.exportCheckedTemplates()", "more");
+
+    var where = "groupid={groupid}";
+    var templates = Query.select("Forms.templates", "*", Where.addOwner(where), "name");
+    List.addItemBox("", groupid ? Query.names("Forms.groups", groupid) : "#NO GROUP", "", "img:folder");
+
+    List.addHeader([R.NAME, R.LINKEDTO, R.GROUP, "Last Modified", R.OWNER], ["50%"], "checkbox");
+    for (var i = 0; i < templates.length; i++) {
+        var template = templates[i];
+        var name = template.name + " " + Format.text(template.prefix, "gray");
+        var fields = Query.select("Forms.fields", "_date", "formid={template.id}", "_date DESC");
+        var date = (fields.length > 0) ? Format.date(fields[0]._date) : "";
+        var linkedto = (template.linkedtable) != "" ? Format.options(template.linkedtable, Forms.getLinkedOptions()) : "";
+        var group = Query.names("Forms.groups", template.groupid);
+        List.add([name, linkedto, group, date, Format.owner(template.owner)], "Templates.viewTemplate({template.id})", {id:template.id, img:"form"});
+    }
+    List.show();
+}
+
+/////////////////////////////////////////////////////////
+
+Templates.exportCheckedTemplates = function (all) {
+    var ids = [];
+    if (all === true) {
+        var templates = Query.select("Forms.templates", "id", "", "name");
+        for (var i = 0; i < templates.length; i++) {
+            ids.push(templates[i].id);
+        }
+    } else {
+        ids = Table.getChecked();
+        if (ids.length == 0) { App.alert(R.CHECKFIRST, 'yellow'); return;  }
+    }
     Templates.exportTemplates(ids);
 }
 
@@ -58,7 +113,7 @@ Templates.saveTemplate = function(groupid) {
     var name = List.getValue("name");
     if (name == "") return;
     var id = Query.insert("Forms.templates", { name: name, groupid: groupid });
-    History.replace("Templates.viewTemplate({id})");
+    History.redirect("Templates.viewTemplate({id})");
 }
 
 /////////////// View Form Template'
@@ -79,7 +134,7 @@ Templates.viewTemplate = function(id, tab) {
     var onchange2 = "Templates.updatePdfOptions({template.id},this.id,this.value)";
 
     var fields = Query.select("Forms.fields", null, "formid={id}", "rank");
-    var states = Query.select("Forms.states", "*", "templateid={id}", "state");
+    var states = Query.select("Forms.states", "*", "templateid={id}", "status");
     var stateOptions = Templates.getStateOptions(id);
 
     Toolbar.addTab(R.FIELDS, "Templates.viewTemplate({id})", "count:" + fields.length);
@@ -93,6 +148,8 @@ Templates.viewTemplate = function(id, tab) {
     if (Templates.WORKFLOW) Toolbar.addTab(R.WORKFLOW, "Templates.viewTemplate({id},2)", "count:" + states.length);
     if (Templates.SHARING) Toolbar.addTab(R.SHARING, "Templates.viewTemplate({id},3)");
     if (Templates.DASHBOARD) Toolbar.addTab(R.DASHBOARD, "Templates.viewTemplate({id},4)");
+    Toolbar.addTab("Integration", "Templates.viewTemplate({id},9)");
+
     
     if (tab == null) Toolbar.addButton(R.HELP, "App.help('forms/help/template/fieldtypes.htm')", 'support');
     else if (tab == 1) Toolbar.addButton(R.HELP, "App.help('forms/help/template/info.htm')", 'support');
@@ -121,8 +178,8 @@ Templates.viewTemplate = function(id, tab) {
         if (fields.length == 0) {
             _writeEmpty(R.NOFIELD + ".<br/><br/>" + R.ADDFIELDS);
         } else {
-            if (states.length > 0) List.addHeader(["", R.NAME, R.TYPE, R.MANDATORYFIELD, R.EDITABLE, "ID"], ["40px", null, "150px", "80px", "80px", "40px"]);
-            else List.addHeader(["", R.NAME, R.TYPE, R.MANDATORYFIELD, "ID"], ["40px", null, "150px", "80px", "40px"]);
+            if (states.length > 0) List.addHeader(["", R.NAME, R.TYPE, "Hidden", R.MANDATORYFIELD, R.EDITABLE, "ID"], ["40px", null, "150px", "80px", "80px", "80px", "40px"]);
+            else List.addHeader(["", R.NAME, R.TYPE, "Hidden", R.MANDATORYFIELD, "ID"], ["40px", null, "150px", "80px", "80px", "40px"]);
 
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
@@ -132,11 +189,12 @@ Templates.viewTemplate = function(id, tab) {
                 if (field.type == "risk") label = Query.names("Qhse.risks", field.label);
                 var type = Format.options(field.type, Templates.getFieldOptions());
                 var mandatory = (field.mandatory == 1) ? R.YES : "";
+                var hidden = (field.hidden == 1) ? R.YES : "";
                 if (states.length > 0) {
                     var editable = Format.options(field.status, stateOptions);
-                    List.add([field.rank, label, type, mandatory, editable, field.name], "editFieldTemplate({field.id})", style);
+                    List.add([field.rank, label, type, hidden, mandatory, editable, field.name], "editFieldTemplate({field.id})", style);
                 } else {
-                    List.add([field.rank, label, type, mandatory, field.name], "editFieldTemplate({field.id})", style);
+                    List.add([field.rank, label, type, hidden, mandatory, field.name], "editFieldTemplate({field.id})", style);
                 }
             }
         } 
@@ -198,6 +256,9 @@ Templates.viewTemplate = function(id, tab) {
         List.addFileBox("logoid", R.HEADERIMAGE, Templates.pdfoptions.logoid, onchange2);
         List.addTextBox("footer", R.FOOTER, Templates.pdfoptions.footer, onchange2, "longtext");
 
+        List.addFileBox("footerid", "Footer Image", Templates.pdfoptions.footerid, onchange2);
+
+
   //      List.addHeader("Watermark");
       
         Toolbar.addButton(R.INSERTPLACEHOLDER, "Templates.popupInsertPlaceholder({id},'html')", "popup");
@@ -216,7 +277,10 @@ Templates.viewTemplate = function(id, tab) {
     } else if (tab == 8) {
         List.addFileBox("excelid", "Custom Excel Template", Templates.pdfoptions.excelid, onchange2);
         List.addHelp("Append the prefix ## to a Form Field ID to insert the field value in your custom Excel.");
+    } else if (tab == 9) {
+        Templates.editIntegration(template);
     }
+
     List.show();
 }
 
@@ -233,11 +297,13 @@ Templates.editFormTemplate = function(template, onchange) {
     List.addHeader(R.OPTIONS);
     List.addCheckBox("favorite", R.PINLEFTPANE, template.favorite, onchange);
     List.addCheckBox("punch", R.HASPUNCHITEMS, template.punch, onchange);
+    List.addCheckBox('splitheader', "Display each section on a separate screen on mobile" +  " " + Format.tag("NEW", Color.BLUE), template.splitheader, onchange);
     List.addTextBox("version", "Version", template.version, onchange, "longtext");
     List.addHeader("Display Columns");
     List.addComboBoxMulti('columns', "List Columns", template.columns, onchange, Templates.getColumnsOptions(template.id));
-    List.addComboBox('sortby', R.SORTBY, template.sortby, onchange, ":Most Recent|name:Name|priority:Priority");
+    List.addComboBox('sortby', R.SORTBY, template.sortby, onchange, "date DESC:Most Recent|date:Older First|name:Name|priority:Priority");
 
+   
     List.addHeader("Auto Archive");
     List.addTextBox('archivedays', "Archive after nb days", template.archivedays, onchange, "numeric");
 }
@@ -377,7 +443,7 @@ Templates.onDuplicate = function(templateid) {
     }
 
     // now insert all fields
-    History.replace("Templates.viewTemplate({newid})");
+    History.redirect("Templates.viewTemplate({newid})");
 }
 
 // type="html" for HTML text area or "text" for text-only text ares and input fields 
@@ -435,3 +501,4 @@ Templates.onImportLocalize = function (rows) {
     History.reload();
     alert("Updated DE Labesl: " + count);
 }
+

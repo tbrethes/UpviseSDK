@@ -49,6 +49,7 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     var formid = Query.insert("Forms.forms", form);
 
     // Warning : setDefaultValues needs form.id for drawing duplication
+    _formid = formid;
     form.id = formid;
     if (values == null) values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
@@ -89,6 +90,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
         form.linkedtable = linkedtable;
         form.linkedid = file.linkedrecid;
     }
+    form.hidden = Forms.getDefaultHidden(template.id);
 
     var formid = Query.insert("Forms.forms", form);
 
@@ -229,7 +231,7 @@ Forms.duplicateInternal = function (form, linkedid, counterid) {
 
 Forms.selectFormPhotos = function (form) {
     var files = [];
-    var fields = Query.select("Forms.fields", "name", "type='photo' AND formid={form.templateid}");
+    var fields = Query.select("Forms.fields", "name", "formid={form.templateid} AND type IN ('photo','drawing')");
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var value = form.id + ":" + field.name; // hack for photos.....
@@ -295,11 +297,19 @@ Forms.archiveForm = function (id, confirm) {
         Query.archiveId("System.files", files[i].id);
     }
     Query.archiveId("Forms.forms", id);
+
+    // Also archive SubForms
+    var subforms = Forms.selectSubForms(form);
+    for (var i = 0; i < subforms.length; i++) {
+        Forms.archiveForm(subforms[i].id, false);
+    }
+
     if (confirm === true) History.back();
 }
 
-// if from == "DELETED"
-Forms.restoreForm = function (id, reload, from) {
+
+/*
+Forms.restoreForm = function (id, reload) {
     var forms = Query.selectArchivedOrDeleted("Forms.forms", "*", "id={id}");
     if (forms.length == 0) return;
     var form = forms[0];
@@ -325,6 +335,9 @@ Forms.restoreForm = function (id, reload, from) {
         });
     }
 }
+*/
+
+// if from == "DELETED"
 
 ///////////////////
 

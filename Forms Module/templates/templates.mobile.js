@@ -52,7 +52,7 @@ Templates.newTemplate = function (groupid) {
     var values =   {counter: 0, name:name };
     if (groupid != null) values.groupid = groupid;
     var id = Query.insert("Forms.templates", values);
-    History.replace("Templates.editTemplate({id})");
+    History.redirect("Templates.editTemplate({id})");
 }
 
 Templates.editTemplate = function(id) {
@@ -108,7 +108,7 @@ Templates.newField = function(templateid) {
     fieldId++;
     var name = "F" + fieldId;
     var id = Query.insert("Forms.fields", {formid: templateid, type:'text', rank: rank, name: name});
-    History.replace("Templates.editField({id})");
+    History.redirect("Templates.editField({id})");
 }
 
 Templates.editField = function(id) {
