@@ -307,38 +307,6 @@ Forms.archiveForm = function (id, confirm) {
     if (confirm === true) History.back();
 }
 
-
-/*
-Forms.restoreForm = function (id, reload) {
-    var forms = Query.selectArchivedOrDeleted("Forms.forms", "*", "id={id}");
-    if (forms.length == 0) return;
-    var form = forms[0];
-
-    // also restore the form photos...
-    var files = [];
-    var fields = Query.select("Forms.fields", "name", "type='photo' AND formid={form.templateid}");
-    for (var i = 0; i < fields.length; i++) {
-        var field = fields[i];
-        var linkedrecid = form.id + ":" + field.name; // hack for photos.....
-        var list = Query.selectArchivedOrDeleted("System.files", "*", "linkedrecid={linkedrecid}");
-        files = files.concat(list);
-    }
-
-    Query.restoreId("Forms.forms", form.id);
-    for (var i = 0; i < files.length; i++) {
-        Query.restoreId("System.files", files[i].id);
-    }
-
-    if (reload === true) {
-        Cache.sync(function (changed) {
-            History.reload("Forms.viewForm({id})");
-        });
-    }
-}
-*/
-
-// if from == "DELETED"
-
 ///////////////////
 
 Forms.popupResetSignature = function (formid, fieldid) {

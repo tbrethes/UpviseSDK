@@ -279,3 +279,13 @@ Forms.getValuePhoto = function (fieldid, formid) {
     }
     return list;
 }
+
+Forms.formatEmails = function (str) {
+    // remove any html tag
+    var clean = Format.text(str);
+    //  any white space, carriage return, comma are converted into semi-colon as the valid email separator
+    clean = clean.split(',').join(';');
+    clean = clean.split('/n').join(';');
+    clean = clean.split(' ').join(';');
+    return clean;  
+}
