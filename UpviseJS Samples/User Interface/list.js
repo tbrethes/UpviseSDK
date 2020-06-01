@@ -65,6 +65,17 @@ function main() {
     List.addHeader("Toggle Box");
     List.addToggleBox("id14", "Are you OK?", "", null, "1:yes|0:No|-1:Maybe");
     List.addToggleBox('id15', "Wheels - tyres, nuts", "", null, "1|2|3|4|0:N/A");
+    
+    // Long Press suport : use oncontext property for style parameter in List.addXXX()
+    var style = "oncontext:popupMenu()";
+    List.addItem("Long Press Support", "App.alert('tapped')", style);
 
     List.show();
 }
+
+function popupContext() {
+    Popup.add(("Item 1", "App.alert('1')");
+    Popup.add(("Item 2", "App.alert('1')");
+    Popup.show();
+}
+    
