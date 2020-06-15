@@ -23,7 +23,7 @@ Forms.checkEmptyFields = function (form) {
                 var count = Query.count("System.files", "linkedtable='Forms.forms' AND linkedrecid={field.value}");
                 if (count == 0) isEmpty = true;
             } else if (field.type == "date" || field.type == "datetime" || field.type == "time") {
-                isEmpty = !(parseInt(field.value) > 0);
+                isEmpty = !(Math.abs(parseInt(field.value)) > 0);
             } else if (field.value === null || field.value === "") { // use === because 0 should not be empty
                 isEmpty = true;
             }
@@ -152,12 +152,15 @@ Forms.getState = function (form) {
 }
 
 Forms.containsUser = function (form, statestaff) {
-    if (statestaff == "" || User.isAdmin() || MultiValue.contains(statestaff, User.getName()) ||
-       (MultiValue.contains(statestaff, 'Initiator') && Forms.getCreator(form) == User.getName())) {
-        return true;
-    } else {
-        return false;
-    }
+    if (statestaff == "" || User.isAdmin()) return true;
+    if (MultiValue.contains(statestaff, User.getName())) return true;
+    if (MultiValue.contains(statestaff, 'Initiator') && Forms.getCreator(form) == User.getName() ) return true;
+    
+    var role = User.getRole();
+    if (role && MultiValue.contains(statestaff, role.id)) return true;
+
+    return false;
+    
 }
 
 /////////////////////
@@ -336,7 +339,8 @@ Forms.resetToDraft = function(id) {
 
     var form = Query.selectId("Forms.forms", id);
     Query.updateId("Forms.forms", form.id, "status", 0);
-    
+    Query.updateId("Forms.forms", form.id, "color", "");
+
     // also reset the subforms
     var subforms = Forms.selectSubForms(form);
     for (var i = 0; i < subforms.length; i++) {

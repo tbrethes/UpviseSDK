@@ -80,8 +80,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         List.addHeader(label);
         List.addImage(Settings.getFileUrl(value));
     } else if (type == "image") {
-        List.addHeader(label);
-        List.addImage(Settings.getFileUrl(value));
+        CustomFields.addImage(id, label, value, options, formid);
     } else if (type == 'signature') {
         var onclick = User.isAdmin() ? "Forms.popupResetSignature({formid},{id})" : "";
         if (WEB()) List.addItemLabel(label, Format.image64(value), onclick);
@@ -316,15 +315,12 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     } else if (type == 'user') {
         List.addComboBoxMulti(id, label, value, onchange, User.getOptions());
     } else if (type == "photo") {
-        CustomFields.addFileBox(label, "Forms.forms", value, options); // options is for add new
+        CustomFields.addFileBox(label, "Forms.forms", value, options, onchange); // options is for add new
     } else if (type == "drawing") {
         List.addHeader(label);
         if (value != "") List.addImage(Settings.getFileUrl(value), "App.editPicture({value})");
     } else if (type == "image") {
-        var url = Settings.getFileUrl(value);
-        List.addHeader(label);
-        //List.addImage(url, "WebView.showImage({url})");
-        List.addImage(url, "CustomFields.viewImage({value})");
+        CustomFields.addImage(id, label, value, options, formid);
     } else if (type == 'signature') { 
         List.addSignatureBox(id, label, value, onchange);
     } else if (type == 'barcode') {
@@ -355,10 +351,37 @@ CustomFields.writeEditItem = function (id, type, label, value, onchange, options
     }
 }
 
-CustomFields.viewImage = function(fileid) {
+CustomFields.addImage = function (id, label, fileid, options, formid) {
+    if (!CustomFields.buttons) CustomFields.buttons = {};
+    CustomFields.buttons[id] = options; // we use options for optional onclick
     var url = Settings.getFileUrl(fileid);
-    WebView.showImage(url);
+    List.addHeader(label);
+    List.addImage(url, "CustomFields.viewImage({fileid},{id},{formid})");
 }
+
+CustomFields.viewImage = function (fileid, id, formid) {
+    var url = Settings.getFileUrl(fileid);
+    // this.value in the callback will contain the (x,y) tap event
+    var callback = "CustomFields.onImageTap({id},{formid},this.value)";
+    WebView.showImage(url, callback);
+}
+
+CustomFields.onImageTap = function (id, formid, geo) {
+    var jsCode = CustomFields.buttons[id];
+    //App.confirm("On Tap: " + id + "\n" + jsCode);
+    if (!jsCode) return;
+    try {
+        // jsCode can use x, y and form
+        var form = Query.selectId("Forms.forms", formid);
+        var x = Math.round(geo.split(",")[0]);
+        var y = Math.round(geo.split(",")[1]);
+        eval(jsCode)
+    } catch (e) {
+        App.confirm("Error: " + e.message + "\n" + buffer);
+    }
+}
+
+
 
 CustomFields.onPunch = function (formid, label, value, id) {
     if (value == "P") {
@@ -570,7 +593,7 @@ CustomFields.writePdf = function (table, recordId) {
 
 //////////////////////
 
-CustomFields.addFileBox = function (label, table, id, action) {
+CustomFields.addFileBox = function (label, table, id, action, onchange) {
     var files = [];
     if (table && id) files = Query.select("System.files", "id;name;mime;externalurl", "linkedtable={table} AND linkedrecid={id}", "date");
     if (action == null && files.length == 0) return;
@@ -585,12 +608,12 @@ CustomFields.addFileBox = function (label, table, id, action) {
             var fileid = (file.mime.indexOf("image/") != -1 && file.externalurl == "") ? file.id : null;
             List.addThumbnail(file.name, fileid, CustomFields._VIEWFILE + "({file.id})");
         }
-        if (action != null) FileBox.writeButton("", R.SELECTFILE, "FilePicker.pick({table},{id})", "");
+        if (action != null) FileBox.writeButton("", R.SELECTFILE, "FilePicker.pick({table},{id},'',{action},{onchange})", "");
         _html.push('</div>');
     } else {
         if (action != null) {
             var label = (action == "scan") ? R.SCANDOCUMENT : R.ADDPHOTO;
-            List.addItem(label, "App.takePicture({table},{id},{action})", "img:camera;icon:new");
+            List.addItem(label, "App.takePicture({table},{id},{action},{onchange})", "img:camera;icon:new");
         }
 
         for (var i = 0; i < files.length; i++) {

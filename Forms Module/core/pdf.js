@@ -406,13 +406,16 @@ FormsPdf.addField = function (field, form) {
 }
 
 FormsPdf.formatToggle = function (value, label) {
-    var color = Color.BLUE;
-    if (value == "0" || value == "5") color = Color.RED;
-    else if (value == "1") color = Color.GREEN;
+    value = value ? String(value) : "";
+    var color = "";
+    if (value == "1") color = Color.GREEN;
+    else if (value == "11") color = Color.BLUE;
     else if (value == "2" || value == "3") color = Color.YELLOW;
     else if (value == "4" || value == "P") color = Color.ORANGE;
-
-    return '<span style="font-weight:bold;color:' + color + '">' + value + '</span>';
+    else if (value == "0" || value == "5") color = Color.RED;
+    else if (value.startsWith("#")) color = value;
+    else color = Color.BLUE;
+    return '<span style="padding:4px;border-radius:5px;font-weight:bold;color:white;background-color:' + color + '">' + value + '</span>';
 }
 
 FormsPdf.addHistory = function (history) {

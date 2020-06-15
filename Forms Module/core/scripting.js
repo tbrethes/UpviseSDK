@@ -52,6 +52,12 @@ Forms.createForm = function (name, linkedtable, linkedid, values) { // QUESTION 
     return 2;
 }
 
+Forms.createJob = function (toolid) {
+    if (WEB() || Config.appid == "Jobs") History.redirect("Jobs.newToolJob({toolid})");
+    else App.open("Jobs.newToolJob({toolid})"); // bug on mobile.....
+    return 2;
+}
+
 Forms.emailCsv = function (emails, id) {
     var form = Query.selectId("Forms.forms", id);
 
@@ -283,9 +289,19 @@ Forms.getValuePhoto = function (fieldid, formid) {
 Forms.formatEmails = function (str) {
     // remove any html tag
     var clean = Format.text(str);
-    //  any white space, carriage return, comma are converted into semi-colon as the valid email separator
-    clean = clean.split(',').join(';');
-    clean = clean.split('/n').join(';');
-    clean = clean.split(' ').join(';');
-    return clean;  
+    // find any valid email separator token
+    var list = [];
+    var index = 0;
+    for (var i = 0; i <= clean.length; i++) {
+        var c = clean.charAt(i);
+        // c == "" is for the end of the string 
+        if (c == "" || c == " " || c == ";" || c == "\n" || c == ",") {
+            if (i > index) {
+                var token = clean.substr(index, i - index);
+                list.push(token);
+            }
+            index = i + 1;
+        }
+    }
+    return list.join(";");  
 }

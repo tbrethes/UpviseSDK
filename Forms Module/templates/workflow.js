@@ -4,8 +4,21 @@ function writeStates(states) {
     List.add([0, R.DRAFT, R.SUBMIT, R.EVERYONE], "App.alert(" + R.STATEEDITALERT + ")");
     for (var i = 0; i < states.length; i++) {
         var state = states[i];
-        List.add([state.status, state.name, state.action, state.staff], "editState({state.id})");
+        List.add([state.status, state.name, state.action, formatStaffList(state.staff)], "editState({state.id})");
     }
+}
+
+// staiff is a multi value string and can contain user name or roleid
+function formatStaffList(staff) {
+    var list = [];
+    var parts = staff.split("|");
+    for (var i = 0; i < parts.length; i++) {
+        var part = parts[i];
+        var role = Query.selectId("System.roles", part);
+        if (role) list.push(role.name);
+        else list.push(part);
+    }
+    return list.join(", ");
 }
 
 /////////////////////////////////////
@@ -18,9 +31,6 @@ function newState(templateid) {
     List.addTextBox("name", R.STATENAME, name, null);
     List.addTextBox("action", R.ACTIONBUTTON, "", null);
     List.addHelpPane(R.STATE_HELP2);
-    //List.addComboBoxMulti("staff", R.STAFF, "", null, getStateStaffOptions());
-    //List.addHelpPane(R.STATE_HELP1);
-    //List.addCheckBox("sign", R.DIGISIGNSTATE, "", null);
     List.show("pane");
 }
 
@@ -29,9 +39,7 @@ function saveNewState(templateid) {
     values.templateid = templateid;
     values.name = List.getValue("name");
     values.action = List.getValue("action");
-    //values.staff = List.getValue("staff");
-    //values.sign = List.getValue("sign") == "1" ? 1 : 0;
-
+  
     if (values.name == "") { App.alert(R.ENTERSTATE); return; }
 
     var states = Query.select("Forms.states", "id;action;status", "templateid={templateid}", "status DESC");
@@ -85,7 +93,10 @@ function getStateStaffOptions(statestaff) {
             if (!MultiValue.contains(options, user+":"+user)) options = MultiValue.add(options, user+":"+user);
         }        
     }
-
+    // Also adds the roles:
+    var roleOptions = Query.options("System.roles");
+    if (roleOptions) options += "|" + roleOptions;
+    
     return options;
 }
 

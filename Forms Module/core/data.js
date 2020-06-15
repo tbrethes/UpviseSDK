@@ -96,7 +96,9 @@ Forms.writeEditFields = function (form, showButtons, sectionId) {
                     CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
                 }
             } else {
-                CustomFields.writeEditItem(field.id, field.type, field.label, field.value, onchange, field.options, form.id);
+                //if (field.type == "photo") onchange = field.onchange;
+                var onchange2 = (field.type == "photo") ? field.onchange : onchange;
+                CustomFields.writeEditItem(field.id, field.type, field.label, field.value, onchange2, field.options, form.id);
             }
         }
     }

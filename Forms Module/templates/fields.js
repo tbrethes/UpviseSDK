@@ -253,14 +253,20 @@ function editFieldTemplate(id) {
     } else if (type == "header") {
         List.addCheckBox("value", "Force Page Break in PDF", item.value, onchange);
     } else if (type == "photo") {
-        List.addComboBox("seloptions", "Choose Action",  item.seloptions, onchange, ":Default|camera:Start Camera|scan:Scan Document|file:Pick File");
+        List.addComboBox("seloptions", "Choose Action", item.seloptions, onchange, ":Default|camera:Start Camera|scan:Scan Document|file:Pick File");
+        List.addTextBox("onchange", "On Change", item.onchange, onchange, "code");
+        List.addHelp("Enter any valid Javascript code. Use this.id to referencwe the file id " + help);
     } else if (type == "barcode") {
         List.addComboBox("seloptions", "Choose Action", item.seloptions, onchange, ":Default|barcode:Scan Barcode|ocrcode:Scan Number");
         List.addTextBox("onchange", "On Change", item.onchange, onchange, "code");
         List.addHelp("Enter any valid Javascript code. " + help);
-    } else if (type == "drawing" || type == "image") {
+    } else if (type == "drawing") {
         List.addFileBox("value", "Default Image", item.value, onchange);
-    } else if (type == "header" || type == "photo" /* || type == "signature" */) {
+    } else if (type == "image") {
+        List.addFileBox("value", "Default Image", item.value, onchange);
+        List.addTextBox("seloptions", "On Image Tap Event", item.seloptions, onchange, "code");
+        List.addHelp("Enter any valid Javascript code. You can use the predefined form, x, and y variable. " + help);
+    } else if (type == "header" || type == "photo") {
         // do not show default value
     } else if (type == "signature") {
         List.addTextBox("onchange", "On Change", item.onchange, onchange, "code");
