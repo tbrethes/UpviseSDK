@@ -54,6 +54,8 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     if (values == null) values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
+
+    if (template.oncreate) Forms._evalFormula(template.oncreate, {}, form, "ONCREATE");
     return formid;
 }
 
@@ -99,6 +101,9 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     var values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
+
+    if (template.oncreate) Forms._evalFormula(template.oncreate, {}, form, "ONCREATE");
+
     return formid;
 }
 
@@ -126,7 +131,7 @@ Forms.setDefaultValues = function (form, values, status) {
         var value = values[field.name];
         if (value == null) {
             if (field.type == "drawing") {
-                value = (App.duplicatePicture != null) ? App.duplicatePicture(field.value, "Drawing " + form.name) : "";
+                value = field.value ? App.duplicatePicture(field.value, "Drawing " + form.name) : "";
                 values[field.name] = value;
                 // TODO :  add linkedtable and linkedid as params in App.duplicatePicture
                 if (value && form.id) {

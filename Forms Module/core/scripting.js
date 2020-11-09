@@ -101,6 +101,21 @@ Forms.setValue = function (id, value, formid) {
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
 }
 
+// set the value for the current form only (last formid param is optional)
+Forms.setValues = function (obj, formid) {
+    // if formid is not set, use the current _formid
+    if (formid == null) formid = _formid;
+    if (!formid) return;
+
+    var values = Forms._getValuesFromId(formid);
+    for (var key in obj) {
+        values[key] = obj[key];
+
+    }
+    Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
+}
+
+
 // second parameter formid is optional, if null, it means current form
 Forms.getValue = function (fieldid, formid) {
     if (!fieldid) return ""; // error
@@ -118,6 +133,19 @@ Forms.getIntValue = function (fieldid, formid) {
 
 Forms.getFloatValue = function (fieldid, formid) {
     return parseFloat(Forms.getValue(fieldid, formid));
+}
+
+
+// second parameter formid is optional, if null, it means current form
+Forms.getValuesForType = function (type, formid) {
+    var form = Query.selectId("Forms.forms", formid);
+    var values = Forms._getValues(form);
+    var fields = Query.select("Forms.fields", "name", "formid={form.templateid} AND type={type}");
+    var valueList = [];
+    for (var i = 0; i < fields.length; i++) {
+        valueList.push(values[fields[i].name]);
+    }
+    return valueList;
 }
 
 /////////////////////////////////////////////////
@@ -241,6 +269,65 @@ Forms.options = function (table, where, recordid) {
     return options;
 }
 
+Forms.getValuePhoto = function (fieldid, formid, maxSize) {
+    var linkedrecid = formid + ":" + fieldid;
+    var list = [];
+    var totalSize = 0;
+    var files = Query.select("System.files", "id;name;mime;size", "linkedtable='Forms.forms' AND linkedrecid={linkedrecid}", "date");
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        if (maxSize > 0 && totalSize + file.size > maxSize) {
+            break;
+        } else {
+            totalSize += file.size;
+            list.push({ fileName: file.name, fileType: file.mime, fileContent: file.id })
+        }
+    }
+    return list;
+}
+
+Forms.formatEmails = function (str) {
+    // remove any html tag
+    var clean = Format.text(str);
+    // find any valid email separator token
+    var list = [];
+    var index = 0;
+    for (var i = 0; i <= clean.length; i++) {
+        var c = clean.charAt(i);
+        // c == "" is for the end of the string 
+        if (c == "" || c == " " || c == ";" || c == "\n" || c == ",") {
+            if (i > index) {
+                var token = clean.substr(index, i - index);
+                list.push(token);
+            }
+            index = i + 1;
+        }
+    }
+    return list.join(";");  
+}
+
+Forms.getPhotoSize = function (form) {
+    var size = 0;
+    var fields = Query.select("Forms.fields", "name", "formid={form.templateid} AND type IN ('photo','drawing')");
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var linkedrecid = form.id + ":" + field.name;
+        var files = Query.select("System.files", "size", "linkedtable='Forms.forms' AND linkedrecid={linkedrecid}");
+        for (var j = 0; j < files.length; j++) {
+            size += files[j].size;
+        }
+    }
+    return size;
+}
+
+// NORDEX Usig it in forms....
+Forms.cleanup = function (str) {
+    return String(str).toLowerCase().replace(/[^a-zA-Z0-9]+/g, "");
+}
+
+
+///// SHOW / Hide FIELDS
+
 Forms.showFields = function (toShow, toHide, formid) {
     if (!formid) formid = _formid; // get current one if not set
     // load the hidden field list
@@ -249,7 +336,7 @@ Forms.showFields = function (toShow, toHide, formid) {
     if (!form) return;
     var hiddenFields = form.hidden ? JSON.parse(form.hidden) : [];
     var changed = false;
-        
+
     for (var i = 0; i < toShow.length; i++) {
         var name = toShow[i];
         var index = hiddenFields.indexOf(name);
@@ -275,33 +362,36 @@ Forms.showFields = function (toShow, toHide, formid) {
     }
 }
 
-Forms.getValuePhoto = function (fieldid, formid) {
-    var linkedrecid = formid + ":" + fieldid;
-    var files = Query.select("System.files", "id;name;mime", "linkedtable='Forms.forms' AND linkedrecid={linkedrecid}", "date");
+
+Forms.showField = function (fieldName, yes) {
+    if (yes) Forms.showFields([fieldName], []);
+    else Forms.showFields([], [fieldName]);
+}
+
+Forms.showNextField = function (yes, count) {
+    if (yes === undefined) yes = true;
+    if (count === undefined) count = 1;
+
+    if (!_formid) return; // error
+    var form = Query.selectId("Forms.forms", _formid);
+    if (!form || !Forms.field) return;
+
+    var fieldNames = Forms.getNextFields(form.templateid, Forms.field.rank, count);
+    var toShow = yes ? fieldNames : [];
+    var toHide = !yes ? fieldNames : [];
+    Forms.showFields(toShow, toHide);
+}
+
+// private
+Forms.getNextFields = function (templateid, rank, count) {
+    var fields = Query.select("Forms.fields", "name", "formid={templateid} AND rank>{rank}", "rank");
     var list = [];
-    for (var i = 0; i < files.length; i++) {
-        var file = files[i];
-        list.push({ fileName: file.name, fileType: file.mime, fileContent: file.id })
+    for (var i = 0; i < fields.length; i++) {
+        list.push(fields[i].name);
+        if (i == count - 1) break;
     }
     return list;
 }
 
-Forms.formatEmails = function (str) {
-    // remove any html tag
-    var clean = Format.text(str);
-    // find any valid email separator token
-    var list = [];
-    var index = 0;
-    for (var i = 0; i <= clean.length; i++) {
-        var c = clean.charAt(i);
-        // c == "" is for the end of the string 
-        if (c == "" || c == " " || c == ";" || c == "\n" || c == ",") {
-            if (i > index) {
-                var token = clean.substr(index, i - index);
-                list.push(token);
-            }
-            index = i + 1;
-        }
-    }
-    return list.join(";");  
-}
+
+

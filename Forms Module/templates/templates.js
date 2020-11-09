@@ -23,7 +23,7 @@ Templates.deleteTemplate = function (id) {
 }
 
 Templates.getStateOptions = function (templateid) {
-    var options = [];
+    var options = []; 
     options.push("-1:" + R.ALL);
     options.push("0:" + R.DRAFT);
     var states = Query.select("Forms.states", "status;name", "templateid={templateid}", "status");

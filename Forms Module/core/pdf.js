@@ -2,7 +2,7 @@
 
 function FormsPdf() {}
 
-FormsPdf.export = function (formid, action, email, subject, body) {
+FormsPdf.export = function (formid, action, email, subject, body, replyto) {
 
     // capture the current form memory state, before generating the Form PDF, because it then calls Forms._getValues() which changes global _valuesObj variable.
     // then retore it at the end of the function
@@ -32,6 +32,7 @@ FormsPdf.export = function (formid, action, email, subject, body) {
         Pdf2.archiveEmail(email, subject);
     } else if (action == "serveremail") {
         // difference with "email" is that email is sent automatically by the server, there is no UI for the user to validate and click Send
+        if (replyto) Pdf2.addTag("fromEmail", replyto);
         Pdf2.archiveEmail(email, subject, body);
     }
     else {
@@ -59,7 +60,7 @@ FormsPdf.getOptions = function (template) {
         options.excelid = "";
         options.photoheight = "300px";
         options.photocaption = true;
-
+        
         Query.updateId("Forms.templates", template.id, "pdfoptions", JSON.stringify(options));
         return options;
     }
@@ -77,6 +78,7 @@ FormsPdf.init = function (options) {
     if (options.footer) Pdf2.setFooter(options.footer);
     if (options.footerid) Pdf2.footerid = options.footerid;
     if (options.orientation) Pdf2.orientation = options.orientation;
+    if (options.pagenumber) Pdf2.pagenumber = options.pagenumber;
 
     Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
     Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;min-width:30px;text-align:left;");
@@ -131,20 +133,22 @@ FormsPdf.write = function (form, template, index) {
     }
     title += template.name;
 
-    var _CURRENT_VALUES = _valueObj;
-
+    var state = Forms.GET_STATE();
     // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields() and in writeCustom(
     _valueObj = Forms._getValues(form);
     _formid = form.id;
-    var fields = Forms.getFields(form);
+    var includeHidden = "newsubform";
+    var fields = Forms.getFields(form, null, includeHidden);
 
     if (template.htmlpdf != "") {
         FormsPdf.writeCustom(form, template);
 
-        _CURRENT_VALUES = _valueObj;
+        Forms.RESTORE_STATE(state);
         return filename;
+    } else {
+        Forms.RESTORE_STATE(state);
     }
-  
+
     var options = FormsPdf.addStyle(template);
 
     if (options.pdfid && options.pdfid.length > 0) {
@@ -172,14 +176,16 @@ FormsPdf.write = function (form, template, index) {
         }
     }
     Pdf2.stopTable();
-
+    
     FormsPdf.addFields(fields, form);
 
-    var punchs = Query.select("Forms.punchitems", "*", "formid={form.id}", "creationdate");
-    if (punchs.length > 0 && typeof (Punch) != "undefined") {
-        Pdf2.addHeader(R.PUNCHITEMS, "text-align:center;font-size:20px;margin-top:20px;margin-bottom:20px;");
-        for (var i = 0; i < punchs.length; i++) {
-            Punch.writePdf(punchs[i], i + 1, {link:false});
+    if (options.nopunch != 1) {
+        var punchs = Query.select("Forms.punchitems", "*", "formid={form.id}", "creationdate");
+        if (punchs.length > 0 && typeof (Punch) != "undefined") {
+            Pdf2.addHeader(R.PUNCHITEMS, "text-align:center;font-size:20px;margin-top:20px;margin-bottom:20px;");
+            for (var i = 0; i < punchs.length; i++) {
+                Punch.writePdf(punchs[i], i + 1, { link: false });
+            }
         }
     }
 
@@ -247,7 +253,6 @@ FormsPdf.addFields = function (fields, form) {
             if (field.type == "drawing" || field.type == "image") {
                 FormsPdf.stop();
                 Pdf2.add('<table class="form t', form.templateid, '"><thead><tr><td colspan=4>', field.label, '</td></tr></thead></table>');
-                //Pdf2.addHeader(field.label);
                 Pdf2.addImage(field.value, null);
             } else if (field.type == "button" && field.value == "newsubform") {
                 FormsPdf.stop();

@@ -25,9 +25,11 @@ Forms.writeToJson = function (form) {
     INFO["owner"] = form.owner;
 
     var LINK = {};
-    LINK["linkedid"] = linkeditem.id;
-    LINK["Linkedrecord"] = linkeditem.label;
-    LINK["linkedname"] = linkeditem.value;
+    if (linkeditem) {
+        LINK["linkedid"] = linkeditem.id;
+        LINK["Linkedrecord"] = linkeditem.label;
+        LINK["linkedname"] = linkeditem.value;
+    }
 
     var state = Forms.GET_STATE();
 

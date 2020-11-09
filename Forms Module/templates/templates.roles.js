@@ -1,5 +1,7 @@
 ﻿Templates.editRoles = function () {
 
+    List.addItemBox("User Role Management has been moved to the Settings app");
+    /*
     Toolbar.addButton(R.HELP, "App.help('forms/help/options/roles.htm')", 'support');
     Toolbar.addButton(R.NEW, "Templates.newRolePane()", "new");
     Toolbar.addButton(R.EXPORT, "Templates.exportRoles()", "download");
@@ -12,7 +14,7 @@
         var role = roles[i];
         var style = "img:group;oncontext:Templates.showRolePopup({role.id})";
         List.add([role.name, Templates.formatGroupNames(role.groupid), Templates.formatTemplateNames(role.templateid)], "Templates.editRole({role.id})", style);
-    }
+    }*/
     List.show();
 }
 

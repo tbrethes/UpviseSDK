@@ -3,16 +3,21 @@
 ////////////////// Template Form Fields
 
 Templates.onDropField = function (sourceFieldId, targetFieldId) {
-    //var sourceField = Query.selectId("Forms.fields", sourceFieldId);
     var targetField = Query.selectId("Forms.fields", targetFieldId);
-
     moveField(sourceFieldId, targetField.rank);
 }
 
 function showFieldContextMenu(fieldid) {
     Popup.add("Change Position", "changeFieldRank({fieldid})");
-    Popup.add(R.DUPLICATE, "duplicateField({fieldid})");
-    Popup.add(R.DELETE, "deleteFieldTemplate({fieldid})");
+    Popup.add(R.DUPLICATE, "duplicateField({fieldid})", "img:duplicate");
+    Popup.add(R.DELETE, "deleteFieldTemplate({fieldid})", "img:delete");
+
+    var field = Query.selectId("Forms.fields", fieldid);
+    if (field.type == "button" && field.value == "newsubform") {
+        var templateid = field.seloptions;
+        Popup.addHeader();
+        Popup.add("View Sub Template", "Templates.viewTemplate({templateid})", "img:form");
+    }
     Popup.show();
 }
 
@@ -211,11 +216,12 @@ function editFieldTemplate(id) {
     if (type == "risk") {
         List.addComboBox("label", "Risk", item.label, onchange, Query.options("Qhse.risks"));
     } else {
-        var labelStyle = (type == "label") ? "code" : "longtext";
+        var labelStyle = (type == "label" || type == "toggle") ? "code" : "longtext";
         List.addTextBox("label", R.LABEL, item.label, onchange, labelStyle);
     }
 
     if (typeOptions != null) {
+        if (type == "text") typeOptions += "|toggle:" + R.QUESTION;
         List.addComboBox("type", R.TYPE, item.type, onchange + ";History.reload()", typeOptions);
     }
 
@@ -288,7 +294,7 @@ function editFieldTemplate(id) {
         List.addCheckBox("mandatory", R.MANDATORYFIELD, item.mandatory, onchange);
         List.addHelp("Check this if the field must be filled in order to move to the next state");
     }
-    if (Query.count("states", "templateid={item.formid}") > 0) {
+    if (Query.count("states", "templateid={item.formid}") > 0 || type == "button") {
         List.addComboBox("status", R.EDITABLE, item.status, onchange, Templates.getStateOptions(item.formid));
         List.addHelp("Defines in which state this field can be edited");
     }

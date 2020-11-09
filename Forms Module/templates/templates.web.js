@@ -121,10 +121,11 @@ Templates.saveTemplate = function(groupid) {
 Templates.updatePdfOptions = function (templateid, id, value) {
     Templates.pdfoptions[id] = value;
     Query.updateId("Forms.templates", templateid, "pdfoptions", JSON.stringify(Templates.pdfoptions));
-   // History.reload();
 }
 
-Templates.viewTemplate = function(id, tab) {
+
+//////////////// 
+Templates.editFields = function (id, headerid) {
     var template = Query.selectId("Forms.templates", id);
     if (template == null) { History.back(); return; }
 
@@ -137,153 +138,383 @@ Templates.viewTemplate = function(id, tab) {
     var states = Query.select("Forms.states", "*", "templateid={id}", "status");
     var stateOptions = Templates.getStateOptions(id);
 
-    Toolbar.addTab(R.FIELDS, "Templates.viewTemplate({id})", "count:" + fields.length);
-    Toolbar.addTab(R.INFO, "Templates.viewTemplate({id},1)");
-    if (states.length == 0) Toolbar.addTab(R.SUBMIT, "Templates.viewTemplate({id},5)"); // onSubmit is not used and not relevant when there is a workflow
-    if (Templates.EXPORTPDF) {
-        Toolbar.addTab(R.EXPORTPDF, "Templates.viewTemplate({id},6)");
-        Toolbar.addTab(R.EXPORTEXCEL, "Templates.viewTemplate({id},8)");
-        Toolbar.addTab(R.CUSTOMEMAIL, "Templates.viewTemplate({id},7)");
-    }
-    if (Templates.WORKFLOW) Toolbar.addTab(R.WORKFLOW, "Templates.viewTemplate({id},2)", "count:" + states.length);
-    if (Templates.SHARING) Toolbar.addTab(R.SHARING, "Templates.viewTemplate({id},3)");
-    if (Templates.DASHBOARD) Toolbar.addTab(R.DASHBOARD, "Templates.viewTemplate({id},4)");
-    Toolbar.addTab("Integration", "Templates.viewTemplate({id},9)");
-
-    
-    if (tab == null) Toolbar.addButton(R.HELP, "App.help('forms/help/template/fieldtypes.htm')", 'support');
-    else if (tab == 1) Toolbar.addButton(R.HELP, "App.help('forms/help/template/info.htm')", 'support');
-    else if (tab == 2) Toolbar.addButton(R.HELP, "App.help('forms/help/template/workflow.htm')", 'support');
-    else if (tab == 3) Toolbar.addButton(R.HELP, "App.help('forms/help/template/sharing.htm')", 'support');
-    else if (tab == 4) Toolbar.addButton(R.HELP, "App.help('forms/help/template/dashboard.htm')", 'support');
-    else if (tab == 5) Toolbar.addButton(R.HELP, "App.help('forms/help/template/submit.htm')", 'support');
-    else if (tab == 6) Toolbar.addButton(R.HELP, "App.help('forms/help/template/exportpdf.htm')", 'support');
-    else if (tab == 7) Toolbar.addButton(R.HELP, "App.help('forms/help/template/customemail.htm')", 'support');
-    else if (tab == 8) Toolbar.addButton(R.HELP, "App.help('forms/help/template/exportexcel.htm')", 'support');
-
     Toolbar.addButton(R.EXPORT, "Templates.exportTemplate({id})", "download");
-    Toolbar.addButton(R.DELETE, "Templates.deleteTemplate({id})", "more");
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/fieldtypes.htm')", 'support');
+    Toolbar.moreButton = false;
+    
+    writeNewFieldToolbar(id);
 
-    var templateName = template.name + " " + Format.text(template.prefix, "gray");
-  
-    if (tab == null) writeNewFieldToolbar(id);
+    List.addItemBox(template.name, R.FIELDS, "", "img:product");
 
-    List.addItemBox(R.TEMPLATE, templateName, "", "img:form");
+    var fieldsMap = Forms.groupByHeader(fields);
+    fieldsMap.keys.shift(); // remove the first "General" centry
+    var filterLabel = headerid ? fieldsMap.get(headerid).label : "Sections";
+    var fistColumnLabel = headerid ? filterLabel : R.NAME;
 
-    if (tab == null) {
-        Toolbar.addButton(R.PREVIEW, "Templates.preview({id})");
-        Toolbar.addButton(R.DUPLICATE, "Templates.duplicate({id})", "more");
+    if (fieldsMap.keys.length > 0) Grid.add(filterLabel, "Templates.popupHeaders({id})", "count:" + fieldsMap.keys.length);
+    if (headerid) fields = fieldsMap.get(headerid).fields;
 
- 
-        if (fields.length == 0) {
-            _writeEmpty(R.NOFIELD + ".<br/><br/>" + R.ADDFIELDS);
-        } else {
-            if (states.length > 0) List.addHeader(["", R.NAME, R.TYPE, "Hidden", R.MANDATORYFIELD, R.EDITABLE, "ID"], ["40px", null, "150px", "80px", "80px", "80px", "40px"]);
-            else List.addHeader(["", R.NAME, R.TYPE, "Hidden", R.MANDATORYFIELD, "ID"], ["40px", null, "150px", "80px", "80px", "40px"]);
+    Toolbar.addButton(R.PREVIEW, "Templates.preview({id})");
+    Toolbar.addButton(R.DUPLICATE, "Templates.duplicate({id})", "more");
 
-            for (var i = 0; i < fields.length; i++) {
-                var field = fields[i];
-                var background = (field.type == "header") ? "#F1F1F1" : null;
-                var style = { background: background, oncontext: "showFieldContextMenu({field.id})", ondrop:"Templates.onDropField", id:field.id };
-                var label = field.label;
-                if (field.type == "risk") label = Query.names("Qhse.risks", field.label);
-                var type = Format.options(field.type, Templates.getFieldOptions());
-                var mandatory = (field.mandatory == 1) ? R.YES : "";
-                var hidden = (field.hidden == 1) ? R.YES : "";
-                if (states.length > 0) {
-                    var editable = Format.options(field.status, stateOptions);
-                    List.add([field.rank, label, type, hidden, mandatory, editable, field.name], "editFieldTemplate({field.id})", style);
-                } else {
-                    List.add([field.rank, label, type, hidden, mandatory, field.name], "editFieldTemplate({field.id})", style);
-                }
+    if (fields.length == 0) {
+        _writeEmpty(R.NOFIELD + ".<br/><br/>" + R.ADDFIELDS);
+    } else {
+        if (states.length > 0) List.addHeader(["", fistColumnLabel, R.TYPE, "", "", "", R.EDITABLE, "ID"], ["40px", null, "150px", "80px", "80px", "80px", "80px", "40px"]);
+        else List.addHeader(["", fistColumnLabel, R.TYPE, "", "", "", "ID"], ["40px", null, "150px", "80px", "80px", "80px", "40px"]);
+
+        for (var i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            var background = (field.type == "header") ? "#F1F1F1" : null;
+            var style = { background: background, oncontext: "showFieldContextMenu({field.id})", ondrop: "Templates.onDropField", id: field.id };
+            var label = '<div style="white-space: pre-line">' + field.label + "</div>";
+            if (field.type == "risk") label = Query.names("Qhse.risks", field.label);
+            var type = Format.options(field.type, Templates.getFieldOptions());
+            var mandatory = (field.mandatory == 1) ? Format.tag(R.MANDATORYFIELD, Color.RED) : "";
+            var hidden = (field.hidden == 1) ? Format.tag("Hidden", Color.BLUE) : "";
+
+            var hasScript = "";
+            if (field.onchange || Templates.hasScript(field.seloptions) || Templates.hasScript(field.value)) {
+                hasScript = Format.tag("Script", Color.GREEN)
+            } else if (field.type == "button" && field.value == "newsubform") {
+                var subtemplateid = field.seloptions;
+                //var subTemplate = Query.selectId("Forms.templates", );
+                hasScript = Format.tag("Subform", Color.GREEN, "Templates.viewTemplate({subtemplateid})");
             }
-        } 
-    } else if (tab == 1) {
-        Templates.editFormTemplate(template, onchange);
-    } else if (tab == 2) {
-        Toolbar.addButton(R.NEWSTATE, "newState({id})", "new");
-        writeStates(states);
-        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
-    } else if (tab == 3) {
-        if (template.public == 1) {
-            List.addButton(R.DISABLEPUBLIC, "setTemplatePublic({id},false)");
 
-            var data = 't=' + encodeURIComponent(User.shareToken) + '&i=' + encodeURIComponent(id);
-            var url = User.BASE_URL + "form.htm" + '?' + data;
-            var buf = '<a target=_blank href="' + url + '">' + url + '</a>';
-            List.addItemLabel(R.PUBLICFORMURL, buf);
-            var onchangeoption = "AccountSettings.set(this.id,this.value)";
-            List.addCheckBox("forms.publiclink", R.DISPLAYLINKEDREC, AccountSettings.get("forms.publiclink"), onchangeoption); // NB this is common to all templates
-            List.addTextBox("publicnotifemail", R.SUBMITNOTIFEMAIL, template.publicnotifemail, onchange);
-            List.addHelp(R.SUBMITNOTIFEMAIL_HELP);
-
-        } else {
-            List.addButton(R.ENABLEPUBLIC, "setTemplatePublic({id},true)");
+            var fieldName = Format.tag(field.name, Color.GRAY);
+            if (states.length > 0) {
+                var editable = Format.options(field.status, stateOptions);
+                List.add([field.rank, label, type, hasScript, hidden, mandatory, editable, fieldName], "editFieldTemplate({field.id})", style);
+            } else {
+                List.add([field.rank, label, type, hasScript, hidden, mandatory, fieldName], "editFieldTemplate({field.id})", style);
+            }
         }
-    } else if (tab == 4) {
-        List.addTextBox("dashboardjs", R.CUSTOMDASHBOARD, template.dashboardjs, onchange, "code");
-        List.addHelp("Overwrite the function: Report.writeDashboard = function(tab) {" + "// insert your code here }")
-    } else if (tab == 5) {
-        List.addTextBox("onsubmit", R.EXECUTEONSUBMIT, template.onsubmit, onchange, "code");
-        List.addHelp(R.EXECUTEONSUBMIT_HELP);
-        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
-
-    } else if (tab == 6) {
-        List.forceNewLine = false;
-     
-        List.addComboBox("columnwidth", R.COLUMNWIDTH, Templates.pdfoptions.columnwidth, onchange2, "200px|300px|400px|500px|600px|700px|800px|900px|1000px|:Dynamic");
-        List.addComboBox("fontsize", R.FONTSIZE, Templates.pdfoptions.fontsize, onchange2, "1.0em|1.2em|1.4em|1.6em|1.8em|2.0em");
-        List.addComboBox("columns", R.COLUMNS, Templates.pdfoptions.columns, onchange2, "1:" + R.SINGLECOL + "|2:" + R.TWOCOL);
-        List.addComboBox("headercolor", "Header Background Color", Templates.pdfoptions.headercolor, onchange2, Color.getOptions());
-        
-        List.addComboBox("photoheight", "Photo height", Templates.pdfoptions.photoheight, onchange2, "200px|250px|275px|300px|350px|400px|410px|450px|500px|fullsize:Full Size");
-        List.addComboBox("photocaption", "Add Photo Caption", Templates.pdfoptions.photocaption, onchange2, "0:" + R.NO + "|1:" + R.YES);
-   
-        List.addComboBox("orientation", "Orientation", Templates.pdfoptions.orientation, onchange2, "portrait:" + "Portrait" + "|landscape:" + "Landscape");
-
-        List.addHeader(R.WATERMARK);
-        List.addTextBox("watermark", R.TEXT, Templates.pdfoptions.watermark, onchange2);
-        List.addTextBox("watermarkcolor", R.COLOR, Templates.pdfoptions.watermarkcolor, onchange2, "color");
-
-        List.addHeader("Customize");
-        List.addCheckBox("hideempty", R.HIDEEMPTYFIELDS, Templates.pdfoptions.hideempty, onchange2);
-        List.addCheckBox("location", R.FORMSPDFLOCATION, Templates.pdfoptions.location, onchange2);
-        List.addCheckBox("caption", R.INCLUDEFORMCAPTION, Templates.pdfoptions.caption, onchange2);
-        List.addCheckBox("nohistory", R.PDFNOHISTORY, Templates.pdfoptions.nohistory, onchange2);
-        List.addCheckBox("subformlist", "If used a as sub form, layout vertically", Templates.pdfoptions.subformlist, onchange2);
-
-        List.addHeader(R.HEADER + " & " + R.FOOTER);
-        List.addFileBox("logoid", R.HEADERIMAGE, Templates.pdfoptions.logoid, onchange2);
-        List.addTextBox("footer", R.FOOTER, Templates.pdfoptions.footer, onchange2, "longtext");
-
-        List.addFileBox("footerid", "Footer Image", Templates.pdfoptions.footerid, onchange2);
-
-
-  //      List.addHeader("Watermark");
-      
-        Toolbar.addButton(R.INSERTPLACEHOLDER, "Templates.popupInsertPlaceholder({id},'html')", "popup");
-        //Toolbar.addButton("HTML Source", "Templates.viewTemplate({id},'htmlcode')");
-        List.addHeader(R.CUSTOMIZELAYOUT);
-
-        List.addFileBox("pdfid", "Custom Pdf Template", Templates.pdfoptions.pdfid, onchange2);
-        List.addHeader("Simple HTML Layout");
-        List.addHelp(R.CUSTOMIZELAYOUT_HELP);
-        List.addTextBox("htmlpdf", "", template.htmlpdf, onchange, "textarea");
-    } else if (tab == 7) {
-        Toolbar.addButton(R.INSERTPLACEHOLDER, "Templates.popupInsertPlaceholder({id},'text')", "popup");
-        List.addTextBox("subject", R.SUBJECT, template.subject, onchange);
-        List.addTextBox("body", R.MESSAGE, template.body, onchange, "textarea2");
-        List.addHelp(R.CUSTOMEMAIL_HELP);
-    } else if (tab == 8) {
-        List.addFileBox("excelid", "Custom Excel Template", Templates.pdfoptions.excelid, onchange2);
-        List.addHelp("Append the prefix ## to a Form Field ID to insert the field value in your custom Excel.");
-    } else if (tab == 9) {
-        Templates.editIntegration(template);
     }
+    List.show();
+}
+
+Templates.hasScript = function (value) {
+    if (!value) return false;
+    value = value.trim();
+    return (value.startsWith("=") || value.startsWith("javascript:"))
+}
+
+Templates.editInfo = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/info.htm')", 'support');
+    Toolbar.moreButton = false;
+
+    List.addItemBox(template.mame, R.INFO, "", "img:info");
+
+    var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
+
+    List.addTextBox("name", R.NAME, template.name, onchange, "longtext");
+    List.addTextBox("prefix", R.PREFIX, template.prefix, onchange);
+    List.addComboBoxMulti('owner', R.OWNER, template.owner, onchange, User.getOptions());
+    if (Forms.getLinkedOptions != undefined) List.addComboBox('linkedtable', R.LINKEDTO, template.linkedtable, onchange, Forms.getLinkedOptions());
+    List.addTextBox("counter", R.NEXTFORMID, template.counter, onchange, "numeric");
+    List.addTextBox("version", "Version", template.version, onchange, "longtext");
+
+    List.addHeader(R.TASKGROUP);
+    List.addComboBox('groupid', R.GROUP, template.groupid, onchange, Query.options("Forms.groups"), "Templates.addGroupToCombo(this.value)");
+    List.addComboBoxMulti('notifusers', R.NOTIFYMANAGERS, template.notifusers, onchange, User.getOptions("manager"));
+ 
+    List.addHeader("Auto Archive");
+    List.addTextBox('archivedays', "Archive after nb days", template.archivedays, onchange, "numeric");
 
     List.show();
 }
 
+Templates.editDisplay = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/info.htm')", 'support');
+    Toolbar.moreButton = false;
+
+    List.addItemBox(template.name, R.DISPLAY, "", "img:template");
+
+    var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
+
+    List.forceNewLine = true;
+    List.addHeader("Display Columns");
+    List.addComboBoxMulti('columns', "List Columns", template.columns, onchange, Templates.getColumnsOptions(template.id));
+    List.addComboBox('sortby', R.SORTBY, template.sortby, onchange, "date DESC:Most Recent|date:Older First|name:Name|priority:Priority");
+
+    List.addHeader(R.OPTIONS);
+    List.addCheckBox('splitheader', "Display each section on a separate screen on mobile" + " " + Format.tag("NEW", Color.BLUE), template.splitheader, onchange);
+    List.addCheckBox("punch", R.HASPUNCHITEMS, template.punch, onchange);
+    List.addCheckBox("favorite", R.PINLEFTPANE, template.favorite, onchange);
+    
+    List.show();
+}
+
+Templates.editWorkflow = function(id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.NEWSTATE, "newState({id})", "new");
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/workflow.htm')", 'support');  
+    Toolbar.moreButton = false;
+
+    List.addItemBox(template.name, R.WORKFLOW, "", "img:team");
+
+    var states = Query.select("Forms.states", "*", "templateid={id}", "status");
+    writeStates(states);
+
+    List.addHeader("Script");
+    var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
+    List.addTextBox("oncreate", "On Form Creation Custom Script", template.oncreate, onchange, "code");
+
+    if (states.length == 0) {
+        List.addTextBox("onsubmit", R.EXECUTEONSUBMIT, template.onsubmit, onchange, "code");
+        List.addHelp(R.EXECUTEONSUBMIT_HELP);
+    } else {
+        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
+    }
+
+    List.addTextBox("onedit", "On Form Edit Custom Script", template.onedit, onchange, "code");
+    var help = [];
+    help.push("Define here your own custom functions to be called from onchange script of your various form fields.");
+    help.push("Functions must be declared in the <b>Forms</b> global object to be accessible.");
+    help.push("<b>Forms.doSomething = function(form, value, label, fieldid) {"  + "...." + "}");
+    List.addHelp(help.join("<br/>"));
+
+    List.show();
+}
+
+
+Templates.editExportPdf = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/exportpdf.htm')", 'support');
+    Toolbar.moreButton = false;
+
+    List.addItemBox(template.name, R.EXPORTPDF, "", "img:pdf");
+
+    Templates.pdfoptions = FormsPdf.getOptions(template);
+  //  var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
+    var onchange2 = "Templates.updatePdfOptions({template.id},this.id,this.value)";
+
+    List.forceNewLine = false;
+
+    List.addComboBox("columnwidth", R.COLUMNWIDTH, Templates.pdfoptions.columnwidth, onchange2, "200px|300px|400px|500px|600px|700px|800px|900px|1000px|:Dynamic");
+    List.addComboBox("fontsize", R.FONTSIZE, Templates.pdfoptions.fontsize, onchange2, "1.0em|1.2em|1.4em|1.6em|1.8em|2.0em");
+    List.addComboBox("columns", R.COLUMNS, Templates.pdfoptions.columns, onchange2, "1:" + R.SINGLECOL + "|2:" + R.TWOCOL);
+    List.addComboBox("headercolor", "Header Background Color", Templates.pdfoptions.headercolor, onchange2, Color.getOptions());
+
+    List.addComboBox("photoheight", "Photo height", Templates.pdfoptions.photoheight, onchange2, "200px|250px|275px|300px|350px|400px|410px|450px|500px|fullsize:Full Size");
+    List.addComboBox("photocaption", "Add Photo Caption", Templates.pdfoptions.photocaption, onchange2, "0:" + R.NO + "|1:" + R.YES);
+    List.addComboBox("orientation", "Orientation", Templates.pdfoptions.orientation, onchange2, "portrait:" + "Portrait" + "|landscape:" + "Landscape");
+
+    List.addHeader(R.WATERMARK);
+    List.addTextBox("watermark", R.TEXT, Templates.pdfoptions.watermark, onchange2);
+    List.addTextBox("watermarkcolor", R.COLOR, Templates.pdfoptions.watermarkcolor, onchange2, "color");
+
+    List.addHeader("Customize");
+    List.addCheckBox("hideempty", R.HIDEEMPTYFIELDS, Templates.pdfoptions.hideempty, onchange2);
+    List.addCheckBox("location", R.FORMSPDFLOCATION, Templates.pdfoptions.location, onchange2);
+    List.addCheckBox("caption", R.INCLUDEFORMCAPTION, Templates.pdfoptions.caption, onchange2);
+    List.addCheckBox("nohistory", R.PDFNOHISTORY, Templates.pdfoptions.nohistory, onchange2);
+    List.addCheckBox("subformlist", "If used a as sub form, layout vertically", Templates.pdfoptions.subformlist, onchange2);
+    List.addCheckBox("nopunch", "Hide punch items", Templates.pdfoptions.nopunch, onchange2);
+
+    List.addHeader(R.HEADER + " & " + R.FOOTER);
+    List.addFileBox("logoid", R.HEADERIMAGE, Templates.pdfoptions.logoid, onchange2);
+    List.addTextBox("footer", R.FOOTER, Templates.pdfoptions.footer, onchange2, "longtext");
+    List.addFileBox("footerid", "Footer Image", Templates.pdfoptions.footerid, onchange2);
+
+    /*
+    Toolbar.addButton(R.INSERTPLACEHOLDER, "Templates.popupInsertPlaceholder({id},'html')", "popup");
+    List.addHeader(R.CUSTOMIZELAYOUT);
+
+    List.addFileBox("pdfid", "Custom Pdf Template", Templates.pdfoptions.pdfid, onchange2);
+    List.addHeader("Simple HTML Layout");
+    List.addHelp(R.CUSTOMIZELAYOUT_HELP);
+    List.addTextBox("htmlpdf", "", template.htmlpdf, onchange, "textarea");
+    */
+    List.show();
+}
+
+Templates.editCustomExportPdf = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.INSERTPLACEHOLDER, "Templates.popupInsertPlaceholder({id},'html')", "popup");
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/exportpdf.htm')", 'support');
+    Toolbar.moreButton = false;
+
+    List.addItemBox(template.name, "Custom PDF Export Template", "", "img:upload");
+
+    Templates.pdfoptions = FormsPdf.getOptions(template);
+    var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
+    var onchange2 = "Templates.updatePdfOptions({template.id},this.id,this.value)";
+
+    List.forceNewLine = false;
+   // List.addHeader(R.CUSTOMIZELAYOUT);
+    List.addFileBox("pdfid", "Custom Pdf Template", Templates.pdfoptions.pdfid, onchange2);
+    //List.addHelp(R.CUSTOMIZELAYOUT_HELP);
+    _html.push("<br/><br/><br/><br/>");
+    List.addHeader("Simple HTML Layout");
+    List.addTextBox("htmlpdf", "", template.htmlpdf, onchange, "textarea");
+    List.addHelp(R.CUSTOMIZELAYOUT_HELP);
+
+    List.show();
+}
+
+Templates.editExportExcel = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/exportexcel.htm')", 'support');
+    Toolbar.moreButton = false;
+
+    List.addItemBox(template.name, R.EXPORTEXCEL, "", "img:excel");
+
+    Templates.pdfoptions = FormsPdf.getOptions(template);
+    var onchange2 = "Templates.updatePdfOptions({template.id},this.id,this.value)";
+
+    List.forceNewLine = false;
+    List.addFileBox("excelid", "Custom Excel Template", Templates.pdfoptions.excelid, onchange2);
+    List.addHelp("Append the prefix ## to a Form Field ID to insert the field value in your custom Excel.");
+    List.show();
+}
+
+Templates.editDashboard = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/dashboard.htm')", 'support');
+    Toolbar.moreButton = false;
+
+    List.addItemBox(template.name, R.DASHBOARD, "", "img:chart");
+
+    var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
+    List.forceNewLine = false;
+    List.addTextBox("dashboardjs", R.CUSTOMDASHBOARD, template.dashboardjs, onchange, "code");
+    List.addHelp("Overwrite the function: Report.writeDashboard = function(tab) {" + "// insert your code here }")
+    List.show();
+}
+
+Templates.editCustomEmail = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.INSERTPLACEHOLDER, "Templates.popupInsertPlaceholder({id},'text')", "popup");
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/customemail.htm')", 'support');
+    Toolbar.moreButton = false;
+
+    var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
+
+    List.addItemBox(template.name, R.CUSTOMEMAIL, "", "img:email");
+
+    List.forceNewLine = false;
+    List.addTextBox("subject", R.SUBJECT, template.subject, onchange);
+    List.addTextBox("body", R.MESSAGE, template.body, onchange, "textarea2");
+    List.addHelp(R.CUSTOMEMAIL_HELP);
+    List.show();
+}
+
+
+Templates.editSharing = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/sharing.htm')", 'support');
+    Toolbar.moreButton = false;
+
+    var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
+
+    List.addItemBox(template.name, R.SHARING, "", "img:group");
+
+    List.forceNewLine = false;
+    if (template.public == 1) {
+        List.addButton(R.DISABLEPUBLIC, "setTemplatePublic({id},false)");
+
+        var data = 't=' + encodeURIComponent(User.shareToken) + '&i=' + encodeURIComponent(id);
+        var url = User.BASE_URL + "form.htm" + '?' + data;
+        var buf = '<a target=_blank href="' + url + '">' + url + '</a>';
+        List.addItemLabel(R.PUBLICFORMURL, buf);
+        var onchangeoption = "AccountSettings.set(this.id,this.value)";
+        List.addCheckBox("forms.publiclink", R.DISPLAYLINKEDREC, AccountSettings.get("forms.publiclink"), onchangeoption); // NB this is common to all templates
+        List.addTextBox("publicnotifemail", R.SUBMITNOTIFEMAIL, template.publicnotifemail, onchange);
+        List.addHelp(R.SUBMITNOTIFEMAIL_HELP);
+    } else {
+        List.addButton(R.ENABLEPUBLIC, "setTemplatePublic({id},true)");
+    }
+    List.show();
+}
+
+Templates.editIntegration = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.moreButton = false;
+
+    //Toolbar.addButton(R.HELP, "App.help('forms/help/template/sharing.htm')", 'support');
+
+    List.addItemBox(template.name, "Integration", "", "img:pipe");
+    List.forceNewLine = false;
+    Templates.writeEditIntegration(template);
+    List.show();
+}
+
+
+Templates.viewTemplate = function (id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.addButton(R.DUPLICATE, "Templates.duplicate({id})", "duplicate");
+    Toolbar.addButton(R.EXPORT, "Templates.exportTemplate({id})", "download");
+    Toolbar.addButton(R.DELETE, "Templates.deleteTemplate({id})", "more");
+
+    var templateName = template.name + " " + Format.text(template.prefix, "gray");
+
+    List.addItemBox(R.TEMPLATE, templateName, "", "img:form");
+    _html.push("<br/>");
+
+    var fields = Query.select("Forms.fields", null, "formid={id}", "rank");
+    var states = Query.select("Forms.states", "*", "templateid={id}", "status");
+  
+    Grid.add(R.FIELDS, "Templates.editFields({id})", "img:product;count:" + fields.length);
+    Grid.add(R.INFO, "Templates.editInfo({id})", "img:info");
+    Grid.add("Display", "Templates.editDisplay({id})", "img:template");
+    if (Templates.WORKFLOW) Grid.add(R.WORKFLOW, "Templates.editWorkflow({id})", "img:team;count:" + states.length);
+
+    if (Templates.EXPORTPDF) {
+        Grid.addHeader(R.EXPORT);
+        Grid.add(R.EXPORTPDF, "Templates.editExportPdf({id})", "img:pdf");
+        Grid.add("Custom PDF Template", "Templates.editCustomExportPdf({id})", "img:upload"); 
+        Grid.add(R.EXPORTEXCEL, "Templates.editExportExcel({id})", "img:excel");
+        Grid.add(R.CUSTOMEMAIL, "Templates.editCustomEmail({id})", "img:email");
+    }
+    Grid.addHeader("Advanced");
+    if (Templates.DASHBOARD) Grid.add(R.DASHBOARD, "Templates.editDashboard({id})", "img:chart");
+    if (Templates.SHARING) Grid.add(R.SHARING, "Templates.editSharing({id})", "img:group");
+    Grid.add("Integration", "Templates.editIntegration({id})", "img:pipe");
+
+    List.show();    
+}
+
+Templates.popupHeaders = function (templateid) {
+    var fields = Query.select("Forms.fields", null, "formid={templateid}", "rank");
+    var fieldsMap = Forms.groupByHeader(fields);
+    fieldsMap.keys.shift();// remove the first General entry
+    var func = "Templates.editFields({templateid})";
+    Popup.add(R.ALL, "History.reload({func})", "img:close");
+    Popup.addHeader(R.SECTIONHEADER);
+    for (var i = 0; i < fieldsMap.keys.length; i++) {
+        var key = fieldsMap.keys[i];
+        var obj = fieldsMap.get(key);
+        func = "Templates.editFields({templateid},{key})";
+        Popup.add(obj.label, "History.reload({func})", "img:product");
+    }
+    Popup.show();    
+}
 
 Templates.editFormTemplate = function(template, onchange) {
     List.addTextBox("name", R.NAME, template.name, onchange, "longtext");
@@ -294,6 +525,7 @@ Templates.editFormTemplate = function(template, onchange) {
     List.addHeader(R.TASKGROUP);
     List.addComboBox('groupid', R.GROUP, template.groupid, onchange, Query.options("Forms.groups"), "Templates.addGroupToCombo(this.value)");
     List.addComboBoxMulti('notifusers', R.NOTIFYMANAGERS, template.notifusers, onchange, User.getOptions("manager"));
+
     List.addHeader(R.OPTIONS);
     List.addCheckBox("favorite", R.PINLEFTPANE, template.favorite, onchange);
     List.addCheckBox("punch", R.HASPUNCHITEMS, template.punch, onchange);
@@ -302,7 +534,6 @@ Templates.editFormTemplate = function(template, onchange) {
     List.addHeader("Display Columns");
     List.addComboBoxMulti('columns', "List Columns", template.columns, onchange, Templates.getColumnsOptions(template.id));
     List.addComboBox('sortby', R.SORTBY, template.sortby, onchange, "date DESC:Most Recent|date:Older First|name:Name|priority:Priority");
-
    
     List.addHeader("Auto Archive");
     List.addTextBox('archivedays', "Archive after nb days", template.archivedays, onchange, "numeric");
@@ -402,7 +633,7 @@ function writeNewFieldToolbar(templateId) {
     }
     Toolbox.show();
 
-    _html.push("<br/><br/><br/>"); // to keep space for the toolbox
+    //_html.push("<br/><br/><br/>"); // to keep space for the toolbox
 }
 
 Templates.duplicate = function(templateid) {
@@ -421,7 +652,10 @@ Templates.onDuplicate = function(templateid) {
     var template = Query.selectId("Forms.templates", templateid);
     
     // create the new blank template form
-    var newid = Query.insert("Forms.templates", { name: name, linkedtable: template.linkedtable, onsubmit: template.onsubmit, groupid: template.groupid });
+    var newValues = Utils.clone(template);
+    newValues.name = name;
+    newValues.counter = 0;
+    var newid = Query.insert("Forms.templates", newValues);
 
     // duplicate all fields
     var fields = Query.select("Forms.fields", null, "formid={templateid}", "rank");
@@ -466,39 +700,3 @@ Templates.popupInsertPlaceholder = function (templateid, type) {
 Templates.onInsertHtmlPdf = function (fieldname) {
     HtmlBox.insertText("htmlpdf", fieldname);
 }
-
-/////////////////////
-
-Templates.importLocalizeDE = function () {
-    Import.pickExcelFile(Templates.onImportLocalize);
-}
-
-Templates.onImportLocalize = function (rows) {
-    var map = new HashMap();
-    var fields = Query.select("fields", "*");
-    for (var i = 0; i < fields.length; i++) {
-        var field = fields[i];
-        var template = Query.selectId("templates", field.formid);
-        if (template) {
-            var key = template.name + ":" + field.name;
-            map.set(key, field);
-        }
-    }
-
-    var count = 0;
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var templateName = row[0];
-        var name = row[3];
-        var labelDE = row[5];
-        var key = templateName + ":" + name;
-        var field = map.get(key);
-        if (field) {
-            count++;
-            Query.updateId("fields", field.id, "labelDE", labelDE)
-        }
-    }
-    History.reload();
-    alert("Updated DE Labesl: " + count);
-}
-

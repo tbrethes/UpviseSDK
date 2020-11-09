@@ -1,13 +1,13 @@
 //////////////////////// FORM DATA ACCESS
-var _valueObj;
-//var _valueTable;
-var _changeObj;
-var _formid;
+// TBR. 10/2/2020 : added null default values to reset them when changing app or switching account
+var _valueObj = null;
+var _changeObj = null;
+var _formid = null;
 
 Forms._EDITFORM = "Forms.editForm";
 Forms._VIEWFORM = "Forms.viewForm";
 Forms._VIEWFILE = null;
-
+  
 Forms.onChangeReload = true;
 
 Forms.GET_STATE = function() {
@@ -37,6 +37,7 @@ function _updateValue(formid, fieldname, fieldvalue) {
         var fields = Query.select("Forms.fields", "*", "formid={form.templateid} AND name={fieldname}");
         var fieldlabel = fields.length > 0 ? fields[0].label : null;
         var fieldid = fields.length > 0 ? fields[0].id : null;
+        Forms.field = fields[0]; // TBR added 29/22.2029
         var ok = Forms._evalFormula(onchange, { value: fieldvalue, label: fieldlabel, fieldid: fieldid }, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
         if (ok === false) return;
     
@@ -62,8 +63,12 @@ Forms.writeEditSections = function (form) {
     }
 }
 
-Forms.writeEditFields = function (form, showButtons, sectionId) {
+Forms.writeEditFields = function (form, sectionId) {
     var stateCount = Query.count("Forms.states", "templateid={form.templateid}");
+
+    // TBR / 9/22.20 : added
+    var template = Query.selectId("Forms.templates", form.templateid);
+    if (template && template.onedit) Forms._evalFormula(template.onedit, {}, form, "ONEDIT");
 
     // form.value contains a json string of array values indexed by field names
     _changeObj = {};
@@ -77,8 +82,6 @@ Forms.writeEditFields = function (form, showButtons, sectionId) {
         var obj = map.get(sectionId);
         List.addHeader(obj.label);
         fields = obj.fields;
-        // show buttons in Edit Screen section
-        showButtons = true;
     }
 
     for (var i = 0; i < fields.length; i++) {
@@ -91,14 +94,13 @@ Forms.writeEditFields = function (form, showButtons, sectionId) {
                 if (field.value == "scan") {
                     var onscan = "Forms.onScan({form.id},{field.id},this.value)";
                     List.addButton(field.label, "App.scanCode({onscan})");
-                } else if (form.linkedtable == "Forms.forms" || showButtons) {
-                    // display button in edit mode
-                    CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
+                } else {
+                    // 10/13/2020 : we now always display buttons in edit mode
+                    CustomFields.addButton(field.id, field.label, field.value, field.options, form.id, field.guid);
                 }
             } else {
-                //if (field.type == "photo") onchange = field.onchange;
                 var onchange2 = (field.type == "photo") ? field.onchange : onchange;
-                CustomFields.writeEditItem(field.id, field.type, field.label, field.value, onchange2, field.options, form.id);
+                CustomFields.writeEditItem(field.id, field.type, field.label, field.value, onchange2, field.options, form.id); 
             }
         }
     }
@@ -121,9 +123,9 @@ Forms.writeViewFields = function (form) {
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.type == "button") {
-            if (field.status == -1 || form.status == field.status) { // removed field,status == 0
-                CustomFields.addButton(field.id, field.label, field.value, field.options, form.id);
-            }
+             if (field.status == -1 || form.status == field.status) {
+                 CustomFields.addButton(field.id, field.label, field.value, field.options, form.id, field.guid);
+             }
         } else if (form.status >= field.status || form.status == -1) {
             CustomFields.addViewItem(field.id, field.type, field.label, field.value, field.options, form.id);
         }
@@ -165,7 +167,8 @@ Forms.getFields = function (form, templateFields, includeHidden) {
     for (var i = 0; i < templateFields.length; i++) {
         var field = templateFields[i];
         var field2 = {};
-        field2.id = field.name;
+        field2.guid = field.id; // added 10/13/2020 when adding subform link
+        field2.id = field.name; // WARNING!!!
         field2.label = Forms.getFieldLabel(field, lang);
         field2.type = field.type;
         field2.status = field.status;
@@ -182,7 +185,7 @@ Forms.getFields = function (form, templateFields, includeHidden) {
             }
         }
         // do not add the hidden fields unless asked
-        if (hiddenFields.indexOf(field.name) == -1 || includeHidden === true) {
+        if (hiddenFields.indexOf(field.name) == -1 || includeHidden === true || (field.value === "newsubform" && includeHidden === "newsubform")) {
             list.push(field2);
         }
     }
@@ -382,6 +385,9 @@ Forms.hasRight = function (action, form) {
     return false;
 }
 
+Forms.canAddSubForm = function (form, field) {
+    return Forms.canEdit(form) && !field.label.endsWith(">>");
+}
 
 Forms.canCreate = function () {
     if (User.isAdmin()) return true;
@@ -508,16 +514,3 @@ Forms.writeSubformsTable = function (forms, editable) {
     // restore the current form state (we changed it with valueObj = xxx)
     Forms.RESTORE_STATE(state);
 }
-
-
-/*
-Forms.testClean = function () {
-    var size1 = 0;
-    var size2 = 0;
-    var forms = Query.select("Forms.forms", "*", "");
-    for (var i = 0; i < forms.length; i++) {
-        var form = forms[i];
-        var values = JSON.stringify(form.value);
-    }
-}
-*/

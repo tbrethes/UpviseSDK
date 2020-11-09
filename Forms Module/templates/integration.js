@@ -1,5 +1,5 @@
 ﻿
-Templates.editIntegration = function (template) {
+Templates.writeEditIntegration = function (template) {
     var templateid = template.id;
     var obj = template.export ? JSON.parse(template.export) : "";
     if (obj && obj.url) {
