@@ -90,6 +90,9 @@ FormsPdf.init = function (options) {
     Pdf2.addStyle("TABLE.form TR.history TD", "width:33%");
     Pdf2.addStyle("TD.checkbox SPAN", "vertical-align:middle");
     Pdf2.addStyle("TD.checkbox SPAN.bigger", "font-size:1.5em;padding-right:0.5em;");
+
+    // 11/10/2020 : Better chinese font support
+    Pdf2.addStyle("BODY, TD", "font-family:Arial, SimSun");
 }
 
 FormsPdf.addStyle = function (template) {

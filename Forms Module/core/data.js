@@ -265,6 +265,8 @@ Forms._getFullValues = function (form, fields) {
         } else if (field.type == 'numeric') {
             value = (value != null && value != "") ? parseInt(value) : "";
         } else if (field.type == 'decimal') {
+            // Keep the raw string Value as well
+            values["str" + field.name] = (value!=null) ? value : "";
             value = (value != null && value != "") ? parseFloat(value) : "";
         } else if (value == null) {
             value = "";
@@ -295,6 +297,9 @@ Forms._getValue = function (valuesObj, field, form) {
         return form.id + ":" + field.name;
     } else if (field.type == "formula") {
         return Forms._evalFormula(field.value, valuesObj, form, "FORMULA_" + field.name);
+    } else if (field.type == "decimal") {
+        // get the raw string value not the float to keep trailing 00
+        return valuesObj["str" + field.name];
     } else {
         var value = valuesObj[field.name];
         if (value == null) value = "";

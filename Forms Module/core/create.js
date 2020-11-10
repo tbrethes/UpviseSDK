@@ -27,6 +27,10 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
+    // 11/09/20 : Added to support server-side auto numbering counter in forms
+    if (counterid == null && AccountSettings.get("forms.autocounter") == 1) {
+        counterid = "" + templateid + ":6";
+    }
     var form = {};
     form.name = name ? name : Forms.getNewName(templateid, counterid);
     form.templateid = templateid;
@@ -63,6 +67,10 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
+    // 11/09/20 : Added to support server-side auto numbering counter in forms
+    if (counterid == null && AccountSettings.get("forms.autocounter") == 1) {
+        counterid = "" + templateid + ":6";
+    }
     var form = {};
     form.name = name ? name : Forms.getNewName(templateid, counterid);
     form.templateid = templateid;
@@ -108,10 +116,12 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
 }
 
 Forms.getNewName = function (templateid, counterid) {
+    var template = Query.selectId("Forms.templates", templateid);
     var counter;
-    if (counterid) counter = "[NEW]"
-    else {
-        var template = Query.selectId("Forms.templates", templateid);
+
+    if (counterid) {
+        counter = "[NEW]"
+    } else {
         var counter = 1 + template.counter;
         Query.updateId("Forms.templates", templateid, "counter", counter);
     }

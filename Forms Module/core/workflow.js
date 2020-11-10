@@ -24,7 +24,7 @@ Forms.checkEmptyFields = function (form) {
                 if (count == 0) isEmpty = true;
             } else if (field.type == "date" || field.type == "datetime" || field.type == "time") {
                 isEmpty = !(Math.abs(parseInt(field.value)) > 0);
-            } else if (field.value === null || field.value === "") { // use === because 0 should not be empty
+            } else if (field.value == null || field.value === "") { // use === because 0 should not be empty
                 isEmpty = true;
             }
             if (isEmpty) {
