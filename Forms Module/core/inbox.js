@@ -3,14 +3,22 @@
 // templateids is an optional multivalue string
 Forms.getInbox = function (templateids) {
     var myStateMap = [];
-    var states = Query.select("Forms.states", "templateid;status;action", "staff CONTAINS {User.getName()} AND action != ''");
+    var states = Query.select("Forms.states", "templateid;status", "staff CONTAINS {User.getName()} AND action!=''");
+    // Add the role based state too
+    var role = User.getRole();
+    if (role) {
+        var states2 = Query.select("Forms.states", "templateid;status", "roleid={role.id} AND action!=''");
+        states = states.concat(states2);
+    }
+
     for (var i = 0; i < states.length; i++) {
         var state = states[i];
         var key = state.templateid + ":" + state.status;
         myStateMap[key] = state;
     }
+    
     var initiatorStateMap = [];
-    var states = Query.select("Forms.states", "templateid;status;action", "staff CONTAINS 'Initiator' AND action != ''");
+    var states = Query.select("Forms.states", "templateid;status", "staff CONTAINS 'Initiator' AND action!=''");
     for (var i = 0; i < states.length; i++) {
         var state = states[i];
         var key = state.templateid + ":" + state.status;

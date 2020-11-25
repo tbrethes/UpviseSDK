@@ -1,10 +1,10 @@
 
 function writeStates(states) {
-    List.addHeader([R.RANK, R.STATENAME, R.ACTIONBUTTON, R.STAFF]);
-    List.add([0, R.DRAFT, R.SUBMIT, R.EVERYONE], "App.alert(" + R.STATEEDITALERT + ")");
+    List.addHeader([R.RANK, R.STATENAME, R.ACTIONBUTTON, R.ROLE, R.STAFF]);
+    List.add([0, R.DRAFT, R.SUBMIT, "", R.EVERYONE], "App.alert(" + R.STATEEDITALERT + ")");
     for (var i = 0; i < states.length; i++) {
         var state = states[i];
-        List.add([state.status, state.name, state.action, formatStaffList(state.staff)], "editState({state.id})");
+        List.add([state.status, state.name, state.action, Query.names("System.roles", state.roleid), formatStaffList(state.staff)], "editState({state.id})");
     }
 }
 
@@ -69,8 +69,17 @@ function editState(id) {
     List.addTextBox("name", R.STATENAME, state.name, onchange);
     List.addTextBox("action", R.ACTIONBUTTON, state.action, onchange);
     List.addHelp(R.STATE_HELP2);
-    List.addComboBoxMulti("staff", R.STAFF, state.staff, onchange, getStateStaffOptions(state.staff));
-    List.addHelp(R.STATE_HELP1);
+
+    if (state.roleid == '' || state.staff != '') {
+        List.addComboBoxMulti("staff", R.STAFF, state.staff, onchange + ";History.reload()", getStateStaffOptions(state.staff));
+        List.addHelp(R.STATE_HELP1);
+    }
+    if (state.staff == "") {
+        List.addComboBox("roleid", R.ROLE, state.roleid, onchange + ";History.reload()", Query.options("System.roles"));
+        List.addHelp("If you use role, leave staff field empty, it is incompatible");
+    }
+
+    List.addHeader();
     List.addCheckBox("sign", R.DIGISIGNSTATE, state.sign, onchange);
     List.addHelp(R.STATE_HELP3);
     List.addTextBox("note", R.LEGALNOTICE, state.note, onchange, "longtext");
@@ -93,10 +102,6 @@ function getStateStaffOptions(statestaff) {
             if (!MultiValue.contains(options, user+":"+user)) options = MultiValue.add(options, user+":"+user);
         }        
     }
-    // Also adds the roles:
-    var roleOptions = Query.options("System.roles");
-    if (roleOptions) options += "|" + roleOptions;
-    
     return options;
 }
 

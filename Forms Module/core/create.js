@@ -5,6 +5,10 @@ if (typeof (Forms) === "undefined") {
     var Forms = new function () { }
 }
 
+// 11/13/20: Moved from workflow.js
+Forms.REJECTED = -1;
+Forms.DRAFT = 0;
+
 //////////////////////////// Form Creation
 
 Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, projectid, counterid) {
@@ -59,7 +63,7 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
 
-    if (template.oncreate) Forms._evalFormula(template.oncreate, {}, form, "ONCREATE");
+    if (template.oncreate) Forms.injectCode(template.oncreate, form, "ONCREATE_" + template.name);
     return formid;
 }
 
@@ -110,7 +114,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
 
-    if (template.oncreate) Forms._evalFormula(template.oncreate, {}, form, "ONCREATE");
+    if (template.oncreate) Forms.injectCode(template.oncreate,form,  "ONCREATE_" + template.name);
 
     return formid;
 }
@@ -133,9 +137,14 @@ Forms.getNewName = function (templateid, counterid) {
 }
 
 Forms.setDefaultValues = function (form, values, status) {
-    var fields = Query.select("Forms.fields", "name;label;value;type", "status={status} AND formid={form.templateid}", "rank");
+    var where = "status={status} AND formid={form.templateid}";
+    var fields = Query.select("Forms.fields", "name;label;value;type", where, "rank");
     var fieldsall = Query.select("Forms.fields", "name;label;value;type", "status=-1 AND formid={form.templateid}", "rank");
     fields = fields.concat(fieldsall);
+    if (WEB() && (fields.length > 1000 || status == null)) {
+        Notif.send("Warning: Forms.setDefaultValues", "DBName: " + User.dbName + "\n\nwhere:" + where + "\n\nform:" + JSON.stringify(form), "", "", "tbrethes@upvise.com");
+    }
+    
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var value = values[field.name];

@@ -1,9 +1,4 @@
 
-
-Forms.REJECTED = -1;
-Forms.DRAFT = 0;
-var SUBMITTED = 1;
-
 //////////////////////////////////
 
 Forms.LOCK = 0;
@@ -124,7 +119,7 @@ Forms.getState = function (form) {
 
     if (count == 0) {
         if (form.status == 0) {
-            return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms_submit({form.id})" };
+            return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms.submit({form.id})" };
         } else {
             // we assume form.status = 1 : means Submitted : nothing to do
             return { name: null };
@@ -137,36 +132,41 @@ Forms.getState = function (form) {
     } else if (form.status == Forms.DRAFT) {
         return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms_nextState({form.id},{form.status})" };
     } else {
-        var states = Query.select("Forms.states", "name;action;staff", "templateid={form.templateid} AND status={form.status}");
+        var states = Query.select("Forms.states", "name;action;staff;roleid", "templateid={form.templateid} AND status={form.status}");
         if (states.length == 0) return { name: "Error Status" };
         var state = states[0];
         var obj = { name: state.name };
         var statestaff = Forms.getStateStaff(form, state);
-        if (state.action != "" && Forms.containsUser(form, statestaff)) {
+        if (state.action != "" && Forms.containsUser(form, statestaff, state.roleid)) {
             obj.action = state.action;
             obj.onclick = "Forms_nextState({form.id},{form.status})";
-            obj.reject = "Forms_reject({form.id})";
+            obj.reject = "Forms.reject({form.id})";
         }
         return obj;
     }
 }
 
-Forms.containsUser = function (form, statestaff) {
+Forms.containsUser = function (form, statestaff, roleid) {
     if (statestaff == "" || User.isAdmin()) return true;
     if (MultiValue.contains(statestaff, User.getName())) return true;
     if (MultiValue.contains(statestaff, 'Initiator') && Forms.getCreator(form) == User.getName() ) return true;
     
     var role = User.getRole();
-    if (role && MultiValue.contains(statestaff, role.id)) return true;
+    if (role && roleid && role.id == roleid) return true;
 
     return false;
-    
 }
 
 /////////////////////
 // this function can be overriden to return custom staff based on form linked record
 Forms.getStateStaff = function (form, state) {
-    return state.staff;
+    if (state.roleid != "") {
+        var roleMap = User.getRoleMap();
+        var staffArray = roleMap.get(state.roleid);
+        return (staffArray != null) ? staffArray.join("|") : "";
+    } else {
+        return state.staff;
+    }
 }
 
 Forms.shouldArchive = function (state) {
@@ -175,7 +175,7 @@ Forms.shouldArchive = function (state) {
 
 //////////////////////
 
-function Forms_submit(id, goBack) {
+Forms.submit = function(id, goBack) {
     var form = Query.selectId("Forms.forms", id);
     // TBR: shield for KONE email loop bug. 9/22/2015
     if (form.status == 1) return;
@@ -212,7 +212,7 @@ function Forms_submit(id, goBack) {
     Forms.LOCK = 0;
 }
 
-function Forms_reject(id) {
+Forms.reject = function(id) {
     var note = App.prompt("Enter Reason", "");
     if (note == "" || note == null) return;
 
@@ -240,7 +240,11 @@ function Forms_nextState(id, currentStatus) {
         return;
     }
 
-    var states = Query.select("Forms.states", "status;name;action;staff;sign;note;onload", "templateid={form.templateid} AND status>{form.status}", "status");
+    var where = "templateid={form.templateid} AND status>{form.status}";
+    var states = Query.select("Forms.states", "status;name;action;staff;sign;note;roleid;onload", where + " AND days=1", "status");
+    if (states.length == 0) {
+        states = Query.select("Forms.states", "status;name;action;staff;sign;note;roleid;onload", where, "status");
+    }
     var newstate = (states.length > 0) ? states[0] : null;
     if (newstate == null) {
         App.alert("Cannot change form state : this is the last state");
@@ -277,8 +281,6 @@ function Forms_nextState(id, currentStatus) {
         }
     }
 
-
-    
     // Set the form default values for the new state
     // Bug fix. TBR: Feb. 8th 2019 : we need to re select the form from the database because Forms.evalOnLoad may have modified it....
     form = Query.selectId("Forms.forms", id);
@@ -291,7 +293,6 @@ function Forms_nextState(id, currentStatus) {
 
     // if the new state staff is not a manager, add it to the form owner, required for the new statestaff to see the form
     var newstaff = Forms.getStateStaff(form, newstate);
-
     var newowners = Forms.addStandardUsers(form.owner, newstaff);
     Forms.changeOwner(id, newowners); // we may update the photos and subforms here
 
@@ -331,7 +332,6 @@ Forms.addStandardUsers = function (formowner, staff) {
     return newowners;
 }
 
-
 //////////////////////
 
 Forms.resetToDraft = function(id) {
@@ -347,4 +347,25 @@ Forms.resetToDraft = function(id) {
         Query.updateId("Forms.forms", subforms[i].id, "status", 0);
     }
     History.reload();
+}
+
+///////////// ROLE WORKFLOW
+
+// returns a hashmap, key is roleid, value is array of user display name
+User.getRoleMap = function () {
+    var roleMap = new HashMap();
+    var users = Query.select("system.users", "id;name");
+    for (var i = 0; i < users.length; i++) {
+        var user = users[i];
+        var role = User.getRole(user.id);
+        if (role) {
+            var obj = roleMap.get(role.id);
+            if (!obj) {
+                obj = [];
+                roleMap.set(role.id, obj);
+            }
+            obj.push(user.name);
+        }
+    }
+    return roleMap;
 }

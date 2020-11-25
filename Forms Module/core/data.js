@@ -68,7 +68,7 @@ Forms.writeEditFields = function (form, sectionId) {
 
     // TBR / 9/22.20 : added
     var template = Query.selectId("Forms.templates", form.templateid);
-    if (template && template.onedit) Forms._evalFormula(template.onedit, {}, form, "ONEDIT");
+    if (template && template.onedit) Forms.injectCode(template.onedit, form, "ONEDIT_" + template.name);
 
     // form.value contains a json string of array values indexed by field names
     _changeObj = {};
@@ -307,6 +307,7 @@ Forms._getValue = function (valuesObj, field, form) {
     }
 }
 
+// value is either a literal string or javaacript code if starts with = or javascript
 Forms._eval = function (value, form, sourceURL) {
     if (value == null || value == "") {
         return "";
@@ -317,7 +318,7 @@ Forms._eval = function (value, form, sourceURL) {
     } else {
         return value;
     }
-    // value is javascript, eval
+    // value contain javascript, evaluate
     return Forms._evalFormula(value, {}, form, sourceURL);
 }
 
@@ -331,6 +332,11 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
     else sourceURL = "FORMULA";
    
     var buffer = [];
+    // strict mode for script?
+    //if (typeof (GlobalSettings) != undefined && GlobalSettings.getString('forms.usestrict') == "1") {
+    if (AccountSettings.get("forms.usestrict") == "1") {
+        buffer.push("'use strict';");
+    }
     for (var member in valuesObj) {
         buffer.push('var ' + member + '=' + esc(valuesObj[member]) + ";");
     }
@@ -353,6 +359,26 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
     }
 }
 
+// For onedit / code 
+Forms.injectCode = function (js, frm, sourceURL) {
+    js = String(js).trim();
+    if (js != "") {
+        try {
+            var form = frm; // we need the form objet here
+            if (WEB()) js += "\n//# sourceURL=http://FORM/" + sourceURL + ".js\n";
+            // warning in order to have the "form" defined inside the js script we need eval() and not window.eval();
+            eval(js);
+        } catch (err) {
+            if (WEB()) {
+                var msg = err.name + "\n" + err.message;
+                window.alert(msg);
+                if (console) console.log(msg, "color:red");
+            } else {
+                //App.confirm("Error: " + err.message + "\n" + js);
+            }
+        }
+    }
+}
 
 /////////////////////
 
@@ -371,7 +397,6 @@ Forms.canEdit = function (form) {
 }
 
 Forms.canDelete = function (form) {
-    //if (User.isAdmin()) return true;
     var values = Forms._getValues(form);
     if (values["NODELETE"] == 1) return false;
     else return true;
@@ -391,7 +416,7 @@ Forms.hasRight = function (action, form) {
 }
 
 Forms.canAddSubForm = function (form, field) {
-    return Forms.canEdit(form) && !field.label.endsWith(">>");
+    return Forms.canEdit(form);
 }
 
 Forms.canCreate = function () {
@@ -417,6 +442,15 @@ Forms.punchCountSubforms = function (id) {
         count += Query.count("Forms.punchitems", "formid={subformid}");
     }
     return count;
+}
+
+Forms.getSubformTitle = function (field) {
+    if (field.label.startsWith("__@")) {
+        return field.label.substr(3);
+    } else {
+        var subtemplateid = field.seloptions;
+        return Query.names("Forms.templates", subtemplateid);
+    }
 }
 
 // Including subforms
