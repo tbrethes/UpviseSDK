@@ -365,6 +365,7 @@ Forms.injectCode = function (js, frm, sourceURL) {
     if (js != "") {
         try {
             var form = frm; // we need the form objet here
+            var link = Forms._getLink(form);
             if (WEB()) js += "\n//# sourceURL=http://FORM/" + sourceURL + ".js\n";
             // warning in order to have the "form" defined inside the js script we need eval() and not window.eval();
             eval(js);
