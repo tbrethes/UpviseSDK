@@ -8,15 +8,13 @@ function leftpane() {
 }
 
 function main() {
-    Card.init();
-    Card.add("Home Screen", "testHome()", "icon:arrow");
-    Card.add("Dashboard Screen", "testDashboard()", "icon:arrow");
-    Card.add("Drive Screen", "testDrive()", "icon:arrow");
-    Card.add("Tabs Screen", "testTabs()", "icon:arrow");
-    Card.add("Button Screen", "testButtons()", "icon:arrow");
-    Card.addHeader();
-    Card.add("Test All", "testAll()", "icon:arrow");  
-    Card.show();
+    List.addItem("Home Screen", "testHome()", "icon:arrow");
+    List.addItem("Dashboard Screen", "testDashboard()", "icon:arrow");
+    List.addItem("Tabs Screen", "testTabs()", "icon:arrow");
+    List.addItem("Button Screen", "testButtons()", "icon:arrow");
+    List.addHeader();
+    List.addItem("Test All", "testAll()", "icon:arrow");  
+    List.show();
   }
     
   function testHome() {
@@ -80,24 +78,6 @@ function main() {
     Card.show();
   }
   
-  function testDrive() {
-    Card.init();
-    Card.addTitle("Title");
-    Card.setColumns(4);
-    Card.add("EWD", "test()", "img:note;grouped:1");
-    Card.add("Compliance", "test()", "img:form;grouped:1");
-    Card.add("Fault", "test()", "img:job;grouped:1");
-    Card.add("Fatigue", "test()", "img:sms;grouped:1");
-  
-    Card.addHeader("Secondary Section");
-    Card.setColumns(1);
-    // TODO:
-    
-    Card.addHeader("Action Button Section");
-    Card.addButton("Stop Work", "test()", "color:green");
-    Card.show();
-  }
-  
   function testTabs() {
     Card.init();
     Card.addTitle("Title");
@@ -105,15 +85,17 @@ function main() {
     Card.add("Solo", "test()", "img:contact");
     Card.add("2 Up", "test()", "img:group;backcolor:blue");
   
-    Card.addHeader("Action Button Section");
-    Card.setColumns(1);
-    Card.add("Stop Work", "test()", "backcolor:green");
-  
     Card.setColumns(3)
     Card.addButton("Open", "test()", "grouped:1");
     Card.addButton("Closed", "test()", "color:blue;grouped:1");
     Card.addButton("Completed", "test()", "grouped:1");
     
+    Card.setColumns(4);
+    Card.add("EWD", "test()", "img:note;grouped:1");
+    Card.add("Compliance", "test()", "img:form;grouped:1");
+    Card.add("Fault", "test()", "img:job;grouped:1");
+    Card.add("Fatigue", "test()", "img:sms;grouped:1");
+  
     Card.show();
   }
   
