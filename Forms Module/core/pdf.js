@@ -11,10 +11,9 @@ FormsPdf.export = function (formid, action, email, subject, body, replyto) {
     var form = Query.selectId("Forms.forms", formid);
     var template = Query.selectId("Forms.templates", form.templateid);
     
-    var pdfoptions = FormsPdf.getOptions(template);
+    var options = FormsPdf.getOptions(template);
 
-    FormsPdf.init(pdfoptions);
-    
+    FormsPdf.init(options);
     var filename = FormsPdf.write(form, template);
 
     // Download or Email
@@ -66,10 +65,7 @@ FormsPdf.getOptions = function (template) {
     }
 }
 
-
-/////////////////////
-
-FormsPdf.init = function (options) {
+FormsPdf.init = function(options) {
     if (options == null) options = {};
 
     Pdf2.init(options.fontsize);
@@ -79,7 +75,7 @@ FormsPdf.init = function (options) {
     if (options.footerid) Pdf2.footerid = options.footerid;
     if (options.orientation) Pdf2.orientation = options.orientation;
     if (options.pagenumber) Pdf2.pagenumber = options.pagenumber;
-
+   
     Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
     Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;min-width:30px;text-align:left;");
     Pdf2.addStyle("TABLE.form THEAD TR TD", "font-weight:bold;background-color:rgba(204, 204, 204, 0.5)");
@@ -195,6 +191,14 @@ FormsPdf.write = function (form, template, index) {
     if (options.nohistory == false) {
         var history = Forms.getHistory(form);
         FormsPdf.addHistory(history);
+    }
+
+    // Add a QRCode in the header
+    if (options.qrcode) {
+        var companyId = Settings.get("companyId");
+        var hash = form.value.length;
+        var qrcode = companyId + "-" + form.id + "-" + hash;
+        Pdf2.addTag("qrcode", qrcode);
     }
 
     return filename;

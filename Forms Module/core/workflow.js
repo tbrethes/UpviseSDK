@@ -161,10 +161,20 @@ Forms.containsUser = function (form, statestaff, roleid) {
 // this function can be overriden to return custom staff based on form linked record
 Forms.getStateStaff = function (form, state) {
     if (state.roleid != "") {
-        var roleMap = User.getRoleMap();
-        var staffArray = roleMap.get(state.roleid);
+        var staffArray = [];
+        // role based
+        // get a map of all users by role (optionally filter for the projectid)
+        var roleMap = User.getRoleMap(form.projectid);
+
+        // Workflow State roleid may be multi value
+        var roles = state.roleid.split("|");
+        for (const role of roles) {
+            const users = roleMap.get(role);
+            staffArray = staffArray.concat(users);
+        }
         return (staffArray != null) ? staffArray.join("|") : "";
     } else {
+        // user based staff
         return state.staff;
     }
 }
@@ -208,7 +218,6 @@ Forms.submit = function(id, goBack) {
         if (goBack === true) History.back();
         else History.reload();
     }
-
     Forms.LOCK = 0;
 }
 
@@ -268,16 +277,30 @@ function Forms_nextState(id, currentStatus) {
     if (newstate.note != "" && App.confirm(newstate.note) == false) return;
 
     // ask for signature
+    var reuseSignature = AccountSettings.getBool("forms.reusesignature");
+
     var signature = "";
     if (newstate.sign == 1) {
-        if (WEB() == true) {
-            signature = Forms.getLastSignature(User.getName());
-            if (signature) {
-                if (App.confirm(R.FORMSIGNATURECONFIRM) == false) signature = "";
+        if (reuseSignature == true) {
+            if (!WEB() && Forms.getUserSignature() == null) {
+                var newSignature = App.prompt("Signature", "", "signature");
+                if (newSignature) {
+                    Forms.saveUserSignature(newSignature);
+                } else {
+                    return;
+                }
             }
         } else {
-            signature = App.prompt("Signature", "", "signature");
-            if (signature == "" || signature == null) return;
+            if (WEB()) {
+                signature = Forms.getLastSignature(User.getName());
+                if (signature) {
+                    if (App.confirm(R.FORMSIGNATURECONFIRM) == false) signature = "";
+                }
+            } else {
+                signature = App.prompt("Signature", "", "signature");
+                if (!signature) return;
+            }
+
         }
     }
 
@@ -352,9 +375,18 @@ Forms.resetToDraft = function(id) {
 ///////////// ROLE WORKFLOW
 
 // returns a hashmap, key is roleid, value is array of user display name
-User.getRoleMap = function () {
+User.getRoleMap = function(projectid) {
+    var where = "";
+    if (AccountSettings.get("forms.workflowproject") == 1) {
+        // if projectid, filter users by project owners.
+        var project = Query.selectId("Projects.projects", projectid);
+        if (project && project.owner) {
+            where = "name IN " + list(project.owner);
+        }
+    }
+
+    var users = Query.select("system.users", "id;name", where);
     var roleMap = new HashMap();
-    var users = Query.select("system.users", "id;name");
     for (var i = 0; i < users.length; i++) {
         var user = users[i];
         var role = User.getRole(user.id);
@@ -369,3 +401,27 @@ User.getRoleMap = function () {
     }
     return roleMap;
 }
+
+///////////////
+
+Forms.getUserSignature = function (staff, date) {
+    if (!staff) staff = User.getName();
+    if (!date) date = date.now();
+
+    var users = Query.select("System.users", "id", "name={staff}");
+    if (users.length == 0) return null;
+    var userId = users[0].id;
+    var items = Query.select("Forms.signatures", "signature", "id={userId} AND date<={date}", "date DESC");
+    return (items.length > 0) ? items[0].signature : null;
+}
+
+Forms.saveUserSignature = function(signature) {
+    var values = {};
+    values.id = User.getId();
+    values.signature = signature;
+    values.date = Date.now();
+    Query.insert("Forms.signatures", values);
+}
+
+
+

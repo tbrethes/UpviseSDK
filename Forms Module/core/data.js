@@ -404,7 +404,6 @@ Forms.canDelete = function (form) {
 }
 
 Forms.canDuplicate = function (form) {
-    //if (User.isAdmin()) return true;
     var values = Forms._getValues(form);
     if (values["NODUPLI"] == 1) return false;
     else return Forms.canEdit(form);
@@ -495,7 +494,15 @@ Forms.getLastSignature = function (staff) {
 
 Forms.getHistory = function (form) {
     try {
-        return JSON.parse(form.history);
+        var items = JSON.parse(form.history);
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (!item.signature && item.staff) {
+                // try to get it from signatures table
+                item.signature = Forms.getUserSignature(item.staff, item.date);
+            }
+        }
+        return items;
     } catch (e) {
         return [];
     }
@@ -509,7 +516,10 @@ Forms.addHistory = function (form, name, note, signature) {
     }
     if (history == null) history = [];
 
-    history.push({ name: name, note: note, staff: User.getName(), date: Date.now(), signature: signature });
+    var item = { name: name, staff: User.getName(), date: Date.now()};
+    if (note) item.note = note;
+    if (signature) item.signature = signature;
+    history.push(item);
     Query.updateId("Forms.forms", form.id, "history", JSON.stringify(history));
 }
 

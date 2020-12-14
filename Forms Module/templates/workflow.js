@@ -75,7 +75,7 @@ function editState(id) {
         List.addHelp(R.STATE_HELP1);
     }
     if (state.staff == "") {
-        List.addComboBox("roleid", R.ROLE, state.roleid, onchange + ";History.reload()", Query.options("System.roles"));
+        List.addComboBoxMulti("roleid", R.ROLE, state.roleid, onchange + ";History.reload()", Query.options("System.roles"));
         List.addHelp("If you use role, leave staff field empty, it is incompatible");
     }
 

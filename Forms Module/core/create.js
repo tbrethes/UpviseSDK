@@ -141,10 +141,6 @@ Forms.setDefaultValues = function (form, values, status) {
     var fields = Query.select("Forms.fields", "name;label;value;type", where, "rank");
     var fieldsall = Query.select("Forms.fields", "name;label;value;type", "status=-1 AND formid={form.templateid}", "rank");
     fields = fields.concat(fieldsall);
-    if (WEB() && (fields.length > 1000 || status == null)) {
-        Notif.send("Warning: Forms.setDefaultValues", "DBName: " + User.dbName + "\n\nwhere:" + where + "\n\nform:" + JSON.stringify(form), "", "", "tbrethes@upvise.com");
-    }
-    
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var value = values[field.name];
@@ -284,6 +280,7 @@ Forms.editAddress = function (id) {
     if (form == null) { History.back(); return; }
     var onchange = "Query.updateId('forms',{id},this.id,this.value)";
 
+    Toolbar.setStyle("edit");
     List.forceNewLine = true;
     List.addTextBox('date', R.DATE, form.date, onchange, "datetime");
     List.addComboBoxMulti('owner', R.OWNER, form.owner, "Forms.changeOwner({id},this.value)", User.getOptions());
