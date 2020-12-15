@@ -516,7 +516,7 @@ Forms.addHistory = function (form, name, note, signature) {
     }
     if (history == null) history = [];
 
-    var item = { name: name, staff: User.getName(), date: Date.now()};
+    var item = { name: name, staff: User.getName(), date: Date.now(), id: User.getId()};
     if (note) item.note = note;
     if (signature) item.signature = signature;
     history.push(item);
