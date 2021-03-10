@@ -43,8 +43,8 @@ namespace UpviseSample {
 
             // OPTIONAL
             // if you do not want the user to be able to delete or duplicate the form, set these 2 values
-            value.put("NODELETE", "1");
-            value.put("NODUPLI", "1");
+            value.put("NODELETE", 1);
+            value.put("NODUPLI", 1);
             
             // Add the default value to the form
             form.put("value", value.ToString());
