@@ -1,19 +1,8 @@
 ﻿
-Templates.writeEditIntegration = function (template) {
-    var templateid = template.id;
-    var obj = template.export ? JSON.parse(template.export) : "";
-    if (obj && obj.url) {
-        List.addButton("Export Excel", "Templates.exportIntegration({obj.url})", "download");
-        List.addTextBox("url", "URL", document.URL + obj.url, "", "longtext");
-        List.addButton("Disable", "Templates.enableIntegration({templateid},false)");
-        Templates.writeExportIds(template);
-    } else {
-        List.addButton("Enable Integration URL", "Templates.enableIntegration({templateid}, true)");
-    }
-}
 
-Templates.exportIntegration = function (url) {
-    window.open(User.BASE_URL + url);
+Templates.writeEditIntegration = function (template) {
+    var url = "v2/export?a=form&auth=" + encodeURIComponent(User.token) + "&templateid=" + encodeURIComponent(template.id); 
+    List.addTextBox("url", "URL", document.URL + url, "", "longtext");
 }
 
 Templates.writeExportIds = function (template) {
@@ -29,7 +18,7 @@ Templates.enableIntegration = function (templateid, yes) {
     var value = "";
     if (yes == true) {
         var obj = {};
-        obj.url = "export/form?auth=" + encodeURIComponent(User.token) + "&templateid=" + encodeURIComponent(templateid);
+        obj.url = "export?a=form&auth=" + encodeURIComponent(User.token) + "&templateid=" + encodeURIComponent(templateid);
         value = JSON.stringify(obj);
 
         Templates.generateExportIds(templateid);

@@ -14,17 +14,19 @@ Forms.exportWithArchive = function (templateid, kind) {
         // 2. Also Download Archive Data
         Toast.show("Exporting Archive", false);
         var flag = 2; // archive data
-        Query._selectTableAsync("forms.forms", "*", where, flag, function (archivedForms) {
+        var where2 = where + " AND date>" + Date.today(-365); // last 12 months only of archive
+        Query._selectTableAsync("forms.forms", "*", where2, flag, function (archivedForms) {
             forms = forms.concat(archivedForms);
 
-            // 3. Generate and save CSV locally
             Toast.show("Generating CSV File", false);
-
+            // 3. Generate and save CSV locally
             window.setTimeout(function () {
-                //Toast.show("Saving CSV File...", false);
                 var csv = Forms.writeToCsvSimple(forms, template);
-                csv.saveLocal(filename);
-                Toast.hide();
+                Toast.show("Saving CSV File...", false);
+                window.setTimeout(function () {
+                    csv.saveLocal(filename);
+                    Toast.hide();
+                }, 1);
             }, 1);
 
         });
@@ -99,15 +101,4 @@ Forms.writeToCsvSimple = function (forms, template) {
     Forms.RESTORE_STATE(state);
 
     return csv;
-}
-
-////////////
-
-
-Forms.exportTest = function (templateid) {
-    //var template = Query.selectId("Forms.templates", templateid);
-    //var filename = template.name + " INCLUDING ARCHIVE";
-
-    var url = "export?templateid=" + templateid + "&auth=" + User.token;
-    App.web(url);
 }

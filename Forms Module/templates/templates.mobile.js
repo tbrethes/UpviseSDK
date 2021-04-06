@@ -49,7 +49,7 @@ Templates.newTemplate = function (groupid) {
     var name = App.prompt(R.NAME, "", "");
     if (name == "") return;
 
-    var values =   {counter: 0, name:name };
+    var values =   {counter: 0, name:name, date:Date.now() };
     if (groupid != null) values.groupid = groupid;
     var id = Query.insert("Forms.templates", values);
     History.redirect("Templates.editTemplate({id})");

@@ -1,7 +1,7 @@
 
 function writeStates(states) {
     List.addHeader([R.RANK, R.STATENAME, R.ACTIONBUTTON, R.ROLE, R.STAFF]);
-    List.add([0, R.DRAFT, R.SUBMIT, "", R.EVERYONE], "App.alert(" + R.STATEEDITALERT + ")");
+    if (states.length > 0) List.add([0, R.DRAFT, R.SUBMIT, "", R.EVERYONE], "");
     for (var i = 0; i < states.length; i++) {
         var state = states[i];
         List.add([state.status, state.name, state.action, Query.names("System.roles", state.roleid), formatStaffList(state.staff)], "editState({state.id})");

@@ -194,7 +194,7 @@ FormsPdf.write = function (form, template, index) {
     }
 
     // Add a QRCode in the header
-    if (options.qrcode) {
+    if (options.qrcode == 1) {
         var companyId = Settings.get("companyId");
         var hash = form.value.length;
         var qrcode = companyId + "-" + form.id + "-" + hash;
@@ -280,11 +280,10 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
     if (subforms.length == 0) return;
 
     var asList = false;
-    if (subforms.length > 0) {
-        var subtemplate = Query.selectId("Forms.templates", subforms[0].templateid);
-        var subpdfoptions = FormsPdf.getOptions(subtemplate);
-        var asList = (subpdfoptions.subformlist == "1");
-    }
+    var subtemplate = Query.selectId("Forms.templates", subforms[0].templateid);
+    var subpdfoptions = FormsPdf.getOptions(subtemplate);
+    var asList = (subpdfoptions.subformlist == "1");
+
     if (asList == true) {
         for (var i = 0; i < subforms.length; i++) {
             var subform = subforms[i];
@@ -296,32 +295,55 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
     }
 
     var photos = [];
+    var punchs = [];
 
     // remember the current form state (coming from +valueObj ....)
     // we can then use Forms.getFields() and we restore the state at the end of this function
     var state = Forms.GET_STATE();
- 
+    
+    // Write Table Header
+    var displayFields = Forms.getSubFormFields(subtemplate);
+    var header = [];
+    for (var i = 0; i < displayFields.length; i++) {
+        header.push(displayFields[i].label);
+    }
+    Pdf2.startTable(header, null, "form subt" + parentTemplateid);
+    
     for (var i = 0; i < subforms.length; i++) {
         var subform = subforms[i];
         _valueObj = Forms._getValues(subform);
         _formid = subform.id;
-        var fields = Forms.getFields(subform);
+        var includeHidden = true;
+        var fields = Forms.getFields(subform, null, includeHidden);
 
-        var header = [];
-        var values = [];
+        var fieldMap = [];
         for (var j = 0; j < fields.length; j++) {
             var field = fields[j];
+            fieldMap[field.id] = field;
+            // Also find and concat all photos
             if (field.type == "photo") {
                 var files = Query.select("System.files", "id;name;mime", "linkedtable='Forms.forms' AND linkedrecid=" + esc(field.value), "date");
                 photos = photos.concat(files);
-            } else if (field.type != "button" && field.type != "label" && field.type != "header") {
+            }
+        }
+
+        // Add usbform punch
+        var formPunchs = Query.select("Forms.punchitems", "*", "formid={subform.id}", "creationdate");
+        punchs = punchs.concat(formPunchs);
+            
+        //var header = [];
+        var values = [];
+        for (var j = 0; j < displayFields.length; j++) {
+            var name = displayFields[j].name;
+            var field = fieldMap[name];
+            if (field == null) {
+                values.push("");
+            } else {
                 var value = CustomFields.formatValue(field.value, field.type, field.options, true); // isWeb=true
                 if (field.type == "longtext") value = Format.text(value);
-                header.push(field.label);
                 values.push(value);
             }
         }
-        if (i == 0) Pdf2.startTable(header, null, "form subt" + parentTemplateid);
         Pdf2.addRow(values);
     }
     Pdf2.stopTable();
@@ -329,6 +351,14 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
     // Add subform photos
     if (photos.length > 0) Pdf2.addImages(null, photos, Pdf2.photoheight);
 
+    // Add the subform punchs
+    if (punchs.length > 0 && typeof (Punch) != "undefined") {
+        Pdf2.addHeader(R.PUNCHITEMS, "text-align:center;font-size:20px;margin-top:20px;margin-bottom:20px;");
+        for (var i = 0; i < punchs.length; i++) {
+            Punch.writePdf(punchs[i], i + 1, { link: false });
+        }
+    }
+   
     // restore the current form state (we changed it with valueObj = xxx)
     Forms.RESTORE_STATE(state);
 }
@@ -408,6 +438,9 @@ FormsPdf.addField = function (field, form) {
     } else if (field.type == "checkbox") {
         var c = (field.value == "1") ? '&#9745;' : '&#9744;';
         Pdf2.add('<td colspan=2 class="checkbox"><span class="bigger">', c, '</span><span>', field.label, '</span></td>');
+    } else if (field.type == "readonly" && field.value == "") {
+        // 16 March 2021: we do not want to output empty readonly field value
+        return;
     } else {
         var value = CustomFields.formatValue(field.value, field.type, field.options, true); // isWeb=true
         Pdf2.add('<td class="label">', field.label, '</td><td>', value, '</td>');

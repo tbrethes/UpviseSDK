@@ -260,7 +260,7 @@ function editFieldTemplate(id) {
     } else if (type == "header") {
         List.addCheckBox("value", "Force Page Break in PDF", item.value, onchange);
     } else if (type == "photo") {
-        List.addComboBox("seloptions", "Choose Action", item.seloptions, onchange, ":Default|camera:Start Camera|scan:Scan Document|file:Pick File");
+        List.addComboBox("seloptions", "Choose Action", item.seloptions, onchange, ":Default|camera:Start Camera|scan:Scan Document|gallery:Pick File");
         List.addTextBox("onchange", "On Change", item.onchange, onchange, "code");
         List.addHelp("Enter any valid Javascript code. Use this.id to referencwe the file id " + help);
     } else if (type == "barcode") {
@@ -323,12 +323,12 @@ function editFieldTemplateLocal(id) {
     var onchange = "Query.updateId('Forms.fields',{id},this.id,this.value)";
     
     writeEditFieldTooblar(item);
-    List.addTextBox("label", "Default", item.label, onchange, "longtext");
-    List.addTextBox("labelDE", "German", item.labelDE, onchange, "longtext");
-    List.addTextBox("labelFR", "French", item.labelFR, onchange, "longtext");
-    List.addTextBox("labelES", "Spanish", item.labelES, onchange, "longtext");
-    List.addTextBox("labelZH", "Chinese", item.labelZH, onchange, "longtext");
-    List.addTextBox("labelMY", "Burmese", item.labelMY, onchange, "longtext");
+    List.addTextBox("label", "Default", item.label, onchange, "code");
+    List.addTextBox("labelDE", "German", item.labelDE, onchange, "code");
+    List.addTextBox("labelFR", "French", item.labelFR, onchange, "code");
+    List.addTextBox("labelES", "Spanish", item.labelES, onchange, "code");
+    List.addTextBox("labelZH", "Chinese", item.labelZH, onchange, "code");
+    List.addTextBox("labelMY", "Burmese", item.labelMY, onchange, "code");
     List.show();
 }
 
@@ -383,6 +383,7 @@ Templates.getTextBoxOptions = function () {
     options.push({ id: "link", label: R.WEBLINK });
     options.push({ id: "currency", label: R.CURRENCY });
     options.push({ id: "barcode", label: "Scan code" });
+    options.push({ id: "readonly", label: "Read Only" });
     return options;
 }
 

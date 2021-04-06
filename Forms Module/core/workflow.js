@@ -116,10 +116,11 @@ Forms.getState = function (form) {
     if (form.linkedtable == "Forms.forms") return {};
 
     var count = Query.count("Forms.states", "templateid={form.templateid}");
-
     if (count == 0) {
         if (form.status == 0) {
             return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms.submit({form.id})" };
+        } else if (form.status == -2) {
+            return { name: "Superseded"};
         } else {
             // we assume form.status = 1 : means Submitted : nothing to do
             return { name: null };
@@ -168,8 +169,8 @@ Forms.getStateStaff = function (form, state) {
 
         // Workflow State roleid may be multi value
         var roles = state.roleid.split("|");
-        for (const role of roles) {
-            const users = roleMap.get(role);
+        for (var i = 0; i < roles.length; i++) {
+            var users = roleMap.get(roles[i]);
             staffArray = staffArray.concat(users);
         }
         return (staffArray != null) ? staffArray.join("|") : "";
@@ -198,6 +199,8 @@ Forms.submit = function(id, goBack) {
         return;
     }
 
+    if (Forms.signOnSubmit(form) == false) return;
+
     // Execute on Submit
     var returnValue = Forms.evalSubmit(form);
     if (returnValue === 0) return;
@@ -219,6 +222,27 @@ Forms.submit = function(id, goBack) {
         else History.reload();
     }
     Forms.LOCK = 0;
+}
+
+Forms.signOnSubmit = function(form) {
+    // do we require on submit signature?
+    var template = Query.selectId("Forms.templates", form.templateid);
+    if (template.signonsubmit != 1) return true;
+
+    // try to get existing user signature
+    var signature = Forms.getUserSignature();
+    if (!signature) {
+        if (WEB()) {
+            App.prompt("Signature required. Please submit on a mobile device to sign.");
+            return false;
+        } else {
+            signature = App.prompt("Signature", "", "signature");
+            if (!signature) return false;
+            Forms.saveUserSignature(signature);
+        }
+    }
+    // Add an history state 
+    Forms.addHistory(form, R.SUBMITTED, "", "");
 }
 
 Forms.reject = function(id) {
@@ -406,7 +430,7 @@ User.getRoleMap = function(projectid) {
 
 Forms.getUserSignature = function (staff, date) {
     if (!staff) staff = User.getName();
-    if (!date) date = date.now();
+    if (!date) date = Date.now();
 
     var users = Query.select("System.users", "id", "name={staff}");
     if (users.length == 0) return null;

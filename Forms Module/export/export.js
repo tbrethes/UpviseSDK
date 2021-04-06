@@ -35,17 +35,29 @@ Forms.exportOneExcel = function (formid) {
 }
 
 Forms.popupExport = function (templateid) {
+    var template = Query.selectId("Forms.templates", templateid);
     var selectedCount = Table.getChecked().length;
     var count = Query.count("Forms.forms", "templateid={templateid}");
 
     if (selectedCount > 0) Popup.add("Selected Forms" + " (" + selectedCount + ")", "Forms.exportMultiple({templateid})", "img:form");
     else Popup.add("All Forms", "Forms.exportMultiple({templateid})", "img:form");
-    if (AccountSettings.get("system.hasarchive") == "1") Popup.add("All Forms including Archive", "Forms.exportWithArchive({templateid})", "img:archive");
-
-    //if (User.isAdmin()) Popup.add("TEST", "Forms.exportTest({templateid})", "img:form");
-
+    if (AccountSettings.get("system.hasarchive") == "1") {
+        //Popup.add("All Forms including Archive", "Forms.exportWithArchive({templateid})", "img:archive");
+        //var url = Templates.getIntegrationUrl(template);
+        Popup.add("All Forms including Archive", "Forms.exportWithArchive2({templateid})", "img:archive");
+    }
     Popup.show();
 }
+
+Forms.exportWithArchive2 = function(templateid) {
+    var template = Query.selectId("Forms.templates", templateid);
+    var filename = template.name + " INCLUDING ARCHIVE.csv";
+    
+    var json = {};
+    json["templateid"] = templateid;
+    JsonRequest.download(User.BASE_URL + "v2/export?a=form", json, filename);
+}
+
 
 // templateid is optional, if not present it will export all checked forms
 Forms.exportMultiple = function (templateid) {

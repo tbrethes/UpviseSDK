@@ -14,10 +14,20 @@ Forms.DRAFT = 0;
 Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, projectid, counterid) {
     if (remove == 1) History.remove(1);
 
-    // we auto link job, assets and tools linked forms to project for standard user ownership...
+    // we auto link job, assets, tools and subforms linked forms to project for standard user ownership...
     if (!projectid && (linkedtable == "Jobs.jobs" || linkedtable == "Projects.assets" || linkedtable == "Tools.tools")) {
         var linkedItem = Query.selectId(linkedtable, linkedid);
         if (linkedItem) projectid = linkedItem.projectid;
+    }
+    
+    // link subform to the projectid of the main form for standard user ownership. 11/01/21
+    if (!projectid && linkedtable == "Forms.forms") {
+        var parentFormId =  linkedid.split(":")[0];
+        var parentForm = Query.selectId("Forms.forms", parentFormId);
+        if (parentForm) {
+            if (parentForm.linkedtable == "Projects.projects") projectid = parentForm.linkedid;
+            else projectid = parentForm.projectid;
+        } 
     }
 
     var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid, counterid);
@@ -124,7 +134,7 @@ Forms.getNewName = function (templateid, counterid) {
     var counter;
 
     if (counterid) {
-        counter = "[NEW]"
+        counter = "[NEW]";
     } else {
         var counter = 1 + template.counter;
         Query.updateId("Forms.templates", templateid, "counter", counter);
@@ -215,11 +225,17 @@ Forms.duplicateForm = function (id, counterid) {
     History.redirect(Forms._EDITFORM + "({newid})");
 }
 
+
 Forms.duplicateInternal = function (form, linkedid, counterid) {
+    // 10/03/21 : Added to support server-side auto numbering counter in forms
+    if (counterid == null && AccountSettings.get("forms.autocounter") == 1) {
+        counterid = "" + form.templateid + ":6";
+    }
+
     var form2 = {};
     form2.templateid = form.templateid;
     form2.status = Forms.DRAFT;
-    form2.name = Forms.getNewName(form.templateid, counterid);
+    form2.name = (form.linkedtable != "Forms.forms") ? Forms.getNewName(form.templateid, counterid) : form.name;
     form2.owner = User.getName();
     form2.date = Date.now();
     if (form.planid) {
@@ -234,6 +250,7 @@ Forms.duplicateInternal = function (form, linkedid, counterid) {
     if (form.projectid) form2.projectid = form.projectid;
     if (counterid) form2.counterid = counterid;
     form2.hidden = form.hidden;
+    form2.priority = form.priority;
 
     var values2 = JSON.parse(form.value);
     var fields = Query.select("Forms.fields", "name;type", "formid={form.templateid}", "rank");

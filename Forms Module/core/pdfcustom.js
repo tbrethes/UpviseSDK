@@ -42,6 +42,9 @@ FormsPdf.replaceCustom = function (content, form, template) {
         output = output.replace(new RegExp("#" + field.id + "#", 'g'), value);
     }
 
+    // We may have remaining #XXX# ids left because some fields were hidden and not replaced, remove them from the output.
+    output = output.replace(new RegExp("#([^#]+)#", 'g'), "");
+
     return output;
 }
 

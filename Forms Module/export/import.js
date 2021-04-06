@@ -1,81 +1,106 @@
 ﻿
-Forms.BLANKFORM_CSV_HEADER = ["Id", "Template", "Date", "Status", "Location", "Geo", "Owner","LinkedID", "LinkedRecord", "LinkedName"];
 
-Forms.importForms = function () {
-    Toolbar.setTitle("Import Forms");
+Query.mapId = function(table, column, where) {
+    if (!column) return null;
+
+    var map = [];
+    var items = Query.select(table, "id;" + column, where);
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        map[item[column]] = item.id;
+    }
+    return map;
+}
+
+Forms.importForms = function (templateid) {
+    var template = Query.selectId("Forms.templates", templateid);
+    Forms.importTemplateId = templateid;
+    var header = Forms.getFormImportHeader(templateid);
+
+    Toolbar.setTitle("Import Forms : " + template.name);
     Import.writeFileButton(R.SELECTFILE, Forms.onImportForms);
-    Import.writeSampleLink(Forms.BLANKFORM_CSV_HEADER, "Upvise Form Import Sample.xlsx");
+    Import.writeSampleLink(header, "Upvise Form Import - " + template.name + ".xlsx");
     List.show("pane");
+}
+
+Forms.getFormImportHeader = function (templateid) {
+    var header = ["Id", "Name", "Date", "Status", "Location", "Owner", "LinkedID", "LinkedRecord"];
+    let fields = Forms.getFormImportFields(templateid);
+    for (let field of fields) {
+        header.push(field.label);
+    }
+    return header
+}
+
+Forms.getFormImportFields = function(templateid) {
+    let fields = [];
+    let allFields = Query.select("Forms.fields", "label", "formid={templateid}", "rank");
+    for (let field of allFields) {
+        if (field.type != "header" && field.type != "button" && field.type != "formula" && field.type != "label" && field.type != "photo") {
+            fields.push(field);
+        }
+    }
+    return fields;
 }
 
 Forms.onImportForms = function (lines) {
     Forms.errors = [];
+    var template = Query.selectId("Forms.templates", Forms.importTemplateId);
+    if (!template) return;
 
-    var templateMap = new HashMap();
-    var templates = Query.select("Templates", "id;name");
-    for (var i = 0; i < templates.length; i++) {
-        var template = templates[i];
-        templateMap.set(template.name, template.id);
-    }
 
-    var formMap = new HashMap();
-    var forms = Query.select("Forms.forms", "id");
-    for (var i = 0; i < forms.length; i++) {
-        var form = forms[i];
-        formMap.set(form.id, form);
-    }
+    var fields = Forms.getFormImportFields(template.id);
 
-    var linkedMap = Forms._getLinkedInfoMap();
-
-    var formList = [];
-    // ignore first line for header i=0
+    var contactMap  = Query.mapId("Contacts.contacts", "name");
+    var companyMap  = Query.mapId("Contacts.companies", "name");
+    
+    var forms = [];
+    // Parse the first line header
+    Import._parseHeader(lines[0]);
+    // Import each line 
     for (var i = 1; i < lines.length; i++) {
         var line = lines[i];
-       
-        var formid = line[0].trim();
-        if (formid == "") Forms.addImportError(i, "form ID is empty");
+        if (line != null) {
+            Import.line = lines[i];
+            var obj = {};
+            obj.templateid = template.id;
+            obj.id = Import.getLineValue("id");
+            obj.name = Import.getLineValue("name");
+            obj.date = Date.parseDate(Import.getLineValue("date"));
+            obj.status = Import.getLineValue("status");
+            obj.location = Import.getLineValue("location");
+            //obj.geo = Import.getLineValue("geo");
+            obj.owner = Import.getLineValue("owner");
+            obj.linkedid = Import.getLineValue("linkedid");
+            obj.linkedtable = Import.getLineValue("linkedrecord");
 
-        var templateName = line[1].trim();
-        var templateid = templateMap.get(templateName);
-        if (templateid == null) Forms.addImportError(i, "template not found: " + templateName);
+            obj.value = {};
+            for (let field of fields) {
+                let value = Import.getLineValue(field.label);
+                if (field.type == "date") value = Date.parseDate(value);
+                else if (field.type == "datetime") value = Date.parseDateTime(value);
+                else if (field.type == "contact") value = contactMap[value] ? contactMap[value] : value;
+                else if (field.type == "company") value = companyMap[value] ? companyMap[value] : value;
 
-        if (Forms.errors.length == 0 && formMap.get(formid) == null) {
-            //"Date", "Status", "Location", "Geo", "Owner", "LinkedID", "LinkedRecord", "LinkedName"            
-            var formObj = { name: formid, templateid: templateid };
-            formObj.date = Date.parseDateTime(line[2]);
-            formObj.status = line[3];
-            formObj.address = line[4];
-            formObj.geo = line[5];
-            formObj.owner = line[6];
-            formObj.linkedid = line[7];
-            formObj.linkedtable = linkedMap.get(line[8]);
-
-            // TODO Import fields
-            // Note: It is complicated to re-import data according to the field type 
-            // e.g. for object types (Contact, Project,..) we need to get the record id in the correct table
-            // For Formula, we must do nothing
-            // We must get Field ID from CSV Label, but what if the Labels are not unique?
-            // Also for the type Photo, exported files are not available
-            //
-            //..
-            formList.push(formObj);
+                // TODO : add lookup for other field type
+                obj.value[field.name] = value; 
+            }
+            obj.value = JSON.stringify(obj.value);
+            forms.push(obj);
         }
     }
+    
+    if (App.confirm("Import " + forms.length  + " forms?") == false) return;
 
-    if (Forms.errors.length > 0) {
-        Forms.showImportErrors();
-        return;
-    } else {
-        if (App.confirm("Import " + formList.length + " Forms?") == false) return;
-        for (var i = 0; i < formList.length; i++) {
-            var values = formList[i];
-            Query.insert("Forms.forms", values);
-            App.alert("Importing Form " + (i + 1));
+    for (let obj of forms) {
+        if (Query.selectId("Forms.forms", obj.id)) {
+            Query.deleteId("Forms.forms", obj.id);
         }
-        History.reload();
+        Query.insert("Forms.forms", obj);
     }
+    History.reload();
 }
-
+/*
 Forms.addImportError = function (line, msg) {
     Forms.errors.push({line:line+1, msg:msg})
 }
@@ -88,4 +113,4 @@ Forms.showImportErrors = function () {
     }
     alert(buf.join("\n"));
 }
-
+*/

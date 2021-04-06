@@ -1,5 +1,5 @@
 ﻿/////////////////// Import / Export Templates
-Templates.CSV_HEADER = ["templatename", "templateprefix", "fieldrank", "fieldname", "fieldlabel", "fieldlabelDE", "fieldlabelFR", "fieldlabelES", "fieldlabelZH", "fieldlabelMY", "fieldtype", "fieldoptions", "fieldvalue", "mandatory", "onchange", "hidden", "group", "linkedtable", "onsubmit", "oncreate", "onedit","dashboardjs", "pdfoptions"];
+Templates.CSV_HEADER = ["templatename", "templateprefix", "fieldrank", "fieldname", "fieldlabel", "fieldlabelDE", "fieldlabelFR", "fieldlabelES", "fieldlabelZH", "fieldlabelMY", "fieldtype", "fieldoptions", "fieldvalue", "mandatory", "onchange", "hidden", "group", "linkedtable", "onsubmit", "oncreate", "onedit","dashboardjs", "pdfoptions", "splitheader"];
 
 Templates.exportTemplate = function(templateId) {
     Templates.exportTemplates([templateId]);
@@ -19,8 +19,8 @@ Templates.exportTemplates = function (templateIds) {
             var line = [template.name, template.prefix, field.rank, field.name, field.label, field.labelDE, field.labelFR, field.labelES, field.labelZH, field.labelMY, field.type, field.seloptions, field.value, field.mandatory, field.onchange, field.hidden];
             if (j == 0) {
                 var group = Query.names("Forms.groups", template.groupid);
-                line.push(group, template.linkedtable, template.onsubmit, template.oncreate, template.onedit, template.dashboardjs, template.pdfoptions);
-            } else line.push("", "", "", "", "", "");
+                line.push(group, template.linkedtable, template.onsubmit, template.oncreate, template.onedit, template.dashboardjs, template.pdfoptions, template.splitheader);
+            } else line.push("", "", "", "", "", "", ""), "";
             csv.writeLine(line);
         }
     }
@@ -76,11 +76,13 @@ Templates.onImportTemplates = function (lines) {
             var onedit = Import.getLineValue("onedit");
             var dashboardjs = Import.getLineValue("dashboardjs");
             var pdfoptions = Import.getLineValue("pdfoptions");
+            var splitheader = Import.getLineValue("splitheader");
 
             var templateId = templatesMap[templateName];
             if (templateId == null) {
-                var values = { name: templateName, prefix: prefix, linkedtable: linkedtable, onsubmit: onsubmit, oncreate: oncreate, onedit: onedit, dashboardjs: dashboardjs, pdfoptions: pdfoptions };
+                var values = { name: templateName, prefix: prefix, linkedtable: linkedtable, onsubmit: onsubmit, oncreate: oncreate, onedit: onedit, dashboardjs: dashboardjs, pdfoptions: pdfoptions, splitheader:splitheader };
                 values.groupid = Import.lookupIdByMultiName(Query.select("Forms.groups"), "Forms.groups", group);
+                values.date = Date.now();
                 templateId = Query.insert("Forms.templates", values);
                 templatesMap[templateName] = templateId;
             }

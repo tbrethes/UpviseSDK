@@ -35,12 +35,11 @@ Templates.editTemplateGroup = function (groupid) {
 }
 
 Templates.writeTemplateList = function (templates) {
-    List.addHeader([R.NAME, R.LINKEDTO, R.GROUP, "Last Modified", R.OWNER], ["50%"], "checkbox");
+    List.addHeader([R.NAME, R.LINKEDTO, R.GROUP, R.DATE, R.OWNER], ["50%"], "checkbox");
     for (var i = 0; i < templates.length; i++) {
         var template = templates[i];
         var name = template.name + " " + Format.text(template.prefix, "gray");
-        var fields = Query.select("Forms.fields", "_date", "formid={template.id}", "_date DESC");
-        var date = (fields.length > 0) ? Format.date(fields[0]._date) : "";
+        var date = Format.date(template.date); 
         var linkedto = (template.linkedtable) != "" ? Format.options(template.linkedtable, Forms.getLinkedOptions()) : "";
         var group = Query.names("Forms.groups", template.groupid);
         List.add([name, linkedto, group, date, Format.owner(template.owner)], "Templates.viewTemplate({template.id})", { id: template.id, img: "form" });
@@ -75,7 +74,8 @@ Templates.newTemplate = function(groupid) {
 Templates.saveTemplate = function(groupid) {
     var name = List.getValue("name");
     if (name == "") return;
-    var id = Query.insert("Forms.templates", { name: name, groupid: groupid });
+    var values = { name: name, groupid: groupid, date:Date.now() };
+    var id = Query.insert("Forms.templates", values);
     History.redirect("Templates.viewTemplate({id})");
 }
 
@@ -180,6 +180,8 @@ Templates.editInfo = function (id) {
     if (Forms.getLinkedOptions != undefined) List.addComboBox('linkedtable', R.LINKEDTO, template.linkedtable, onchange, Forms.getLinkedOptions());
     List.addTextBox("counter", R.NEXTFORMID, template.counter, onchange, "numeric");
     List.addTextBox("version", "Version", template.version, onchange, "longtext");
+    //List.addTextBox("icon", "Icon", template.icon, onchange, "text");
+    List.addCheckBox("schedule", "Requires schedule to create", template.schedule, onchange);
 
     List.addHeader(R.TASKGROUP);
     List.addComboBox('groupid', R.GROUP, template.groupid, onchange, Query.options("Forms.groups"), "Templates.addGroupToCombo(this.value)");
@@ -187,7 +189,6 @@ Templates.editInfo = function (id) {
  
     List.addHeader("Auto Archive");
     List.addTextBox('archivedays', "Archive after nb days", template.archivedays, onchange, "numeric");
-
     List.show();
 }
 
@@ -211,7 +212,7 @@ Templates.editDisplay = function (id) {
     List.addCheckBox('splitheader', "Display each section on a separate screen on mobile" + " " + Format.tag("NEW", Color.BLUE), template.splitheader, onchange);
     List.addCheckBox("punch", R.HASPUNCHITEMS, template.punch, onchange);
     List.addCheckBox("favorite", R.PINLEFTPANE, template.favorite, onchange);
-    
+    List.addCheckBox("disablenew", "User cannot create new form", template.disablenew, onchange);  
     List.show();
 }
 
@@ -228,16 +229,10 @@ Templates.editWorkflow = function(id) {
     var states = Query.select("Forms.states", "*", "templateid={id}", "status");
     writeStates(states);
 
+    /*
     List.addHeader("Script");
     var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
     List.addTextBox("oncreate", "On Form Creation Custom Script", template.oncreate, onchange, "code");
-
-    if (states.length == 0) {
-        List.addTextBox("onsubmit", R.EXECUTEONSUBMIT, template.onsubmit, onchange, "code");
-        List.addHelp(R.EXECUTEONSUBMIT_HELP);
-    } else {
-        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
-    }
 
     List.addTextBox("onedit", "On Form Edit Custom Script", template.onedit, onchange, "code");
     var help = [];
@@ -246,9 +241,46 @@ Templates.editWorkflow = function(id) {
     help.push("<b>Forms.doSomething = function(form, value, label, fieldid) {"  + "...." + "}");
     List.addHelp(help.join("<br/>"));
 
+    List.addCheckBox("signonsubmit", "Require signature on Submit", template.signonsubmit, onchange);
+    
+    if (states.length == 0) {
+        List.addTextBox("onsubmit", R.EXECUTEONSUBMIT, template.onsubmit, onchange, "code");
+        List.addHelp(R.EXECUTEONSUBMIT_HELP);
+    } else {
+        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
+    }
+    */
     List.show();
 }
 
+Templates.editScripting = function(id) {
+    var template = Query.selectId("Forms.templates", id);
+    if (template == null) { History.back(); return; }
+
+    Toolbar.moreButton = false;
+
+    List.addItemBox(template.name, "Scripting", "", "img:app");
+
+    var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
+    List.addTextBox("oncreate", "On Form Creation Custom Script", template.oncreate, onchange, "code");
+
+    List.addTextBox("onedit", "On Form Edit Custom Script", template.onedit, onchange, "code");
+    var help = [];
+    help.push("Define here your own custom functions to be called from onchange script of your various form fields.");
+    help.push("Functions must be declared in the <b>Forms</b> global object to be accessible.");
+    help.push("<b>Forms.doSomething = function(form, value, label, fieldid) {"  + "...." + "}");
+    List.addHelp(help.join("<br/>"));
+    
+    var hasWorkflow = Query.count("Forms.states", "templateid={id}") > 0;
+    if (hasWorkflow == false) {
+        List.addTextBox("onsubmit", R.EXECUTEONSUBMIT, template.onsubmit, onchange, "code");
+        List.addHelp(R.EXECUTEONSUBMIT_HELP);
+        List.addCheckBox("signonsubmit", "Require signature on Submit", template.signonsubmit, onchange);
+    } else {
+        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
+    }
+    List.show();
+}
 
 Templates.editExportPdf = function (id) {
     var template = Query.selectId("Forms.templates", id);
@@ -283,7 +315,9 @@ Templates.editExportPdf = function (id) {
     List.addCheckBox("location", R.FORMSPDFLOCATION, Templates.pdfoptions.location, onchange2);
     List.addCheckBox("caption", R.INCLUDEFORMCAPTION, Templates.pdfoptions.caption, onchange2);
     List.addCheckBox("nohistory", R.PDFNOHISTORY, Templates.pdfoptions.nohistory, onchange2);
-    List.addCheckBox("subformlist", "If used a as sub form, layout vertically", Templates.pdfoptions.subformlist, onchange2);
+    List.addCheckBox("subformlist", "If used a as subform, layout vertically", Templates.pdfoptions.subformlist, onchange2);
+    List.addCheckBox("subformhidden", "If used a as subform, shows hidden fields", Templates.pdfoptions.subformhidden, onchange2);
+    
     List.addCheckBox("nopunch", "Hide punch items", Templates.pdfoptions.nopunch, onchange2);
 
     List.addHeader(R.HEADER + " & " + R.FOOTER);
@@ -390,7 +424,7 @@ Templates.editSharing = function (id) {
 
         var data = 't=' + encodeURIComponent(User.shareToken) + '&i=' + encodeURIComponent(id);
         var url = User.BASE_URL + "form.htm" + '?' + data;
-        var buf = '<a target=_blank href="' + url + '">' + url + '</a>';
+        var buf = '<br/><a target=_blank href="' + url + '">' + url + '</a>';
         List.addItemLabel(R.PUBLICFORMURL, buf);
         var onchangeoption = "AccountSettings.set(this.id,this.value)";
         List.addCheckBox("forms.publiclink", R.DISPLAYLINKEDREC, AccountSettings.get("forms.publiclink"), onchangeoption); // NB this is common to all templates
@@ -407,9 +441,6 @@ Templates.editIntegration = function (id) {
     if (template == null) { History.back(); return; }
 
     Toolbar.moreButton = false;
-
-    //Toolbar.addButton(R.HELP, "App.help('forms/help/template/sharing.htm')", 'support');
-
     List.addItemBox(template.name, "Integration", "", "img:pipe");
     List.forceNewLine = false;
     Templates.writeEditIntegration(template);
@@ -423,8 +454,9 @@ Templates.viewTemplate = function (id) {
 
     Toolbar.addButton(R.DUPLICATE, "Templates.duplicate({id})", "duplicate");
     Toolbar.addButton(R.EXPORT, "Templates.exportTemplate({id})", "download");
+    Toolbar.addButton("Import Forms", "Forms.importForms({id})", "more");
     Toolbar.addButton(R.DELETE, "Templates.deleteTemplate({id})", "more");
-
+    
     var templateName = template.name + " " + Format.text(template.prefix, "gray");
 
     List.addItemBox(R.TEMPLATE, templateName, "", "img:form");
@@ -437,6 +469,9 @@ Templates.viewTemplate = function (id) {
     Grid.add(R.INFO, "Templates.editInfo({id})", "img:info");
     Grid.add("Display", "Templates.editDisplay({id})", "img:template");
     if (Templates.WORKFLOW) Grid.add(R.WORKFLOW, "Templates.editWorkflow({id})", "img:team;count:" + states.length);
+    
+    Grid.add("Scripting", "Templates.editScripting({id})", "img:app");
+    
 
     if (Templates.EXPORTPDF) {
         Grid.addHeader(R.EXPORT);
@@ -446,8 +481,11 @@ Templates.viewTemplate = function (id) {
         Grid.add(R.CUSTOMEMAIL, "Templates.editCustomEmail({id})", "img:email");
     }
     Grid.addHeader("Advanced");
-    if (Templates.DASHBOARD) Grid.add(R.DASHBOARD, "Templates.editDashboard({id})", "img:chart");
-    if (Templates.SHARING) Grid.add(R.SHARING, "Templates.editSharing({id})", "img:group");
+    if (Templates.DASHBOARD) Grid.add(R.DASHBOARD + " " + (template.dashboardjs? Format.tag("Script", Color.GREEN) : ""), "Templates.editDashboard({id})", "img:chart");
+    
+    var sharingStyle= "img:group";
+    if (template.public == 1) sharingStyle += ";color:green;count:ON";
+    if (Templates.SHARING) Grid.add(R.SHARING, "Templates.editSharing({id})", sharingStyle);
     Grid.add("Integration", "Templates.editIntegration({id})", "img:pipe");
 
     List.show();    

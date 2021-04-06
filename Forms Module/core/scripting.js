@@ -35,12 +35,16 @@ Forms.getDescription = function (id) {
 }
 
 Forms.getTemplateId = function (name) {
+    // first try with name = id.
+    var template = Query.selectId("Forms.templates", name);
+    if (template) return template.id;
+    
     var templates = Query.select("Forms.templates", "id", "name={name}");
     if (templates.length == 0) templates = Query.select("Forms.templates", "id", "prefix={name}");
     return (templates.length > 0) ? templates[0].id : null;
 }
 
-Forms.createForm = function (name, linkedtable, linkedid, values) { // QUESTION Should we also support counterid here?
+Forms.createForm = function (name, linkedtable, linkedid, values) {
     var templateid = Forms.getTemplateId(name);
     if (templateid == null) { App.alert("No Template not found!"); return 1; }
 
@@ -320,11 +324,10 @@ Forms.getPhotoSize = function (form) {
     return size;
 }
 
-// NORDEX Usig it in forms....
+// used in forms....
 Forms.cleanup = function (str) {
     return String(str).toLowerCase().replace(/[^a-zA-Z0-9]+/g, "");
 }
-
 
 ///// SHOW / Hide FIELDS
 
@@ -391,6 +394,16 @@ Forms.getNextFields = function (templateid, rank, count) {
         if (i == count - 1) break;
     }
     return list;
+}
+
+// 02/03/2021 : return the next field name
+Forms.getNextFieldName = function() {
+    if (!_formid) return ""; // error
+    var form = Query.selectId("Forms.forms", _formid);
+    if (!form || !Forms.field) return "";
+
+    var fieldNames = Forms.getNextFields(form.templateid, Forms.field.rank, 1);
+    return fieldNames[0];
 }
 
 

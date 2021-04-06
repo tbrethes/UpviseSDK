@@ -26,6 +26,10 @@ function _updateValue(formid, fieldname, fieldvalue) {
    
     // 2. Update the value : BEFORE calling the onchange
     var values = Forms._getValuesFromId(formid);
+
+    // Keep in memory the value BEFORE the onchange
+    var oldvalue = values[fieldname];
+
     values[fieldname] = fieldvalue;
     Query.updateId(table, formid, 'value', JSON.stringify(values));
 
@@ -38,7 +42,7 @@ function _updateValue(formid, fieldname, fieldvalue) {
         var fieldlabel = fields.length > 0 ? fields[0].label : null;
         var fieldid = fields.length > 0 ? fields[0].id : null;
         Forms.field = fields[0]; // TBR added 29/22.2029
-        var ok = Forms._evalFormula(onchange, { value: fieldvalue, label: fieldlabel, fieldid: fieldid }, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
+        var ok = Forms._evalFormula(onchange, { oldvalue: oldvalue, value: fieldvalue, label: fieldlabel, fieldid: fieldid,  }, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
         if (ok === false) return;
     
         // 4. Reload if onchange
@@ -59,7 +63,7 @@ Forms.writeEditSections = function (form) {
             var status = Forms.getHeaderStatus(obj.fields);
             var style = "img:folder;icon:arrow;priority:" + status.color;
             List.addItemSubtitle(obj.label, status.label, onclick, style);
-        }
+        } else List.addHeader(obj.label);
     }
 }
 
@@ -126,7 +130,7 @@ Forms.writeViewFields = function (form) {
              if (field.status == -1 || form.status == field.status) {
                  CustomFields.addButton(field.id, field.label, field.value, field.options, form.id, field.guid);
              }
-        } else if (form.status >= field.status || form.status == -1) {
+        } else if (form.status >= field.status || form.status == -1 || form.status == -2) {
             CustomFields.addViewItem(field.id, field.type, field.label, field.value, field.options, form.id);
         }
     }
@@ -195,14 +199,17 @@ Forms.getFields = function (form, templateFields, includeHidden) {
 // like Forms.getFields but group the fields by section header.
 Forms.groupByHeader = function (fields) {
     var map = new HashMap();
-    var obj = {label: R.GENERAL, fields:[]};
-    map.set("", obj);
+    var obj;
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.type == "header") {
             obj = { label: field.label, fields: [] };
             map.set(field.id, obj);
         }  else {
+            if (obj == null) {
+                obj = {label: R.GENERAL, fields:[]};
+                map.set("", obj);
+            }
             obj.fields.push(field);
         }
     }
@@ -385,15 +392,27 @@ Forms.injectCode = function (js, frm, sourceURL) {
 
 Forms.canEdit = function (form) {
     // Admin and manager can always edit
-    if (User.isManager()) return true;
-    // user(s) who own the form can edit it in Draft mode = 0
-    if (form.status == 0) {
-        return MultiValue.contains(form.owner, User.getName()); 
+    if (User.isAdmin()) return true;
+
+    var hasWorkflow = Query.count("Forms.states", "templateid={form.templateid}") > 0;
+    if (hasWorkflow == false) {
+        // manager can alwaus edit
+        if (User.isManager()) return true;
+        else if (form.status == 0) {
+            // user(s) who own the form can edit it in Draft mode = 0
+            return MultiValue.contains(form.owner, User.getName()); 
+        } else {
+            return false;
+        }
     } else {
-        // is current user part of the current workflow state
+        // is current user part of the current workflow state and there is a possible action, ie not the last step
+        // with this changes, Managers cannot edit the last workflwo stage
         var state = Forms.getState(form);
-        if (state && state.onclick) return true;
-        else return false;
+        if (state && state.onclick) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 
@@ -415,7 +434,8 @@ Forms.hasRight = function (action, form) {
     return false;
 }
 
-Forms.canAddSubForm = function (form, field) {
+Forms.canAddSubForm = function (form, subtemplate) {
+    if (subtemplate && subtemplate.disablenew == 1) return false;
     return Forms.canEdit(form);
 }
 
@@ -524,38 +544,67 @@ Forms.addHistory = function (form, name, note, signature) {
 }
 
 ////////////////
+
+Forms.getSubFormFields = function(template) {
+    var list = [];
+    var where = "formid={template.id}";
+    var options = FormsPdf.getOptions(template);
+    if (options.subformhidden != "1") where += " AND hidden=0";
+    var fields = Query.select("Forms.fields", "name;label;type", where, "rank");
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        if (field.type != "image" && field.type != "photo" && field.type != "button" && field.type != "label" && field.type != "header") {
+            list.push(field);
+        }
+    }
+    return list;
+}
+
 // WEB ONLY
-Forms.writeSubformsTable = function (forms, editable) {
+Forms.writeSubformsTable = function (forms, template, editable) {
+    if (forms.length == 0) return;
 
     // remember the current form state (coming from +valueObj ....)
     var state = Forms.GET_STATE();
-
+  
+    // Write table Header
+    var displayFields = Forms.getSubFormFields(template);
+    // When there are too many columns, the table does not display in the Web browser
+    var columnCount = Math.min(displayFields.length, 10);
+    var header = [];
+    for (var i = 0; i < columnCount; i++) {
+        header.push(displayFields[i].label);
+    }
+    List.addHeader(header);
+          
     for (var i = 0; i < forms.length; i++) {
         var form = forms[i];
-        
-        // we need this because Forms.getFields uses scripting with options
-        _valueObj = Forms._getValues(form); // we need this because Risk.view access it
+        // we need this because Forms.getFields uses scripting with options and  Risk.view access it
+        _valueObj = Forms._getValues(form); 
         _formid = form.id;
-        var fields = Forms.getFields(forms[i]);
-
-        var header = [];
-        var values = [];
-        // When there are too many columns, the table does not display in the Web browser
-        var nbcolumns = Math.min(fields.length, 10);
+        var includeHidden = true;
+        var fields = Forms.getFields(forms[i], null, includeHidden);
+        // get fieldMap
+        var fieldMap = [];
         for (var j = 0; j < fields.length; j++) {
             var field = fields[j];
-            if (field.type != "signature" && field.type != "photo" && field.type != "image" && field.type != "button" && field.type != "label" && field.type != "header") {
+            fieldMap[field.id] = field;
+        }
+        
+        var values = [];
+        // When there are too many columns, the table does not display in the Web browser
+        for (var j = 0; j < columnCount; j++) {
+            var name = displayFields[j].name;
+            var field = fieldMap[name];
+            if (field == null) {
+                values.push("");
+            } else {
                 var value = CustomFields.formatValue(field.value, field.type, field.options, true); // isWeb=true
                 if (field.type == "longtext") value = Format.text(value);
-                header.push(field.label);
                 values.push(value);
             }
-            if (values.length > nbcolumns) break;
         }
-        if (i == 0) {
-            List.addHeader(header);
-            if (WEB()) NextPrevious.addSection();
-        }
+      
         var func = editable ? Forms._EDITFORM : Forms._VIEWFORM;
         var style = form.color ? "priority:" + form.color : "";
         List.add(values, func + "({forms[i].id})", style);
