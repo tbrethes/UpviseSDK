@@ -58,7 +58,6 @@ You can debug Upvise JS App using the Upvise VS Code plugin **built-in web serve
 2. Open the **jsconfig.json** file at your project root and replace the email and password fields your your Upvise account credentials. 
 3. Use **Ctrl+Shift+B** to display Visual Studio Code **command palette** and select **Upvise Deploy**
 
-
 # Custom Dashboard
 You use can use Visual Studio to manage your custom dashboards screen for different Upvise Web Applications.
 
@@ -68,10 +67,9 @@ You use can use Visual Studio to manage your custom dashboards screen for differ
 3. Type in : **upvisedev.exe -createdashboard [myfolder] [kind]**
 
 **myfolder** is the base folder your want to create your UpviseJS app
-
 **kind** is the kind of dashboard to create: **projects, project, forms, tools, assets, sales.quote, sales.deal, sales.invoice, sales.po, sales.catalog, sales.contract**
 
-This will create a new folder or add a new dashboard to the existing folder containing your source files and required files to work with Visual Studio Code.
+Note: you can run multiple times the -createdashboard command with the same folder to add different dashboard kinds to the same project.
 
 **Deploy**
 1. Set your Upvise email / password in the **jsconfig.json** file
