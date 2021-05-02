@@ -4,10 +4,8 @@ This plugin enables you to create, debug and deploy Upvise Javascript apps (Andr
 
 # System Requirements:
 1. Windows 10 or MacOs
-2. .NET Runtime 5.0.5[https://dotnet.microsoft.com/download/dotnet/5.0] 
+2. [.NET Runtime 5.0.5](https://dotnet.microsoft.com/download/dotnet/5.0)
 3. [Microsoft Visual Studio Code](https://code.visualstudio.com/)
-
-Note : MacOs is not currently supported.
 
 # Installation
 1. **Download** the Upvise Visual StudioCode Plugin [UpvisePluginVSCode.zip](UpvisePluginVSCode.zip) file 
@@ -61,20 +59,22 @@ You can debug Upvise JS App using the Upvise VS Code plugin **built-in web serve
 3. Use **Ctrl+Shift+B** to display Visual Studio Code **command palette** and select **Upvise Deploy**
 
 
-# Edit Custom Dashboard
+# Custom Dashboard
 You use can use Visual Studio to manage your custom dashboards screen for different Upvise Web Applications.
 
 **Create**
 1. Start Visual Studio Code. Click on **Terminal / New Terminal** on the menu bar
 2. navigate to the location where the UpviseJS Plugin was unzipped using the **dir** command or **ls** command on MacOs 
 3. Type in : **upvisedev.exe -createdashboard [myfolder] [kind]**
-Where **myfolder** is the base folder your want to create your UpviseJS app
-and **kind** is the kind of dashboard to create: one of the following values **project, globalproject, project, form, tools, asset, sales.quote, sales.deal, sales.invoice, sales.po, sales.catalog, sales.contract**
 
-This will create a new folder named myappid containing your source files and required files to work with Visual Studio Code.
+**myfolder** is the base folder your want to create your UpviseJS app
+
+**kind** is the kind of dashboard to create: **projects, project, forms, tools, assets, sales.quote, sales.deal, sales.invoice, sales.po, sales.catalog, sales.contract**
+
+This will create a new folder or add a new dashboard to the existing folder containing your source files and required files to work with Visual Studio Code.
 
 **Deploy**
-1. Set the email / password of the desired account in the **jsconfig.json** file
+1. Set your Upvise email / password in the **jsconfig.json** file
 2. **Open the file** containing the dashboard main method you want to deploy
 3. Type **Ctrl+Shift+B** to display Visual Studio Code **command palette** and select **Upvise Deploy Dashboard**
 
