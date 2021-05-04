@@ -3,11 +3,9 @@
 This plugin enables you to create, debug and deploy Upvise Javascript apps (Android, iOs and web) right with Microsoft open source Visual Studio code text editor.
 
 # System Requirements:
-1. Windows 10
-2. .NET Framework 4.6 or higher 
+1. Windows 10 or MacOs
+2. [.NET Runtime 5.0.5](https://dotnet.microsoft.com/download/dotnet/5.0)
 3. [Microsoft Visual Studio Code](https://code.visualstudio.com/)
-
-Note : MacOs is not currently supported.
 
 # Installation
 1. **Download** the Upvise Visual StudioCode Plugin [UpvisePluginVSCode.zip](UpvisePluginVSCode.zip) file 
@@ -60,7 +58,23 @@ You can debug Upvise JS App using the Upvise VS Code plugin **built-in web serve
 2. Open the **jsconfig.json** file at your project root and replace the email and password fields your your Upvise account credentials. 
 3. Use **Ctrl+Shift+B** to display Visual Studio Code **command palette** and select **Upvise Deploy**
 
+# Custom Dashboard
+You use can use Visual Studio to manage your custom dashboards screen for different Upvise Web Applications.
 
+**Create**
+1. Start Visual Studio Code. Click on **Terminal / New Terminal** on the menu bar
+2. navigate to the location where the UpviseJS Plugin was unzipped using the **dir** command or **ls** command on MacOs 
+3. Type in : **upvisedev.exe -createdashboard [myfolder] [kind]**
+
+**myfolder** is the base folder your want to create your UpviseJS app
+**kind** is the kind of dashboard to create: **projects, project, forms, tools, assets, sales.quote, sales.deal, sales.invoice, sales.po, sales.catalog, sales.contract**
+
+Note: you can run multiple times the -createdashboard command with the same folder to add different dashboard kinds to the same project.
+
+**Deploy**
+1. Set your Upvise email / password in the **jsconfig.json** file
+2. **Open the file** containing the dashboard main method you want to deploy
+3. Type **Ctrl+Shift+B** to display Visual Studio Code **command palette** and select **Upvise Deploy Dashboard**
 
 # Getting Started Guide on UpviseJS API 
 https://www.upvise.com/dev/home/gettingstarted.htm
