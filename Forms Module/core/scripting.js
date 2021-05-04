@@ -66,7 +66,7 @@ Forms.emailCsv = function (emails, id) {
     var form = Query.selectId("Forms.forms", id);
 
     var filename = Query.names("Forms.templates", form.templateid) + " " + form.name;
-    if (Format.forprint != null) Format.forprint();
+    Format.forprint();
 
     var csv = new CsvFile();
     csv.writeLine(["Form ID", filename]);

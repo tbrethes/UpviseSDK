@@ -78,6 +78,7 @@ Forms.onImportForms = function (lines) {
             for (let field of fields) {
                 let value = Import.getLineValue(field.label);
                 if (field.type == "date") value = Date.parseDate(value);
+                else if (field.type == "datetzi") value = Date.parseDate(value, "utc");
                 else if (field.type == "datetime") value = Date.parseDateTime(value);
                 else if (field.type == "contact") value = contactMap[value] ? contactMap[value] : value;
                 else if (field.type == "company") value = companyMap[value] ? companyMap[value] : value;

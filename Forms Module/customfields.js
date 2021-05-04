@@ -24,6 +24,7 @@ CustomFields.view = function (table, recordId, fieldsTable) {
 
     CustomFields.buttons = {}; // to keep the onclick for button fields
     CustomFields.curHeader = null;
+    CustomFields.headers = new HashMap();
     if (WEB() == false) List.addHeader(R.CUSTOMFIELDS);
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
@@ -33,7 +34,7 @@ CustomFields.view = function (table, recordId, fieldsTable) {
     }
 }
 
-CustomFields.filterRole = function(fields) {
+CustomFields.filterRole = function(fields, groupid) {
     var filtered = [];
     var userRole = User.getRole();
     if (userRole == null) return fields;
@@ -46,16 +47,26 @@ CustomFields.filterRole = function(fields) {
     return filtered;
 }
 
+CustomFields.filterGroup = function(fields, groupid) {
+    var filtered = [];
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        if (!field.groupid || MultiValue.contains(field.groupid, groupid)) {
+            filtered.push(field);
+        }
+    }
+    return filtered;
+}
+
 CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     if (type == "button") {
         CustomFields.addButton(id, label, "code", options, formid);
         return;
-    } else if (type == "buttonbox") { // buttonbox are displayed separataly
+    } else if (type == "buttonbox") { // buttonbox are displayed separately
         return;
     } else if (type == 'header') {
         // Delayed write : overwrite any previous delayed header if any
         CustomFields.curHeader = label;
-        //List.addHeader(label);
         return;
     }
     // do not write empty fields
@@ -68,7 +79,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     }
 
     if (type == 'select' || type == 'selectmulti') {
-        List.addItemLabel(label, (Format.options != null) ? Format.options(value, options) : value);
+        List.addItemLabel(label, Format.options(value, options));
     } else if (type == 'toggle') {
         List.addToggleBox('', label, value, null, options);
     } else if (type == 'checkbox') {
@@ -125,20 +136,21 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         else List.addItemLabel(label, value, "App.web({value})");
     } else if (type == 'date') {
         // do not display Someday date for forms
-        if (value != 0) List.addItemLabel(label, Format.date(parseFloat(value)), null, "img:calendar");
+        if (value != 0) List.addItemLabel(label, Format.date(value), null, "img:calendar");
+    } else if (type == 'datetzi') {
+        if (value != 0) List.addItemLabel(label, Format.date(value, "utc"), null, "img:calendar");
     } else if (type == 'time') {
         if (value == 0) return; // Otherwise on Android value = 0 is displayed as a default time, i.e 7:30
-        List.addItemLabel(label, Format.time(parseFloat(value)), null, "img:clock");
+        List.addItemLabel(label, Format.time(value), null, "img:clock");
     } else if (type == 'datetime') {
         if (value == 0) return;  // do not display One day...
-        List.addItemLabel(label, Format.datetime(parseFloat(value)), null, "img:calendar");
+        List.addItemLabel(label, Format.datetime(value), null, "img:calendar");
     } else if (type == 'duration') {
         List.addItemLabel(label, Format.duration(parseInt(value)));
     } else if (type == 'textarea') {
         if (Settings.getPlatform() != "web") value = Format.text(value);
         List.addItemLabel(label, value);
     } else if (type == 'numeric' || type == 'decimal') {
-        //List.addItemLabel(label, Number(value).toLocaleString());
         List.addItemLabel(label, "" + value); // we do this : because toLocaleString() rounds to 3 decimals only.....
     } else if (type == 'formula') {
         List.addItemLabel(label, value);
@@ -265,7 +277,12 @@ CustomFields.onButton = function (recordId, fieldid) {
 CustomFields.writeMultivalueItem = function (label, id, table, func, img) {
     id = String(id); // make sure its a string
     var items = Query.select(table, "id;name", "id IN " + list(id), "name");
-    if (items.length == 0) return;
+    if (items.length == 0) {
+        if (WEB() && id){
+          List.addItemLabel(label, "#ERROR : no record for ID: " + id);
+        }
+        return;
+    } 
 
     var style = "icon:arrow"  + (img !=null ? ";img:" + img : "");
     if (items.length == 1) {
@@ -300,25 +317,22 @@ CustomFields.edit = function (table, recordId, ids, fieldsTable) {
     var fields = Query.select("Notes.fields", "name;label;type;seloptions;onchange;id;groupid;roleid", where, "rank");
     if (fields.length == 0) return;
     fields = CustomFields.filterRole(fields);
+    // for edit we also filter group (optional)
+    fields = CustomFields.filterGroup(fields, item.groupid);
 
-    CustomFields.values = CustomFields.loadValues(item.custom);
-    
+    CustomFields.values = CustomFields.loadValues(item.custom);   
     CustomFields.companyOptions = null;
     CustomFields.contactOptions = null;
 
     List.addHeader(R.CUSTOMFIELDS);
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
-        var show = (!field.groupid || MultiValue.contains(field.groupid, item.groupid));
-        if (show) {
-            var value = CustomFields.values[field.name];
-            if (value == null) value = '';
-            var options = CustomFields.evalOptions(recordId, field.name, field.seloptions);
-
-            var onchange = "CustomFields._update({table},{recordId},this.id,this.value)";
-            if (field.onchange) onchange += ";CustomFields._onchange({field.id},{recordId})";
-            CustomFields.writeEditItem(field.name, field.type, field.label, value, onchange, options, null);
-        }
+        var value = CustomFields.values[field.name];
+        if (value == null) value = '';
+        var options = CustomFields.evalOptions(recordId, field.name, field.seloptions);
+        var onchange = "CustomFields._update({table},{recordId},this.id,this.value)";
+        if (field.onchange) onchange += ";CustomFields._onchange({field.id},{recordId})";
+        CustomFields.writeEditItem(field.name, field.type, field.label, value, onchange, options, null);
     }
 }
 
@@ -536,6 +550,7 @@ CustomFields.formatValue = function (value, type, options, isWeb) {
     if (value == 0 && type == 'time') return ""; // Otherwise on Android value = 0 is displayed as Unix time 1 Jan 1970, i.e 7:30 for GMT +8
 
     if (type == 'date') return Format.date(parseFloat(value));
+    else if (type == 'datetzi') return Format.date(parseFloat(value), "utc");
     else if (type == 'time') return Format.time(parseFloat(value));
     else if (type == 'datetime') return Format.datetime(parseFloat(value));
     else if (type == 'duration') return Format.duration(parseInt(value));
@@ -642,24 +657,34 @@ CustomFields.addFileBox = function (label, table, id, action, onchange) {
     if (table && id) files = Query.select("System.files", "id;name;mime;externalurl", "linkedtable={table} AND linkedrecid={id}", "date");
     if (action == null && files.length == 0) return;
 
-    if (label != null) List.addHeader(label);
-
+    //if (label) List.addHeader(label);
+    var edit = (action != null);
+      
     if (WEB()) {
-        _html.push('<div style="margin-left:60px;">');
+        //_html.push('<div style="margin-left:60px;">');
+        if (edit) {
+            Form.ensure(label, true) 
+        } else {
+            List.addItemLabel(label, " ");
+            List.ensureClose();
+        } 
         NextPrevious.addSection();
         for (var i = 0; i < files.length; i++) {
             var file = files[i];
             var fileid = (file.mime.indexOf("image/") != -1 && file.externalurl == "") ? file.id : null;
-            List.addThumbnail(file.name, fileid, CustomFields._VIEWFILE + "({file.id})");
+            List.addThumbnail(file.name, fileid, CustomFields._VIEWFILE + "({file.id})", file.mime);
         }
-        if (action != null) FileBox.writeButton("", R.SELECTFILE, "FilePicker.pick({table},{id},'',{action},{onchange})", "");
-        _html.push('</div>');
+        if (edit) {
+            if (files.length > 0) _html.push("<br/>");
+            FileBox.writeButton("", R.SELECTFILE, "FilePicker.pick({table},{id},'',{action},{onchange})", "");
+            Form.ensureClose();
+        }
     } else {
-        if (action != null) {
+        if (label) List.addHeader(label);
+        if (edit) {
             var label = (action == "scan") ? R.SCANDOCUMENT : R.ADDPHOTO;
             List.addItem(label, "App.takePicture({table},{id},{action},{onchange})", "img:camera;icon:new");
         }
-
         for (var i = 0; i < files.length; i++) {
             var file = files[i];
             var style = null;

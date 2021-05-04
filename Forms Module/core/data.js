@@ -120,6 +120,10 @@ Forms.onScan = function (formid, fieldid, value) {
 }
 
 Forms.writeViewFields = function (form) {
+     // 19 April 2021 : buttons are now visible in view mode, so we need the onedit code here too
+     var template = Query.selectId("Forms.templates", form.templateid);
+     if (template && template.onedit) Forms.injectCode(template.onedit, form, "ONEDIT_" + template.name);
+
     _valueObj = Forms._getValues(form); // we need this because Risk.view access it
     _formid = form.id;
     var fields = Forms.getFields(form);

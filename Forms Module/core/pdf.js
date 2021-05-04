@@ -13,7 +13,7 @@ FormsPdf.export = function (formid, action, email, subject, body, replyto) {
     
     var options = FormsPdf.getOptions(template);
 
-    FormsPdf.init(options);
+    FormsPdf.init(options, form);
     var filename = FormsPdf.write(form, template);
 
     // Download or Email
@@ -53,6 +53,7 @@ FormsPdf.getOptions = function (template) {
         options.caption = AccountSettings.get('formcaption', "1");
         options.watermark = AccountSettings.get("forms.watermark", "");
         options.watermarkcolor = AccountSettings.get("forms.watermarkcolor", "#FF000000");
+        options.watermarkstatus = false;
         options.logoid = template.logoid;
         options.columnwidth = template.columnwidth ? template.columnwidth : "500px";
         options.nohistory = template.pdfnohistory;
@@ -65,9 +66,12 @@ FormsPdf.getOptions = function (template) {
     }
 }
 
-FormsPdf.init = function(options) {
+FormsPdf.init = function(options, form) {
     if (options == null) options = {};
 
+    if (options.watermarkstatus && Forms.hasFinalStatus(form) == false) {
+       options.watermark += " " + Forms.getState(form).name;
+    }
     Pdf2.init(options.fontsize);
     Pdf2.setWatermark(options.watermark, options.watermarkcolor);
     if (options.logoid != "#none") Pdf2.setHeader(options.logoid);
@@ -117,6 +121,9 @@ FormsPdf.addStyle = function (template) {
     return options;
 }
 
+// public API use
+FormsPdf.includeHidden = "newsubform";
+
 FormsPdf.write = function (form, template, index) {
     var linkedItem = Forms.getLinkedRecord != undefined ? Forms.getLinkedRecord(form) : null;
 
@@ -136,7 +143,7 @@ FormsPdf.write = function (form, template, index) {
     // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields() and in writeCustom(
     _valueObj = Forms._getValues(form);
     _formid = form.id;
-    var includeHidden = "newsubform";
+    var includeHidden = FormsPdf.includeHidden; //"newsubform";
     var fields = Forms.getFields(form, null, includeHidden);
 
     if (template.htmlpdf != "") {
@@ -282,6 +289,8 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
     var asList = false;
     var subtemplate = Query.selectId("Forms.templates", subforms[0].templateid);
     var subpdfoptions = FormsPdf.getOptions(subtemplate);
+    if (subpdfoptions.subformskip == true) return;
+    
     var asList = (subpdfoptions.subformlist == "1");
 
     if (asList == true) {
@@ -438,10 +447,11 @@ FormsPdf.addField = function (field, form) {
     } else if (field.type == "checkbox") {
         var c = (field.value == "1") ? '&#9745;' : '&#9744;';
         Pdf2.add('<td colspan=2 class="checkbox"><span class="bigger">', c, '</span><span>', field.label, '</span></td>');
-    } else if (field.type == "readonly" && field.value == "") {
-        // 16 March 2021: we do not want to output empty readonly field value
+    } /* 26 April 2021 : we removed this as you can use  do not show hidden fields in the template
+        else if (field.type == "readonly" && field.value == "") {
+        // 16 March 2021: we do not want to output empty readonly field value for Nordex 
         return;
-    } else {
+    } */ else {
         var value = CustomFields.formatValue(field.value, field.type, field.options, true); // isWeb=true
         Pdf2.add('<td class="label">', field.label, '</td><td>', value, '</td>');
     }

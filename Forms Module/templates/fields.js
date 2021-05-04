@@ -407,6 +407,7 @@ Templates.getComboBoxOptions = function () {
 Templates.getDateBoxOptions = function () {
     var options = [];
     options.push({ id: "date", label: R.DATE });
+    options.push({ id: "datetzi", label: "Date (Time Zone Independant)" });
     options.push({ id: "time", label: R.TIME });
     options.push({ id: "datetime", label: R.DATETIME });
     options.push({ id: "duration", label: R.DURATION });

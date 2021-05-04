@@ -41,23 +41,26 @@ Forms.popupExport = function (templateid) {
 
     if (selectedCount > 0) Popup.add("Selected Forms" + " (" + selectedCount + ")", "Forms.exportMultiple({templateid})", "img:form");
     else Popup.add("All Forms", "Forms.exportMultiple({templateid})", "img:form");
-    if (AccountSettings.get("system.hasarchive") == "1") {
-        //Popup.add("All Forms including Archive", "Forms.exportWithArchive({templateid})", "img:archive");
-        //var url = Templates.getIntegrationUrl(template);
-        Popup.add("All Forms including Archive", "Forms.exportWithArchive2({templateid})", "img:archive");
+    if (User.isManager() && AccountSettings.get("system.hasarchive") == "1") {
+        Popup.add("All Forms including Archive", "Forms.exportWithArchive({templateid})", "img:archive");
     }
     Popup.show();
 }
 
-Forms.exportWithArchive2 = function(templateid) {
-    var template = Query.selectId("Forms.templates", templateid);
-    var filename = template.name + " INCLUDING ARCHIVE.csv";
-    
-    var json = {};
-    json["templateid"] = templateid;
-    JsonRequest.download(User.BASE_URL + "v2/export?a=form", json, filename);
+Forms.exportWithArchive = function(templateid) {
+    var url = Forms.getExportUrl(templateid);
+   
+    let link = window.document.createElement('a');
+    link.href = url;
+    document.body.appendChild(link); // required for Firefox
+    link.click();
+    document.body.removeChild(link);   
 }
 
+Forms.getExportUrl = function(templateid) {
+    var url = User.BASE_URL + "v2/export?a=form&auth=" + encodeURIComponent(User.token) + "&templateid=" + encodeURIComponent(templateid); 
+    return url;
+} 
 
 // templateid is optional, if not present it will export all checked forms
 Forms.exportMultiple = function (templateid) {

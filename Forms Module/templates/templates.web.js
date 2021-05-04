@@ -139,10 +139,13 @@ Templates.editFields = function (id, headerid) {
             var hasScript = "";
             if (field.onchange || Templates.hasScript(field.seloptions) || Templates.hasScript(field.value)) {
                 hasScript = Format.tag("Script", Color.GREEN)
-            } else if (field.type == "button" && field.value == "newsubform") {
-                var subtemplateid = field.seloptions;
-                //var subTemplate = Query.selectId("Forms.templates", );
-                hasScript = Format.tag("Subform", Color.GREEN, "Templates.viewTemplate({subtemplateid})");
+            } else if (field.type == "button") {
+                if (field.value == "newsubform") {
+                    var subtemplateid = field.seloptions;
+                    hasScript = Format.tag("Subform", Color.GREEN, "Templates.viewTemplate({subtemplateid})");
+                } else if (field.value == "code") {
+                    hasScript = Format.tag("Script", Color.GREEN);
+                }
             }
 
             var fieldName = Format.tag(field.name, Color.GRAY);
@@ -228,28 +231,6 @@ Templates.editWorkflow = function(id) {
 
     var states = Query.select("Forms.states", "*", "templateid={id}", "status");
     writeStates(states);
-
-    /*
-    List.addHeader("Script");
-    var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
-    List.addTextBox("oncreate", "On Form Creation Custom Script", template.oncreate, onchange, "code");
-
-    List.addTextBox("onedit", "On Form Edit Custom Script", template.onedit, onchange, "code");
-    var help = [];
-    help.push("Define here your own custom functions to be called from onchange script of your various form fields.");
-    help.push("Functions must be declared in the <b>Forms</b> global object to be accessible.");
-    help.push("<b>Forms.doSomething = function(form, value, label, fieldid) {"  + "...." + "}");
-    List.addHelp(help.join("<br/>"));
-
-    List.addCheckBox("signonsubmit", "Require signature on Submit", template.signonsubmit, onchange);
-    
-    if (states.length == 0) {
-        List.addTextBox("onsubmit", R.EXECUTEONSUBMIT, template.onsubmit, onchange, "code");
-        List.addHelp(R.EXECUTEONSUBMIT_HELP);
-    } else {
-        List.addTextBox("onreject", "Execute OnReject", template.onreject, onchange, "code");
-    }
-    */
     List.show();
 }
 
@@ -305,21 +286,24 @@ Templates.editExportPdf = function (id) {
     List.addComboBox("photocaption", "Add Photo Caption", Templates.pdfoptions.photocaption, onchange2, "0:" + R.NO + "|1:" + R.YES);
     List.addComboBox("orientation", "Orientation", Templates.pdfoptions.orientation, onchange2, "portrait:" + "Portrait" + "|landscape:" + "Landscape");
 
+    List.addHeader("Customize");
+    List.addCheckBox("location", R.FORMSPDFLOCATION, Templates.pdfoptions.location, onchange2);
+    List.addCheckBox("caption", R.INCLUDEFORMCAPTION, Templates.pdfoptions.caption, onchange2);
+    List.addCheckBox("nohistory", R.PDFNOHISTORY, Templates.pdfoptions.nohistory, onchange2);
+    List.addCheckBox("hideempty", R.HIDEEMPTYFIELDS, Templates.pdfoptions.hideempty, onchange2);
+    List.addCheckBox("nopunch", "Hide punch items", Templates.pdfoptions.nopunch, onchange2);
+    
+    List.addHeader("If used as a subform");
+    List.addCheckBox("subformlist", "Layout vertically", Templates.pdfoptions.subformlist, onchange2);
+    List.addCheckBox("subformhidden", "Show hidden fields", Templates.pdfoptions.subformhidden, onchange2);
+    List.addCheckBox("subformskip", "Do not export at all", Templates.pdfoptions.subformskip, onchange2);
+    
     List.addHeader(R.WATERMARK);
     List.addTextBox("watermark", R.TEXT, Templates.pdfoptions.watermark, onchange2);
     List.addTextBox("watermarkcolor", R.COLOR, Templates.pdfoptions.watermarkcolor, onchange2, "color");
     List.addCheckBox("qrcode", "QRCode Verification" + " " + Format.tag("Beta", Color.GREEN), Templates.pdfoptions.qrcode, onchange2);
-
-    List.addHeader("Customize");
-    List.addCheckBox("hideempty", R.HIDEEMPTYFIELDS, Templates.pdfoptions.hideempty, onchange2);
-    List.addCheckBox("location", R.FORMSPDFLOCATION, Templates.pdfoptions.location, onchange2);
-    List.addCheckBox("caption", R.INCLUDEFORMCAPTION, Templates.pdfoptions.caption, onchange2);
-    List.addCheckBox("nohistory", R.PDFNOHISTORY, Templates.pdfoptions.nohistory, onchange2);
-    List.addCheckBox("subformlist", "If used a as subform, layout vertically", Templates.pdfoptions.subformlist, onchange2);
-    List.addCheckBox("subformhidden", "If used a as subform, shows hidden fields", Templates.pdfoptions.subformhidden, onchange2);
+    List.addCheckBox("watermarkstatus", "Show Intermediate Form Status Watermark" + " " + Format.tag("Beta", Color.GREEN), Templates.pdfoptions.watermarkstatus, onchange2);
     
-    List.addCheckBox("nopunch", "Hide punch items", Templates.pdfoptions.nopunch, onchange2);
-
     List.addHeader(R.HEADER + " & " + R.FOOTER);
     List.addFileBox("logoid", R.HEADERIMAGE, Templates.pdfoptions.logoid, onchange2);
     List.addTextBox("footer", R.FOOTER, Templates.pdfoptions.footer, onchange2, "longtext");
@@ -443,10 +427,18 @@ Templates.editIntegration = function (id) {
     Toolbar.moreButton = false;
     List.addItemBox(template.name, "Integration", "", "img:pipe");
     List.forceNewLine = false;
-    Templates.writeEditIntegration(template);
+
+    var url = Forms.getExportUrl(template.id);
+    var absUrl = new URL(url, document.URL).href;
+    var value = '<a href="' + absUrl + '">' + absUrl + '</a>';
+    _html.push('<div><b>', 'Integration URL', '</b></div><div style="background-color:#EEEEEE;padding:10px;margin:10px;display:inline-block">', value, '</div>');
+
+    var onchange = "AccountSettings.set(this.id, this.value);App.sync()";
+    List.addComboBox("forms.export.year", "Since year " + Format.tag("Beta", Color.ORANGE), AccountSettings.get("forms.export.year"), onchange, "0:All|2018|2019|2020|2021");
+    List.addHelp("This applies for ALL form templates, Jobs and Tasks URL export");
+ 
     List.show();
 }
-
 
 Templates.viewTemplate = function (id) {
     var template = Query.selectId("Forms.templates", id);
@@ -470,9 +462,9 @@ Templates.viewTemplate = function (id) {
     Grid.add("Display", "Templates.editDisplay({id})", "img:template");
     if (Templates.WORKFLOW) Grid.add(R.WORKFLOW, "Templates.editWorkflow({id})", "img:team;count:" + states.length);
     
-    Grid.add("Scripting", "Templates.editScripting({id})", "img:app");
+    var scriptingColor = (template.oncreate || template.onedit || template.onsubmit || template.onreject) ? "green" : "";
+    Grid.add("Scripting", "Templates.editScripting({id})", "img:app;color:" + scriptingColor);
     
-
     if (Templates.EXPORTPDF) {
         Grid.addHeader(R.EXPORT);
         Grid.add(R.EXPORTPDF, "Templates.editExportPdf({id})", "img:pdf");

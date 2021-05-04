@@ -360,7 +360,7 @@ Forms.evalOnLoad = function (form, onload) {
     var fields = Query.select("Forms.fields", "name;label;value;type;seloptions", "formid={form.templateid}", "rank");
     var formValues = Forms._getFullValues(form, fields);
 
-    var js = "function f1(){" + onload + "};f1();";
+    var js = "function f1(){" + onload + "\n};f1();";
     return Forms._evalFormula(js, formValues, form, "ONLOAD");
 }
 
@@ -426,6 +426,21 @@ User.getRoleMap = function(projectid) {
     return roleMap;
 }
 
+Forms.hasFinalStatus = function(form) {
+    if (!form) return false; // error
+    
+    var where = "templateid={form.templateid}";
+    var count = Query.count("Forms.states", where);
+    if (count == 0) {
+        // No workflow, final stage if status = 1 (submitted) (rejected =-1 or superseded == -2) do not count
+        return (form.status == 1);
+    } else {
+        // form template has a workflow, do we have later stages after the current form status?
+        var where2 = "templateid={form.templateid} AND status>{form.status}";
+        var count2 = Query.count("Forms.states", where2);
+        return count2 > 0 ? false : true;
+    }
+}
 ///////////////
 
 Forms.getUserSignature = function (staff, date) {

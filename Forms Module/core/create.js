@@ -19,6 +19,11 @@ Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, proje
         var linkedItem = Query.selectId(linkedtable, linkedid);
         if (linkedItem) projectid = linkedItem.projectid;
     }
+    // 23 April 2021, we also try to link form to toolid
+    var toolid;
+    if (linkedtable == "Tools.tools") {
+        toolid = linkedid;
+    }
     
     // link subform to the projectid of the main form for standard user ownership. 11/01/21
     if (!projectid && linkedtable == "Forms.forms") {
@@ -26,18 +31,19 @@ Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, proje
         var parentForm = Query.selectId("Forms.forms", parentFormId);
         if (parentForm) {
             if (parentForm.linkedtable == "Projects.projects") projectid = parentForm.linkedid;
+            else if (parentForm.linkedtable == "Tools.tools") toolid = parentForm.linkedid;
             else projectid = parentForm.projectid;
         } 
     }
 
-    var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid, counterid);
+    var id = Forms.newFormInternal(templateid, linkedtable, linkedid, null, name, projectid, counterid, toolid);
     if (id != null) {
         if (linkedtable != "Forms.forms") History.add(Forms._VIEWFORM + "({id})");
         History.redirect(Forms._EDITFORM +  "({id})");
     }
 }
 
-Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name, projectid, counterid) {
+Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name, projectid, counterid, toolid) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
 
@@ -61,7 +67,8 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     }
     if (projectid) form.projectid = projectid;
     if (counterid) form.counterid = counterid;
-
+    if (toolid) form.toolid = toolid;
+    
     form.hidden = Forms.getDefaultHidden(template.id);
 
     var formid = Query.insert("Forms.forms", form);
