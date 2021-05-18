@@ -3,8 +3,8 @@
 This plugin enables you to create, debug and deploy Upvise Javascript apps (Android, iOs and web) right with Microsoft open source Visual Studio code text editor.
 
 # System Requirements:
-1. Windows 10 or MacOs
-2. [.NET Runtime 5.0.5](https://dotnet.microsoft.com/download/dotnet/5.0)
+1. Windows 10 or MacOs 10
+2. [.NET Runtime 5.0.6](https://dotnet.microsoft.com/download/dotnet/5.0)
 3. [Microsoft Visual Studio Code](https://code.visualstudio.com/)
 
 # Installation
