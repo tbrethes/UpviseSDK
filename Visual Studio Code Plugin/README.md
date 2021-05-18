@@ -57,20 +57,20 @@ You can debug Upvise JS App using the Upvise VS Code plugin **built-in web serve
 2. Open the **jsconfig.json** file at your project root and replace the email and password fields your your Upvise account credentials. 
 3. Use **Ctrl+Shift+B** to display Visual Studio Code **command palette** and select **Upvise Deploy**
 
-# Manage & Deploy Upvise Custom Scripts 
-You use can use Visual Studio to manage  and deploy your all your Upvise custom scripts, like application overrides, dashboard, form template and form field script  screen for an entire database account.
+# Manage & Deploy Upvise Custom Scripts (NEW)
+You use can use Visual Studio to manage & deploy your all your Upvise custom scripts. It can include application overrides, dashboards, form template dashboard, scripts & form field button scrip for a given Upvise account.
 
 **Create**
 1. Start Visual Studio Code. Click on **Terminal / New Terminal** on the menu bar
 2. navigate to the location where the UpviseJS Plugin was unzipped using the **dir** command or **ls** command on MacOs 
 3. Type in : **dotnet upvisedev.dll -createempty [myfolder]**
 
-**myfolder** is the base folder your want to create your Upvise resource project
+**myfolder** is the base folder of your Upvise resource project
 
 **Deploy**
 1. Set your Upvise email / password in the **jsconfig.json** file
 2. **Create a new javascript file** for each script resource in Visual studio code by clicking on **File / New File** in the menu bar
-3. **Open the file** then add the a **Config.resourceId = "XXX" ** statement to identify the script you want to manage.
+3. **Open the file** then add the a **Config.resourceId = "XXX"** statement to identify the script you want to manage.
 4. Look at the **sample.js** file to find the correct syntax for the resourceId statement
 5. Type **Ctrl+Shift+B** to display Visual Studio Code **command palette** and select **Upvise Deploy**
 
