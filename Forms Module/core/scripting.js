@@ -237,6 +237,25 @@ Forms.datasetOptions = function (name, orderby) {
     return options.join("|");
 }
 
+// 08 June 2021:
+Forms.selectDatasetJson = function (name) {
+    var list = [];
+    var items = Forms.selectDataset(name);
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var obj = {}
+        try {
+            if (item.code) obj = JSON.parse(item.code);
+            if (obj === null || typeof(obj) != "object") obj = {};
+        } catch(e) {}
+        // Warning : code JSON should never contain id or name property...
+        obj.id = item.id;
+        obj.name = item.name;
+        list.push(obj);
+    }
+    return list;
+}
+
 Forms.getForm = function (templateName, formName, linkedid) {
     var templateid = Forms.getTemplateId(templateName);
     if (templateid == null) return null;

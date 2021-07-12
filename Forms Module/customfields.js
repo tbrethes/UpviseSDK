@@ -5,6 +5,7 @@ function CustomFields() {}
 CustomFields._VIEWFILE = "Files.viewFile";
 
 CustomFields.values = null; // Array of values indexed by name
+CustomFields.buttons = {};
 
 CustomFields.view = function (table, recordId, fieldsTable) {
     var item = Query.selectId(table, recordId);
@@ -112,8 +113,9 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == "photo") {
         CustomFields.addFileBox(label, "Forms.forms", value);
     } else if (type == "drawing") {
-        List.addHeader(label);
-        List.addImage(Settings.getFileUrl(value));
+        //List.addHeader(label);
+        //List.addImage(Settings.getFileUrl(value));
+        CustomFields.addImage(id, label, value, options, formid);
     } else if (type == "image") {
         CustomFields.addImage(id, label, value, options, formid);
     } else if (type == 'signature') {
@@ -132,6 +134,8 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == 'email') {
         List.addItemLabel(label, value, "App.mailto({value})");
     } else if (type == 'link') {
+        // if not protocol, then assume http
+        if (value.indexOf(":") == -1) value = "http://" + value;
         if (WEB()) List.addItemLabel("", label, "App.web({value})");
         else List.addItemLabel(label, value, "App.web({value})");
     } else if (type == 'date') {
@@ -201,7 +205,7 @@ CustomFields.addButton = function (id, label, value, options, formid, fieldguid)
             onclick = "Forms.newForm({templateid},'Forms.forms',{linkedid},null,null,{form.projectid})";
         }
     } else if (value == "code") {
-        if (CustomFields.buttons == null) CustomFields.buttons = {};
+        if (!CustomFields.buttons) CustomFields.buttons = {};
         CustomFields.buttons[id] = options; // this contains the onclick for button
         onclick = "CustomFields.onButton({formid},{id})";
     } else return;
@@ -223,7 +227,11 @@ CustomFields.addButtonBoxes = function (table, recordId) {
         var label = field.label;
         if (field.label.startsWith("=")) {
             var js = field.label.substr(1); + "\n//# sourceURL=BUTTONBOX.ONLOAD.JS";
-            label = eval(js);
+            try {
+                label = eval(js);
+            } catch(e) {
+                label = "#Javascript Error";
+            }
         }
         if (label) Grid.add(label, "CustomFields.onButtonBox({field.id},{recordId})", style);
     }
@@ -256,6 +264,7 @@ CustomFields.onButtonBox = function (fieldid, recordId) {
 
 
 CustomFields.onButton = function (recordId, fieldid) {
+    if (!CustomFields.buttons) CustomFields.buttons = {};
     var onclick = CustomFields.buttons[fieldid];
     if (onclick) {
         try {
@@ -428,8 +437,8 @@ CustomFields.viewImage = function (fileid, id, formid) {
 }
 
 CustomFields.onImageTap = function (id, formid, geo) {
+    if (!CustomFields.buttons) CustomFields.buttons = {};
     var jsCode = CustomFields.buttons[id];
-    //App.confirm("On Tap: " + id + "\n" + jsCode);
     if (!jsCode) return;
     try {
         // jsCode can use x, y and form
@@ -727,4 +736,33 @@ CustomFields.evalOptions = function (recordId, fieldId, options) {
         }
         return "Error: " + e.message;
     }
+}
+
+// name if FXX format, type is custom field type
+CustomFields.groupBy = function(table, where, names, type) {
+    let map = new HashMap();
+    names = names.split("|");
+    
+    const items = Query.select(table, "*", where, "name");
+    for (const item of items) {
+        let custom = {};
+        try {
+            custom = item.custom ? JSON.parse(item.custom) : {};
+        } catch(e) {}
+        for (let name of names) {
+            let value = custom[name];
+            if (value) {
+                let obj = map.get(value);
+                if (obj == null) {
+                    // we use a set to make sure the itmes are not added multiple times
+                    obj = {name: CustomFields.formatValue(value, type), items: new Set()};
+                    map.set(value, obj);
+                }
+                obj.items.add(item);
+            }
+        }
+    }
+    // sort by most vessels
+    map.keys.sort(function (k1, k2) { return map.get(k2).items.size - map.get(k1).items.size });
+    return map;
 }

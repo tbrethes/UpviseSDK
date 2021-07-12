@@ -436,8 +436,25 @@ Templates.editIntegration = function (id) {
     var onchange = "AccountSettings.set(this.id, this.value);App.sync()";
     List.addComboBox("forms.export.year", "Since year " + Format.tag("Beta", Color.ORANGE), AccountSettings.get("forms.export.year"), onchange, "0:All|2018|2019|2020|2021");
     List.addHelp("This applies for ALL form templates, Jobs and Tasks URL export");
- 
+    _html.push("<br/>");
+    var onchange2 = "Query.updateId('forms.templates',{id},this.id,this.value);App.sync()";
+    var fieldOptions = Templates.getIntegrationFieldOptions(id);
+    // hack fix
+    if (template.export && template.export.startsWith("{")) template.export = "";
+    List.addComboBoxMulti("export", "Export Only these fields "  + Format.tag("Beta", Color.ORANGE), template.export, onchange2, fieldOptions);
     List.show();
+}
+
+Templates.getIntegrationFieldOptions = function(id) {
+    let fields = Query.select("Forms.fields", "id;type;label", "formid={id}", "rank");
+    let options = [];
+    let EXCLUDE_TYPES = ["photo", "drawing", "image", "header", "button", "formula", "label", "signature", "risk"];
+    for (let field of fields) {
+        if (field.label && EXCLUDE_TYPES.includes(field.type) == false) {
+            options.push(field.name + ":(" + field.name + ") " + field.label);
+        }
+    }
+    return options.join("|");
 }
 
 Templates.viewTemplate = function (id) {

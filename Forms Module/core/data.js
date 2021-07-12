@@ -344,12 +344,11 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
    
     var buffer = [];
     // strict mode for script?
-    //if (typeof (GlobalSettings) != undefined && GlobalSettings.getString('forms.usestrict') == "1") {
     if (AccountSettings.get("forms.usestrict") == "1") {
         buffer.push("'use strict';");
     }
     for (var member in valuesObj) {
-        buffer.push('var ' + member + '=' + esc(valuesObj[member]) + ";");
+        if (member != "") buffer.push('var ' + member + '=' + esc(valuesObj[member]) + ";");
     }
     buffer.push(js);
     if (WEB()) buffer.push("//# sourceURL=http://FORM/" + sourceURL + ".js");

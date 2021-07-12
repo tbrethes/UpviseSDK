@@ -23,7 +23,7 @@ Dataset.select = function (table, groupid, orderby) {
     }
     // now do the sorting
     if (orderby) {
-        list.sort(function (o1, o2) { return o1[orderby] - o2[orderby]; })
+        list.sort(function(o1, o2) { return o1[orderby] - o2[orderby]; })
     }
     return list;
 }

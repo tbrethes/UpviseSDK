@@ -93,6 +93,9 @@ Forms.notify = function (form, statename, staff) {
     var template = Query.selectId("Forms.templates", form.templateid);
     if (template == null) return;
 
+    var values = Forms._getValues(form);
+    if (values["NONOTIF"] == 1) return;
+
     var title = template.name + " " + "Form " + form.name;
     var type = "form." + template.id;
     var body = statename + " by " + User.getName();
@@ -141,7 +144,9 @@ Forms.getState = function (form) {
         if (state.action != "" && Forms.containsUser(form, statestaff, state.roleid)) {
             obj.action = state.action;
             obj.onclick = "Forms_nextState({form.id},{form.status})";
-            obj.reject = "Forms.reject({form.id})";
+            if (AccountSettings.get("forms.noreject") != "1") {
+                obj.reject = "Forms.reject({form.id})";
+            }
         }
         return obj;
     }

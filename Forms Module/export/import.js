@@ -24,7 +24,7 @@ Forms.importForms = function (templateid) {
 }
 
 Forms.getFormImportHeader = function (templateid) {
-    var header = ["Id", "Name", "Date", "Status", "Location", "Owner", "LinkedID", "LinkedRecord"];
+    var header = ["Id", "Name", "Date", "Status", "Address", "Owner", "LinkedID", "LinkedRecord"];
     let fields = Forms.getFormImportFields(templateid);
     for (let field of fields) {
         header.push(field.label);
@@ -68,7 +68,7 @@ Forms.onImportForms = function (lines) {
             obj.name = Import.getLineValue("name");
             obj.date = Date.parseDate(Import.getLineValue("date"));
             obj.status = Import.getLineValue("status");
-            obj.location = Import.getLineValue("location");
+            obj.address = Import.getLineValue("address");
             //obj.geo = Import.getLineValue("geo");
             obj.owner = Import.getLineValue("owner");
             obj.linkedid = Import.getLineValue("linkedid");

@@ -43,6 +43,7 @@ Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, proje
     }
 }
 
+// counterid is used by Novade for custom counter app-level formating
 Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name, projectid, counterid, toolid) {
     var template = Query.selectId("Forms.templates", templateid);
     if (template == null) return null;
@@ -71,17 +72,17 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     
     form.hidden = Forms.getDefaultHidden(template.id);
 
+    
     var formid = Query.insert("Forms.forms", form);
-
     // Warning : setDefaultValues needs form.id for drawing duplication
     _formid = formid;
     form.id = formid;
     if (values == null) values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
-
     if (template.oncreate) Forms.injectCode(template.oncreate, form, "ONCREATE_" + template.name);
-    return formid;
+    
+    return form.id;
 }
 
 Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, linkedid, projectid, name, counterid) {
@@ -124,16 +125,17 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     form.hidden = Forms.getDefaultHidden(template.id);
 
     var formid = Query.insert("Forms.forms", form);
-
     // Warning : setDefaultValues needs form.id for drawing duplication
     form.id = formid;
     var values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
-
-    if (template.oncreate) Forms.injectCode(template.oncreate,form,  "ONCREATE_" + template.name);
-
-    return formid;
+  
+    if (template.oncreate) {
+        _formid = form.id;
+        Forms.injectCode(template.oncreate, form,  "ONCREATE_" + template.name);
+    }
+    return form.id;
 }
 
 Forms.getNewName = function (templateid, counterid) {
@@ -163,10 +165,12 @@ Forms.setDefaultValues = function (form, values, status) {
         var value = values[field.name];
         if (value == null) {
             if (field.type == "drawing") {
-                value = field.value ? App.duplicatePicture(field.value, "Drawing " + form.name) : "";
+                value = field.value ? App.duplicatePicture(field.value, "Drawing " + new Date().toLocaleString()) : "";
                 values[field.name] = value;
                 // TODO :  add linkedtable and linkedid as params in App.duplicatePicture
                 if (value && form.id) {
+                    // Note during form creation, there is no form.id yet,
+                    // but during workflow state change, form.id is present
                     Query.updateId("System.files", value, "linkedtable", "Forms.forms");
                     Query.updateId("System.files", value, "linkedrecid", form.id + ":" + field.name);
                 }
@@ -180,6 +184,21 @@ Forms.setDefaultValues = function (form, values, status) {
                 value = Forms._eval(field.value, form, "DEFAULTVALUE_" + field.name); // to use javacript:// feature
                 if (value != "") values[field.name] = value;
             }
+        }
+    }
+}
+
+// Added May 6th, 2021
+Forms.linkDrawingsToForm = function(form) {
+    var values = JSON.parse(form.value);
+    var fields = Query.select("Forms.fields", "name", "type='drawing' AND formid={form.templateid}", "rank");
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var fileid = values[field.name];
+        if (fileid) {
+            // Add linkedtable and linkedrecid to give form owners access to these files
+            Query.updateId("System.files", fileid, "linkedtable", "Forms.forms");
+            Query.updateId("System.files", fileid, "linkedrecid", form.id + ":" + field.name);
         }
     }
 }
