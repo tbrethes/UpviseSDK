@@ -126,7 +126,7 @@ FormsPdf.addStyle = function (template) {
 FormsPdf.includeHidden = "newsubform";
 
 FormsPdf.write = function (form, template, index) {
-    var linkedItem = Forms.getLinkedRecord != undefined ? Forms.getLinkedRecord(form) : null;
+    var linkedItem = Forms.getLinkedRecord != undefined ? Forms.getLinkedRecord(form, true) : null;
 
     var filename = template.name + " " + form.name;
     if (linkedItem && linkedItem.value) filename += "-" + linkedItem.value;
@@ -204,8 +204,10 @@ FormsPdf.write = function (form, template, index) {
     // Add a QRCode in the header
     if (options.qrcode == 1) {
         var companyId = Settings.get("companyId");
-        var hash = form.value.length;
-        var qrcode = companyId + "-" + form.id + "-" + hash;
+        // Sept 7. No hash anymore one qrcode for formid
+        //var hash = form.value.length;
+        //var hash = "";
+        var qrcode = companyId + "-" + form.id;// + "-" + hash;
         Pdf2.addTag("qrcode", qrcode);
     }
 
@@ -249,7 +251,7 @@ FormsPdf.addFields = function (fields, form) {
         var field = fields[j];
 
         // hidden fields not belonging to the form workflow state
-        if (form.status < field.status && form.status != -1) continue;
+        if (form.status < field.status && form.status != -1 && form.status != -2) continue;
 
         if (FormsPdf.isFieldHidden(field) == true) continue;
         if (field.type == "header") {
@@ -477,13 +479,19 @@ FormsPdf.formatToggle = function (value, label) {
 FormsPdf.addHistory = function (history) {
     for (var i = 0; i < history.length; i++) {
         var item = history[i];
-        var signature = "";
-        if (item.signature != "") signature = '<img height="50" src="data:image/png;base64,' + item.signature + '" />';
-
+        
         Pdf2.add("<table class=form>");
         Pdf2.add("<tr><td colspan=3 class=header>", item.name, "</td></tr>");
         if (item.note != "") Pdf2.add('<tr><td class="label" colspan=3>', item.note, "</td></tr>");
-        Pdf2.add("<tr class=history><td>", R.NAME, ":<br><b>", item.staff, "</b></td><td>", R.DATE, ":<br/><b>", Format.datetime(item.date), "</b></td><td>", R.SIGNATURE, ": ", signature, '</td></tr>');
+        Pdf2.add("<tr class=history><td>", R.NAME, "<br><b>", item.staff, "</b></td>");
+        Pdf2.add("<td>", R.DATE, "<br/><b>", Format.datetime(item.date), "</b></td>");
+        if (item.signature) {
+            var signature = '<img height="50" src="data:image/png;base64,' + item.signature + '" />';
+            Pdf2.add("<td>", R.SIGNATURE, " ", signature, '</td>');
+        } else {
+            Pdf2.add("<td> </td>");
+        }
+        Pdf2.add("</tr>");
         Pdf2.add("</table>");
     }
 }

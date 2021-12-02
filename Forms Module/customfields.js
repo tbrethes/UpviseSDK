@@ -507,6 +507,9 @@ CustomFields.loadValues = function (custom) {
 }
 
 CustomFields._update = function (table, recordId, name, value) {
+    if (typeof(Change) != "undefined") {
+        Change.addLog(table, recordId, name, CustomFields.values[name]);
+    }
     CustomFields.values[name] = value;
     var custom = JSON.stringify(CustomFields.values);
     Query.updateId(table, recordId, "custom", custom);
@@ -579,7 +582,8 @@ CustomFields.formatValue = function (value, type, options, isWeb) {
     else if (type == "signature") return CustomFields.formatSignature(value);
     else if (type == "photo") return CustomFields.formatImages(value);
     else if (type == "drawing" || type == "image") return CustomFields.formatDrawing(value);
-    else if (type == "formula") return Number(value) ? Number(value).toLocaleString() : value; // try to convert to number
+    //else if (type == "formula") return Number(value) ? Number(value).toLocaleString() : value; // try to convert to number
+    else if (type == "formula") return typeof(value) === "string" ? value : Number(value).toLocaleString(); // try to convert to number only if already a number. Nov 16 2022.
     else if (type == "score") return CustomFields.formatScore(value, isWeb);
     else return String(value);
 }

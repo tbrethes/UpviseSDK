@@ -118,12 +118,15 @@ Forms.getState = function (form) {
     // empty state for subforms
     if (form.linkedtable == "Forms.forms") return {};
 
+    // superseeded status can apply with or without workflow
+    if (form.status == -2) {
+        return { name: "Superseded"};
+    }
+ 
     var count = Query.count("Forms.states", "templateid={form.templateid}");
     if (count == 0) {
         if (form.status == 0) {
             return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms.submit({form.id})" };
-        } else if (form.status == -2) {
-            return { name: "Superseded"};
         } else {
             // we assume form.status = 1 : means Submitted : nothing to do
             return { name: null };
@@ -377,29 +380,33 @@ Forms.addStandardUsers = function (formowner, staff) {
     for (var i = 0; i < owners.length; i++) {
         var owner = owners[i];
         if (owner == 'Initiator') continue;
-        if (Query.count("System.users", "type!={User.STANDARD} AND status=1 AND name={owner}") == 0) {
+        var user1 = Query.select("System.users", "id;status;type", "name={owner}")[0];
+        if (user1 && user1.status == 1 && user1.type == User.STANDARD) {
             newowners = MultiValue.add(newowners, owner);
-        }
+        } 
     }
     return newowners;
 }
 
 //////////////////////
 
-Forms.resetToDraft = function(id) {
-    if (App.confirm("Are you sure?") == false) return;
+Forms.resetToDraft = function(id, silent) {
+    if (silent === null) silent = false;   
+    if (!silent) if (App.confirm("Are you sure?") == false) return;
 
     var form = Query.selectId("Forms.forms", id);
     Query.updateId("Forms.forms", form.id, "status", 0);
     Query.updateId("Forms.forms", form.id, "color", "");
+    Forms.addHistory(form, "Reset To Draft", "", "");
 
     // also reset the subforms
     var subforms = Forms.selectSubForms(form);
     for (var i = 0; i < subforms.length; i++) {
         Query.updateId("Forms.forms", subforms[i].id, "status", 0);
     }
-    History.reload();
+    if (!silent) History.reload();
 }
+
 
 ///////////// ROLE WORKFLOW
 

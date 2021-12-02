@@ -301,8 +301,8 @@ Templates.editExportPdf = function (id) {
     List.addHeader(R.WATERMARK);
     List.addTextBox("watermark", R.TEXT, Templates.pdfoptions.watermark, onchange2);
     List.addTextBox("watermarkcolor", R.COLOR, Templates.pdfoptions.watermarkcolor, onchange2, "color");
-    List.addCheckBox("qrcode", "QRCode Verification" + " " + Format.tag("Beta", Color.GREEN), Templates.pdfoptions.qrcode, onchange2);
-    List.addCheckBox("watermarkstatus", "Show Intermediate Form Status Watermark" + " " + Format.tag("Beta", Color.GREEN), Templates.pdfoptions.watermarkstatus, onchange2);
+    List.addCheckBox("qrcode", "QRCode Verification" + " " + Format.tag("New", Color.BLUE), Templates.pdfoptions.qrcode, onchange2);
+    List.addCheckBox("watermarkstatus", "Show Intermediate Form Status Watermark" + " " + Format.tag("New", Color.BLUE), Templates.pdfoptions.watermarkstatus, onchange2);
     
     List.addHeader(R.HEADER + " & " + R.FOOTER);
     List.addFileBox("logoid", R.HEADERIMAGE, Templates.pdfoptions.logoid, onchange2);
@@ -426,22 +426,26 @@ Templates.editIntegration = function (id) {
 
     Toolbar.moreButton = false;
     List.addItemBox(template.name, "Integration", "", "img:pipe");
-    List.forceNewLine = false;
+    List.forceNewLine = true;
 
     var url = Forms.getExportUrl(template.id);
     var absUrl = new URL(url, document.URL).href;
     var value = '<a href="' + absUrl + '">' + absUrl + '</a>';
-    _html.push('<div><b>', 'Integration URL', '</b></div><div style="background-color:#EEEEEE;padding:10px;margin:10px;display:inline-block">', value, '</div>');
+    _html.push('<div><b>', "Integration URL" + Format.tag("New", Color.BLUE), '</b></div><div style="background-color:#EEEEEE;padding:10px;margin:10px;display:inline-block">', value, '</div>');
 
-    var onchange = "AccountSettings.set(this.id, this.value);App.sync()";
-    List.addComboBox("forms.export.year", "Since year " + Format.tag("Beta", Color.ORANGE), AccountSettings.get("forms.export.year"), onchange, "0:All|2018|2019|2020|2021");
-    List.addHelp("This applies for ALL form templates, Jobs and Tasks URL export");
     _html.push("<br/>");
+    
     var onchange2 = "Query.updateId('forms.templates',{id},this.id,this.value);App.sync()";
     var fieldOptions = Templates.getIntegrationFieldOptions(id);
     // hack fix
     if (template.export && template.export.startsWith("{")) template.export = "";
-    List.addComboBoxMulti("export", "Export Only these fields "  + Format.tag("Beta", Color.ORANGE), template.export, onchange2, fieldOptions);
+    List.addComboBoxMulti("export", "Export Only these fields", template.export, onchange2, fieldOptions);
+
+    _html.push("<br/><br/>");
+    var onchange = "AccountSettings.set(this.id, this.value);App.sync()";
+    List.addComboBox("forms.export.year", "Since year", AccountSettings.get("forms.export.year"), onchange, "0:All|2018|2019|2020|2021");
+    List.addHelp("This applies for ALL form templates & Jobs URL export");
+    
     List.show();
 }
 

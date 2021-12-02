@@ -260,7 +260,7 @@ function editFieldTemplate(id) {
     } else if (type == "header") {
         List.addCheckBox("value", "Force Page Break in PDF", item.value, onchange);
     } else if (type == "photo") {
-        List.addComboBox("seloptions", "Choose Action", item.seloptions, onchange, ":Default|camera:Start Camera|scan:Scan Document|gallery:Pick File");
+        List.addComboBox("seloptions", "Choose Action", item.seloptions, onchange, ":Default|camera:Start Camera|scan:Scan Document|gallery:Pick File|highres:Default High Res");
         List.addTextBox("onchange", "On Change", item.onchange, onchange, "code");
         List.addHelp("Enter any valid Javascript code. Use this.id to referencwe the file id " + help);
     } else if (type == "barcode") {

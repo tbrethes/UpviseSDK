@@ -122,6 +122,7 @@ Forms.onScan = function (formid, fieldid, value) {
 Forms.writeViewFields = function (form) {
      // 19 April 2021 : buttons are now visible in view mode, so we need the onedit code here too
      var template = Query.selectId("Forms.templates", form.templateid);
+     var formCustom =  GlobalSettings.getString("forms.customjs")
      if (template && template.onedit) Forms.injectCode(template.onedit, form, "ONEDIT_" + template.name);
 
     _valueObj = Forms._getValues(form); // we need this because Risk.view access it
@@ -169,6 +170,8 @@ Forms.getFields = function (form, templateFields, includeHidden) {
     var formValues = Forms._getFullValues(form, templateFields);
     var lang = "en";
     if (Settings.getLanguage) lang = Settings.getLanguage();
+    if (lang == "pt") lang = "es";
+    
     var hiddenFields = form.hidden ? JSON.parse(form.hidden) : [];
 
     var list = [];
@@ -344,9 +347,9 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
    
     var buffer = [];
     // strict mode for script?
-    if (AccountSettings.get("forms.usestrict") == "1") {
-        buffer.push("'use strict';");
-    }
+    //if (AccountSettings.get("forms.usestrict") == "1") {
+    //    buffer.push("'use strict';");
+    //}
     for (var member in valuesObj) {
         if (member != "") buffer.push('var ' + member + '=' + esc(valuesObj[member]) + ";");
     }
@@ -399,7 +402,7 @@ Forms.canEdit = function (form) {
 
     var hasWorkflow = Query.count("Forms.states", "templateid={form.templateid}") > 0;
     if (hasWorkflow == false) {
-        // manager can alwaus edit
+        // manager can always edit
         if (User.isManager()) return true;
         else if (form.status == 0) {
             // user(s) who own the form can edit it in Draft mode = 0
@@ -494,7 +497,7 @@ Forms.getPunchData = function (id) {
 /////////////////////
 
 Forms.getCreator = function (form) {
-    return (form.owner != "") ? form.owner.split("|")[0] : "";
+    return form.owner ? form.owner.split("|")[0] : "";
 }
 
 // used on web only...
