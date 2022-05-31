@@ -284,6 +284,11 @@ function editFieldTemplate(id) {
         List.addTextBox("value", "Script", item.value, onchange, "code");
         List.addHelp('Enter any valid JavaScript code. You can reference the other fields in the template by their ID. Example: Math.floor(F1*F2). ' + help);
         List.addCheckBox("seloptions", "Visible in Edit mode", item.seloptions, onchange);
+    } else if (type == "readonly") {
+        List.addTextBox("value", R.DEFAULTVALUE, item.value, onchange, "code");
+        List.addHelp("Tip : to use a javascript statement, start with a = char. Then use statements like Date.today(), Date.now(), User.getName()." + help);
+        // We use seloptions == 1 to indicate Hide in PDF readonly field
+        List.addCheckBox("seloptions", "Hide in PDF", item.seloptions, onchange);
     } else {
         List.addTextBox("value", R.DEFAULTVALUE, item.value, onchange, "code");
         List.addHelp("Tip : to use a javascript statement, start with a = char. Then use statements like Date.today(), Date.now(), User.getName()." + help);
@@ -291,7 +296,7 @@ function editFieldTemplate(id) {
         List.addHelp("Enter any valid Javascript code. " + help);
     }
 
-    if (type != "button" && type != "header" && type != "formula" && type != "label" && type != "score") {
+    if (type != "button" && type != "header" && type != "formula" && type != "label" && type != "score" && type != "readonly") {
         List.addCheckBox("mandatory", R.MANDATORYFIELD, item.mandatory, onchange);
         List.addHelp("Check this if the field must be filled in order to move to the next state");
     }

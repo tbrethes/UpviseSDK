@@ -61,7 +61,9 @@ Templates.onImportTemplates = function (lines) {
             var labelDE = Import.getLineValue("fieldlabelDE");
             var labelFR = Import.getLineValue("fieldlabelFR");
             var labelES = Import.getLineValue("fieldlabelES");
-
+            var labelZH = Import.getLineValue("fieldlabelZH");
+            var labelMY = Import.getLineValue("fieldlabelMY");
+            
             var type = Import.getLineValue("fieldtype");
             var fieldoptions = Import.getLineValue("fieldoptions");
             var fieldvalue = Import.getLineValue("fieldvalue");
@@ -91,6 +93,9 @@ Templates.onImportTemplates = function (lines) {
             values2.labelDE = labelDE;
             values2.labelFR = labelFR;
             values2.labelES = labelES;
+            values2.labelZH = labelZH;
+            values2.labelMY = labelMY;
+            
             Query.insert("Forms.fields", values2);
         }
     }

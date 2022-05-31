@@ -2,24 +2,91 @@
 // FORM Templates
 
 Templates.editTemplates = function () {
+    let groups = Query.select("Forms.groups", "id;name", null, "name");
+    if (groups.length >= 20) {
+        History.redirect("Templates.editTemplates2()");
+        return;
+    }
+    
+    var title = R.CONFIGURE  + " " + R.TEMPLATES;
+    Toolbar.setStyle("search");
     Toolbar.addButton(R.NEWTEMPLATE, "Templates.newTemplate()", "new");
     Toolbar.addButton(R.IMPORT, "Templates.importTemplates()", "upload");
     Toolbar.addButton(R.EXPORT, "Templates.exportCheckedTemplates(true)", "more");
 
-    List.addItemBox("", R.TEMPLATES, "", "img:product");
-    
-    const groups = Query.select("Forms.groups", "id;name", null, "name");
-    if (groups.length > 0) Grid.addHeader();
-    for (const group of groups) {
+    let templates = [];
+    const search = History.current() ? History.current().search : null;
+    if (search) {
+        // search all forms
+        templates = Query.select("Forms.templates", "*", "", "name");
+        templates = Filter.search(templates, "name");
+        groups = Filter.search(groups, "name");
+        title += " / Search Results : " + search;
+    } else {
+        // only templates with no group
+        templates = Query.select("Forms.templates", "*", "groupid=''", "name");
+    }
+
+    List.addItemTitle(title);
+    for (let group of groups) {
         const count = Query.count("templates", "groupid={group.id}");
         Grid.add(group.name, "Templates.editTemplateGroup({group.id})", "img:folder;count:" + count);
     }
 
     // Show templates with no group
-    const templates = Query.select("Forms.templates", "*", "groupid=''", "name");
     Templates.writeTemplateList(templates);
     Grid.show();
 }
+
+Templates.editTemplates2 = function(tab) {
+    let title = R.CONFIGURE;
+    let templates = Query.select("Forms.templates", "*", "name");
+    let groups = Query.select("Forms.groups", "id;name", null, "name");
+    
+    const search = History.current() ? History.current().search : null;
+    if (search) {
+        templates = Filter.search(templates, "name");
+        groups = Filter.search(groups, "name");
+        title += " / Search Results : " + search;
+    }
+    
+    Toolbar.setStyle("search");
+    Toolbar.addButton(R.NEWTEMPLATE, "Templates.newTemplate()", "new");
+    Toolbar.addButton(R.IMPORT, "Templates.importTemplates()", "upload");
+    Toolbar.addButton(R.EXPORT, "Templates.exportCheckedTemplates(true)", "more");
+    
+    List.addItemTitle(title);
+    List.addTab(R.TEMPLATES, templates.length, "Templates.editTemplates2()", "img:form");
+    List.addTab(R.GROUPS, groups.length, "Templates.editTemplates2('groups')", "img:folder");
+    
+    if (tab == "groups") {
+        List.addLine();
+        for (const group of groups) {
+            const count = Query.count("templates", "groupid={group.id}");
+            Grid.add(group.name, "Templates.editTemplateGroup({group.id})", "img:folder;count:" + count);
+        }
+    } else {
+        Table.init();
+        Table.addColumn(R.NAME, "string+");
+        Table.addColumn(R.GROUP, "string", {width:"400px"});
+        Table.addColumn(R.LINKEDTO, "string", {width:"100px"});
+        Table.addColumn(R.DATE, "date");
+        
+        for (let template of templates) {
+            let name = template.name;
+            if (template.prefix) name += " -- " + template.prefix;
+            let linkedto = template.linkedtable ? Format.options(template.linkedtable, Forms.getLinkedOptions()) : "(None)";
+            let group = Query.names("Forms.groups", template.groupid);
+            Table.addRow(template.id, [name, group, linkedto, template.date], "Templates.viewTemplate({template.id})");
+        }
+        Table.render();
+    }
+        
+    List.show();    
+}
+        
+
+Forms.editTemplateGroup
 
 Templates.editTemplateGroup = function (groupid) {
     var templates = Query.select("Forms.templates", "*", "groupid={groupid}", "name");
@@ -35,6 +102,23 @@ Templates.editTemplateGroup = function (groupid) {
 }
 
 Templates.writeTemplateList = function (templates) {
+    if (templates.length == 0) return;
+
+    Table.init();
+        Table.addColumn(R.NAME, "string+");
+        Table.addColumn(R.GROUP, "string", {width:"400px"});
+        Table.addColumn(R.LINKEDTO, "string", {width:"100px"});
+        Table.addColumn(R.DATE, "date");
+        
+        for (let template of templates) {
+            let name = template.name;
+            if (template.prefix) name += " -- " + template.prefix;
+            let linkedto = template.linkedtable ? Format.options(template.linkedtable, Forms.getLinkedOptions()) : "";
+            let group = Query.names("Forms.groups", template.groupid);
+            Table.addRow(template.id, [name, group, linkedto, template.date], "Templates.viewTemplate({template.id})");
+        }
+        Table.render();
+    /*
     List.addHeader([R.NAME, R.LINKEDTO, R.GROUP, R.DATE, R.OWNER], ["50%"], "checkbox");
     for (var i = 0; i < templates.length; i++) {
         var template = templates[i];
@@ -44,6 +128,7 @@ Templates.writeTemplateList = function (templates) {
         var group = Query.names("Forms.groups", template.groupid);
         List.add([name, linkedto, group, date, Format.owner(template.owner)], "Templates.viewTemplate({template.id})", { id: template.id, img: "form" });
     }
+    */
 }
 
 /////////////////////////////////////////////////////////
@@ -138,13 +223,13 @@ Templates.editFields = function (id, headerid) {
 
             var hasScript = "";
             if (field.onchange || Templates.hasScript(field.seloptions) || Templates.hasScript(field.value)) {
-                hasScript = Format.tag("Script", Color.GREEN)
+                hasScript = Format.tag("Script", "green")
             } else if (field.type == "button") {
                 if (field.value == "newsubform") {
                     var subtemplateid = field.seloptions;
-                    hasScript = Format.tag("Subform", Color.GREEN, "Templates.viewTemplate({subtemplateid})");
+                    hasScript = Format.tag("Subform", "blue", "Templates.viewTemplate({subtemplateid})");
                 } else if (field.value == "code") {
-                    hasScript = Format.tag("Script", Color.GREEN);
+                    hasScript = Format.tag("Script", "green");
                 }
             }
 
@@ -214,7 +299,7 @@ Templates.editDisplay = function (id) {
     List.addHeader(R.OPTIONS);
     List.addCheckBox('splitheader', "Display each section on a separate screen on mobile" + " " + Format.tag("NEW", Color.BLUE), template.splitheader, onchange);
     List.addCheckBox("punch", R.HASPUNCHITEMS, template.punch, onchange);
-    List.addCheckBox("favorite", R.PINLEFTPANE, template.favorite, onchange);
+    List.addCheckBox("favorite", R.FAVOURITE, template.favorite, onchange);
     List.addCheckBox("disablenew", "User cannot create new form", template.disablenew, onchange);  
     List.show();
 }
@@ -297,6 +382,7 @@ Templates.editExportPdf = function (id) {
     List.addCheckBox("subformlist", "Layout vertically", Templates.pdfoptions.subformlist, onchange2);
     List.addCheckBox("subformhidden", "Show hidden fields", Templates.pdfoptions.subformhidden, onchange2);
     List.addCheckBox("subformskip", "Do not export at all", Templates.pdfoptions.subformskip, onchange2);
+    List.addCheckBox("subformtableheader", "Show Template Name header", Templates.pdfoptions.subformtableheader, onchange2);
     
     List.addHeader(R.WATERMARK);
     List.addTextBox("watermark", R.TEXT, Templates.pdfoptions.watermark, onchange2);
@@ -433,7 +519,7 @@ Templates.editIntegration = function (id) {
     var value = '<a href="' + absUrl + '">' + absUrl + '</a>';
     _html.push('<div><b>', "Integration URL" + Format.tag("New", Color.BLUE), '</b></div><div style="background-color:#EEEEEE;padding:10px;margin:10px;display:inline-block">', value, '</div>');
 
-    _html.push("<br/>");
+    List.addLine();
     
     var onchange2 = "Query.updateId('forms.templates',{id},this.id,this.value);App.sync()";
     var fieldOptions = Templates.getIntegrationFieldOptions(id);
@@ -470,20 +556,20 @@ Templates.viewTemplate = function (id) {
     Toolbar.addButton("Import Forms", "Forms.importForms({id})", "more");
     Toolbar.addButton(R.DELETE, "Templates.deleteTemplate({id})", "more");
     
-    var templateName = template.name + " " + Format.text(template.prefix, "gray");
-
+    let templateName = template.name + " " + Format.text(template.prefix, "gray");
+    let fields = Query.select("Forms.fields", null, "formid={id}", "rank");
+    let states = Query.select("Forms.states", "*", "templateid={id}", "status");
+   
     List.addItemBox(R.TEMPLATE, templateName, "", "img:form");
-    _html.push("<br/>");
+    List.addLine();
 
-    var fields = Query.select("Forms.fields", null, "formid={id}", "rank");
-    var states = Query.select("Forms.states", "*", "templateid={id}", "status");
-  
+    Grid.setStyle("compact");
     Grid.add(R.FIELDS, "Templates.editFields({id})", "img:product;count:" + fields.length);
     Grid.add(R.INFO, "Templates.editInfo({id})", "img:info");
     Grid.add("Display", "Templates.editDisplay({id})", "img:template");
     if (Templates.WORKFLOW) Grid.add(R.WORKFLOW, "Templates.editWorkflow({id})", "img:team;count:" + states.length);
     
-    var scriptingColor = (template.oncreate || template.onedit || template.onsubmit || template.onreject) ? "green" : "";
+    const scriptingColor = (template.oncreate || template.onedit || template.onsubmit || template.onreject) ? "green" : "";
     Grid.add("Scripting", "Templates.editScripting({id})", "img:app;color:" + scriptingColor);
     
     if (Templates.EXPORTPDF) {
@@ -496,7 +582,7 @@ Templates.viewTemplate = function (id) {
     Grid.addHeader("Advanced");
     if (Templates.DASHBOARD) Grid.add(R.DASHBOARD + " " + (template.dashboardjs? Format.tag("Script", Color.GREEN) : ""), "Templates.editDashboard({id})", "img:chart");
     
-    var sharingStyle= "img:group";
+    let sharingStyle= "img:group";
     if (template.public == 1) sharingStyle += ";color:green;count:ON";
     if (Templates.SHARING) Grid.add(R.SHARING, "Templates.editSharing({id})", sharingStyle);
     Grid.add("Integration", "Templates.editIntegration({id})", "img:pipe");

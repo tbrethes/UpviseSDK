@@ -13,6 +13,7 @@ CustomFields.view = function (table, recordId, fieldsTable) {
     var where = "formid={fieldsTable}";
     var fields = Query.select("Notes.fields", "name;label;type;seloptions;groupid;roleid", where, "rank");
     fields = CustomFields.filterRole(fields);
+    fields = CustomFields.filterGroup(fields, item.groupid);
     if (fields.length == 0 || item == null) return;
 
     CustomFields.values = CustomFields.loadValues(item.custom);
@@ -59,19 +60,18 @@ CustomFields.filterGroup = function(fields, groupid) {
     return filtered;
 }
 
-CustomFields.addViewItem = function (id, type, label, value, options, formid) {
-    if (type == "button") {
-        CustomFields.addButton(id, label, "code", options, formid);
-        return;
-    } else if (type == "buttonbox") { // buttonbox are displayed separately
+CustomFields.addViewItem = function (id, type, label, value, options, formid, fieldguid) {
+    if (type == "buttonbox") { // buttonbox are displayed separately
         return;
     } else if (type == 'header') {
         // Delayed write : overwrite any previous delayed header if any
         CustomFields.curHeader = label;
         return;
     }
-    // do not write empty fields
-    if (value == null || value === "") return;
+    // do not write empty fields (exception button which can have value==null )
+    if (type!= "button" && (value == null || value === "")) {
+        return;
+    }
 
     // Write the delayed header if any
     if (CustomFields.curHeader != null) {
@@ -79,7 +79,9 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         CustomFields.curHeader = null;
     }
 
-    if (type == 'select' || type == 'selectmulti') {
+    if (type == "button") {
+        CustomFields.addButton(id, label, value, options, formid, fieldguid); // value instead of "code"
+    } else if (type == 'select' || type == 'selectmulti') {
         List.addItemLabel(label, Format.options(value, options));
     } else if (type == 'toggle') {
         List.addToggleBox('', label, value, null, options);
@@ -113,8 +115,6 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
     } else if (type == "photo") {
         CustomFields.addFileBox(label, "Forms.forms", value);
     } else if (type == "drawing") {
-        //List.addHeader(label);
-        //List.addImage(Settings.getFileUrl(value));
         CustomFields.addImage(id, label, value, options, formid);
     } else if (type == "image") {
         CustomFields.addImage(id, label, value, options, formid);
@@ -137,7 +137,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid) {
         // if not protocol, then assume http
         if (value.indexOf(":") == -1) value = "http://" + value;
         if (WEB()) List.addItemLabel("", label, "App.web({value})");
-        else List.addItemLabel(label, value, "App.web({value})");
+        else List.addItemLabel(label, "Open Link", "App.web({value})");
     } else if (type == 'date') {
         // do not display Someday date for forms
         if (value != 0) List.addItemLabel(label, Format.date(value), null, "img:calendar");
@@ -183,6 +183,7 @@ CustomFields.addButton = function (id, label, value, options, formid, fieldguid)
         var upviseColor = Color[color.toUpperCase()];
         if (upviseColor) color = upviseColor;
     }
+    var icon = "new";
 
     var form = formid ? Query.selectId("Forms.forms", formid) : null;
     var onclick = null;
@@ -201,15 +202,18 @@ CustomFields.addButton = function (id, label, value, options, formid, fieldguid)
         if (label.endsWith(">>")) {
             onclick = "Forms.viewSubForms({formid},{fieldguid})";
             label = label.substr(0, label.length - 2);
+            icon = "form";
         } else {
             onclick = "Forms.newForm({templateid},'Forms.forms',{linkedid},null,null,{form.projectid})";
         }
-    } else if (value == "code") {
+    } else { // defaut should be "code"
         if (!CustomFields.buttons) CustomFields.buttons = {};
         CustomFields.buttons[id] = options; // this contains the onclick for button
         onclick = "CustomFields.onButton({formid},{id})";
-    } else return;
-    List.addButton(label, onclick, "color:" + color);
+        icon = ""; // no icon for custom code
+    }
+    var style = "color:" + color + ";img:" + icon;
+    List.addButton(label, onclick, style);
 }
 
 /////////////////////
@@ -582,7 +586,6 @@ CustomFields.formatValue = function (value, type, options, isWeb) {
     else if (type == "signature") return CustomFields.formatSignature(value);
     else if (type == "photo") return CustomFields.formatImages(value);
     else if (type == "drawing" || type == "image") return CustomFields.formatDrawing(value);
-    //else if (type == "formula") return Number(value) ? Number(value).toLocaleString() : value; // try to convert to number
     else if (type == "formula") return typeof(value) === "string" ? value : Number(value).toLocaleString(); // try to convert to number only if already a number. Nov 16 2022.
     else if (type == "score") return CustomFields.formatScore(value, isWeb);
     else return String(value);
@@ -670,11 +673,13 @@ CustomFields.addFileBox = function (label, table, id, action, onchange) {
     if (table && id) files = Query.select("System.files", "id;name;mime;externalurl", "linkedtable={table} AND linkedrecid={id}", "date");
     if (action == null && files.length == 0) return;
 
-    //if (label) List.addHeader(label);
     var edit = (action != null);
+
+    if (CustomFields._VIEWFILE == "Files.viewFile" && User.hasApp("files") == false) {
+        CustomFields._VIEWFILE = "CustomFields.viewFile";
+    }
       
     if (WEB()) {
-        //_html.push('<div style="margin-left:60px;">');
         if (edit) {
             Form.ensure(label, true) 
         } else {
@@ -701,7 +706,9 @@ CustomFields.addFileBox = function (label, table, id, action, onchange) {
         for (var i = 0; i < files.length; i++) {
             var file = files[i];
             var style = null;
-            if (file.mime == 'image/jpeg' || file.mime == 'image/png' || file.mime == 'image/gif') style = "scale:crop;img:" + Settings.getFileUrl(file.id);
+            if (file.mime == 'image/jpeg' || file.mime == 'image/png' || file.mime == 'image/gif') {
+                style = "scale:crop;img:" + Settings.getFileUrl(file.id);
+            }
             List.addItem(file.name, CustomFields._VIEWFILE + "({file.id})", style);
         }
     }
@@ -769,4 +776,36 @@ CustomFields.groupBy = function(table, where, names, type) {
     // sort by most vessels
     map.keys.sort(function (k1, k2) { return map.get(k2).items.size - map.get(k1).items.size });
     return map;
+}
+
+////////
+
+CustomFields.viewFile = function(id) {
+    var file = Query.selectId("System.files", id);
+    if (file == null) { History.back(); return; }
+
+    if (file.externalurl != '' && file.kind != 0) {
+        // not supported
+        return;
+    }
+
+    if (file.mime == "image/jpeg" || file.mime == "image/png") {
+        Toolbar.setStyle("nextprevious");
+        if (User.canEdit(file.owner)) {
+            if (App.editPicture) Toolbar.addButton(R.EDIT, "App.editPicture({id})", "edit");
+            Toolbar.addButton(R.DELETE, "CustomFields.deleteFile({id})", "delete");
+        }
+        if (WEB()) {
+            WebView.showImage(file.id, file.name);
+        } else {
+            Toolbar.setTitle("Photo");
+            var url = Settings.getFileUrl(file.id);
+            WebView.showImage(url);
+        }
+    }
+}
+
+CustomFields.deleteFile = function(id) {
+    Query.deleteId("System.files", id);
+    History.back();
 }

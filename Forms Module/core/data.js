@@ -68,6 +68,9 @@ Forms.writeEditSections = function (form) {
 }
 
 Forms.writeEditFields = function (form, sectionId) {
+    // 4 March 2022: make sure the libjs has been loaded
+    Forms.injectCodeLibjs();
+    
     var stateCount = Query.count("Forms.states", "templateid={form.templateid}");
 
     // TBR / 9/22.20 : added
@@ -120,10 +123,12 @@ Forms.onScan = function (formid, fieldid, value) {
 }
 
 Forms.writeViewFields = function (form) {
+    // 4 March 2022: make sure the libjs has been loaded
+    Forms.injectCodeLibjs();
+        
      // 19 April 2021 : buttons are now visible in view mode, so we need the onedit code here too
      var template = Query.selectId("Forms.templates", form.templateid);
-     var formCustom =  GlobalSettings.getString("forms.customjs")
-     if (template && template.onedit) Forms.injectCode(template.onedit, form, "ONEDIT_" + template.name);
+     if (template) Forms.injectCode(template.onedit, form, "ONEDIT_" + template.name);
 
     _valueObj = Forms._getValues(form); // we need this because Risk.view access it
     _formid = form.id;
@@ -131,12 +136,14 @@ Forms.writeViewFields = function (form) {
 
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
+        var isVisible = true;
         if (field.type == "button") {
-             if (field.status == -1 || form.status == field.status) {
-                 CustomFields.addButton(field.id, field.label, field.value, field.options, form.id, field.guid);
-             }
-        } else if (form.status >= field.status || form.status == -1 || form.status == -2) {
-            CustomFields.addViewItem(field.id, field.type, field.label, field.value, field.options, form.id);
+            isVisible = (field.status == -1 || form.status == field.status);
+        } else {
+            isVisible = (form.status >= field.status || form.status == -1 || form.status == -2);
+        }
+        if (isVisible) {
+            CustomFields.addViewItem(field.id, field.type, field.label, field.value, field.options, form.id, field.guid);
         }
     }
 }
@@ -170,7 +177,7 @@ Forms.getFields = function (form, templateFields, includeHidden) {
     var formValues = Forms._getFullValues(form, templateFields);
     var lang = "en";
     if (Settings.getLanguage) lang = Settings.getLanguage();
-    if (lang == "pt") lang = "es";
+    if (lang == "pt") lang = "my"; // Portugese redirects to MY (Burmese)
     
     var hiddenFields = form.hidden ? JSON.parse(form.hidden) : [];
 
@@ -346,10 +353,6 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
     else sourceURL = "FORMULA";
    
     var buffer = [];
-    // strict mode for script?
-    //if (AccountSettings.get("forms.usestrict") == "1") {
-    //    buffer.push("'use strict';");
-    //}
     for (var member in valuesObj) {
         if (member != "") buffer.push('var ' + member + '=' + esc(valuesObj[member]) + ";");
     }
@@ -372,36 +375,63 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
     }
 }
 
+
+Forms.injectCodeLibjs = function() {
+    try {
+        var libjs = GlobalSettings.getString("forms.libjs", "").trim();
+        // we use the libjs code length as a hashcode
+        if (Forms.LIBJS_HASH === libjs.length || libjs == "") {
+            return;
+        }
+        Forms.LIBJS_HASH = libjs.length;
+
+        if (WEB()) libjs += "\n//# sourceURL=http://FORM/LIBJS.js\n";
+        eval(libjs);
+    } catch (err) {
+        if (WEB()) {
+            var msg = "FORMS LIBJS\n" + err.name + "\n" + err.message;
+            window.alert(msg);
+            if (console) console.log(msg, "color:red");
+        }
+    }
+}
+
 // For onedit / code 
 Forms.injectCode = function (js, frm, sourceURL) {
-    js = String(js).trim();
-    if (js != "") {
-        try {
-            var form = frm; // we need the form objet here
-            var link = Forms._getLink(form);
-            if (WEB()) js += "\n//# sourceURL=http://FORM/" + sourceURL + ".js\n";
-            // warning in order to have the "form" defined inside the js script we need eval() and not window.eval();
-            eval(js);
-        } catch (err) {
-            if (WEB()) {
-                var msg = err.name + "\n" + err.message;
-                window.alert(msg);
-                if (console) console.log(msg, "color:red");
-            } else {
-                //App.confirm("Error: " + err.message + "\n" + js);
-            }
+    try {
+        if (js) js = String(js).trim();
+        if (!js) return;
+        
+        // we need the form & link objet here in local scope for eval()
+        var form = frm;
+        var link = Forms._getLink(form);
+
+        // warning in order to have the "form" defined inside the js script we need eval() and not window.eval()
+        if (WEB() && sourceURL) js += "\n//# sourceURL=http://FORM/" + sourceURL.replace(/ /g, '_') + ".js\n";
+        eval(js);
+    } catch (err) {
+        if (WEB()) {
+            var msg = err.name + "\n" + err.message;
+            window.alert(msg);
+            if (console) console.log(msg, "color:red");
+        } else { 
+            App.confirm("Error: " + err.message + "\n" + js);
         }
     }
 }
 
 /////////////////////
 
-Forms.canEdit = function (form) {
+// state may optionally to passed to optimize perf on mobile
+Forms.canEdit = function (form, state) {
     // Admin and manager can always edit
     if (User.isAdmin()) return true;
 
     var hasWorkflow = Query.count("Forms.states", "templateid={form.templateid}") > 0;
     if (hasWorkflow == false) {
+        if (form.status == 1) {
+            if (GlobalSettings.getString("forms.editsubmitadmin") == "1") return false;
+        }
         // manager can always edit
         if (User.isManager()) return true;
         else if (form.status == 0) {
@@ -411,9 +441,11 @@ Forms.canEdit = function (form) {
             return false;
         }
     } else {
+        if(state === undefined) {
+            state = Forms.getState(form);
+        }
         // is current user part of the current workflow state and there is a possible action, ie not the last step
         // with this changes, Managers cannot edit the last workflwo stage
-        var state = Forms.getState(form);
         if (state && state.onclick) {
             return true;
         } else {
@@ -428,10 +460,10 @@ Forms.canDelete = function (form) {
     else return true;
 }
 
-Forms.canDuplicate = function (form) {
+Forms.canDuplicate = function (form, state) {
     var values = Forms._getValues(form);
     if (values["NODUPLI"] == 1) return false;
-    else return Forms.canEdit(form);
+    else return Forms.canEdit(form, state);
 }
 
 Forms.hasRight = function (action, form) {

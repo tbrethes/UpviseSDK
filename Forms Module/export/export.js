@@ -65,8 +65,12 @@ Forms.getExportUrl = function(templateid) {
 // templateid is optional, if not present it will export all checked forms
 Forms.exportMultiple = function (templateid) {
     // if some items are checked, select only these
-    var forms = null;
-    var ids = Table.getChecked();
+    //var forms = null;
+    let ids = Table.getChecked();
+    if (ids.length == 0) ids = sTable2.getRowIds();
+    
+    let forms = Query.selectIds("Forms.forms", ids);
+    /*
     if (ids.length > 0) {
         forms = Query.selectIds("Forms.forms", ids);
     } else {
@@ -76,10 +80,9 @@ Forms.exportMultiple = function (templateid) {
         where = Where.addDateRange(where);
         forms = Query.select("forms", "*", where, "date DESC");
     }
-
-    var filename = R.ALLFORMS;
-    if (templateid != null) filename = Query.names("templates", templateid);
-
+    */
+    let filename = R.ALLFORMS;
+    if (templateid) filename = Query.names("templates", templateid);
     Forms.exportExcel(forms, filename);
 }
 

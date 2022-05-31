@@ -98,6 +98,8 @@ Forms.notify = function (form, statename, staff) {
 
     var title = template.name + " " + "Form " + form.name;
     var type = "form." + template.id;
+    // this will change type to "" to force notify for workflow.
+    if (staff && GlobalSettings.getString("forms.forcenotify") == "1") type = "";
     var body = statename + " by " + User.getName();
 
     var emails = (staff != null) ? User.getEmails(staff) : null;
@@ -134,10 +136,16 @@ Forms.getState = function (form) {
     }
 
     // Here we have a form with a workflow
+
     if (form.status == Forms.REJECTED) {
         return { name: R.REJECTED };
     } else if (form.status == Forms.DRAFT) {
-        return { name: R.DRAFT, action: R.SUBMIT, onclick: "Forms_nextState({form.id},{form.status})" };
+        var obj = { name: R.DRAFT };
+        if (User.isManager() || MultiValue.contains(form.owner, User.getName()) ) {
+            obj.action =  R.SUBMIT;
+            obj.onclick = "Forms_nextState({form.id},{form.status})";
+        }
+        return obj;
     } else {
         var states = Query.select("Forms.states", "name;action;staff;roleid", "templateid={form.templateid} AND status={form.status}");
         if (states.length == 0) return { name: "Error Status" };
@@ -179,9 +187,9 @@ Forms.getStateStaff = function (form, state) {
         var roles = state.roleid.split("|");
         for (var i = 0; i < roles.length; i++) {
             var users = roleMap.get(roles[i]);
-            staffArray = staffArray.concat(users);
+            if (users) staffArray = staffArray.concat(users);
         }
-        return (staffArray != null) ? staffArray.join("|") : "";
+        return staffArray.join("|");
     } else {
         // user based staff
         return state.staff;
@@ -254,22 +262,27 @@ Forms.signOnSubmit = function(form) {
 }
 
 Forms.reject = function(id) {
-    var note = App.prompt("Enter Reason", "");
+    var note = App.prompt("Enter Reason", "", "textarea");
     if (note == "" || note == null) return;
 
     var form = Query.selectId("Forms.forms", id);
-    Query.updateId("Forms.forms", id, "status", Forms.REJECTED);
     Forms.addHistory(form, R.REJECTED, note, "");
     Forms.notify(form, R.REJECTED, Forms.getCreator(form));
     Forms.archive(id);
 
+    var newstatus = Forms.REJECTED;
+    if (GlobalSettings.getString("forms.rejecttodraft") == "1") {
+        newstatus = Forms.DRAFT;
+    }
+    Query.updateId("Forms.forms", id, "status", newstatus);
+    Query.updateId("Forms.forms", id, "color", "");
+    
     Forms.evalReject(form);
 
     History.reload();
 }
 
 function Forms_nextState(id, currentStatus) {
-
     var form = Query.selectId("Forms.forms", id);
     if (form == null) return;
     var template = Query.selectId("Forms.templates", form.templateid);
@@ -298,6 +311,8 @@ function Forms_nextState(id, currentStatus) {
     // Execute the onload script for this state - if any. If the onload script returns a non null string, display the message and do not continue to next state
     var errorMsg = Forms.evalOnLoad(form, newstate.onload);
     if (errorMsg) {
+        // ensure it is a String
+        errorMsg = String(errorMsg);
         if (errorMsg.startsWith("#")) {
             var newStatus = parseInt(errorMsg.substring(1)) - 1;
             Query.updateId("Forms.forms", id, "status", newStatus);

@@ -46,7 +46,7 @@ Forms.newForm = function (templateid, linkedtable, linkedid, remove, name, proje
 // counterid is used by Novade for custom counter app-level formating
 Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, name, projectid, counterid, toolid) {
     var template = Query.selectId("Forms.templates", templateid);
-    if (template == null) return null;
+    if (!template) return null;
 
     // 11/09/20 : Added to support server-side auto numbering counter in forms
     if (counterid == null && AccountSettings.get("forms.autocounter") == 1) {
@@ -71,17 +71,25 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     if (toolid) form.toolid = toolid;
     
     form.hidden = Forms.getDefaultHidden(template.id);
-
     
     var formid = Query.insert("Forms.forms", form);
     // Warning : setDefaultValues needs form.id for drawing duplication
     _formid = formid;
     form.id = formid;
+    
     if (values == null) values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
-    if (template.oncreate) Forms.injectCode(template.oncreate, form, "ONCREATE_" + template.name);
-    
+
+    Forms.ERROR_CREATE = null;
+    Forms.injectCode(template.oncreate, form, "ONCREATE_" + template.name);
+    if (Forms.ERROR_CREATE != null) {
+        App.confirm(Forms.ERROR_CREATE);
+        Query.deleteId("Forms.forms", formid);
+        Forms.ERROR_CREATE = null;
+        return null;
+    }
+
     return form.id;
 }
 
@@ -156,6 +164,9 @@ Forms.getNewName = function (templateid, counterid) {
 }
 
 Forms.setDefaultValues = function (form, values, status) {
+    // make sure the Libjs code has been loaded before calls to Forms._eval()
+    Forms.injectCodeLibjs();
+
     var where = "status={status} AND formid={form.templateid}";
     var fields = Query.select("Forms.fields", "name;label;value;type", where, "rank");
     var fieldsall = Query.select("Forms.fields", "name;label;value;type", "status=-1 AND formid={form.templateid}", "rank");

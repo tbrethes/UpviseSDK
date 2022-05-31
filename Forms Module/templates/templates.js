@@ -56,6 +56,7 @@ Templates.getFieldTypes = function () {
     list.push({ id: "decimal", label: R.DECIMAL });
     list.push({ id: "link", label: R.WEBLINK });
     list.push({ id: "currency", label: R.CURRENCY });
+    list.push({ id: "readonly", label: "Read only" });
 
     list.push({ id: "select", label: R.COMBOBOX });
     list.push({ id: "selectmulti", label: R.MULTISELECT });

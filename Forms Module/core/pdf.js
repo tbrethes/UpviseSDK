@@ -277,18 +277,28 @@ FormsPdf.addFields = function (fields, form) {
                 var subTemplate = Query.selectId("Forms.templates", field.options);
                 var sortby = (subTemplate != null && subTemplate.sortby) ? subTemplate.sortby : "date";
                 var subforms = Query.select("Forms.forms", "*", "linkedtable='Forms.forms' AND linkedid=" + esc(linkedid), sortby);
-                FormsPdf.addSubFormsTable(subforms, form.templateid);
-            } else if (field.type != "label" || (field.type == "label" && field.value == "1")) {
-                FormsPdf.addField(field, form);
+                FormsPdf.addSubFormsTable(subforms, form);
+            } else {
+                // if (field.type != "label" || (field.type == "label" && field.value == "1")) {
+                var visible = true;
+                if (field.type == "label") {
+                    visible = (field.value == "1");
+                } else if (field.type == "readonly") {
+                    visible = (field.options != "1");
+                }
+                if (visible == true) {
+                    FormsPdf.addField(field, form);
+                }
             }
         }
     }
     FormsPdf.stop();
 }
 
-FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
+FormsPdf.addSubFormsTable = function (subforms, form) {
     if (subforms.length == 0) return;
 
+    var parentTemplateid = form.templateid;
     var asList = false;
     var subtemplate = Query.selectId("Forms.templates", subforms[0].templateid);
     var subpdfoptions = FormsPdf.getOptions(subtemplate);
@@ -304,6 +314,11 @@ FormsPdf.addSubFormsTable = function (subforms, parentTemplateid) {
             FormsPdf.write(subform, template, (i+1));
         }
         return;
+    }
+
+    // 27 Jan 2022 : added sub template name header
+    if (subpdfoptions.subformtableheader == "1") {
+        Pdf2.add('<table class="form t', form.templateid, '"><thead><tr><td colspan=4>', subtemplate.name, '</td></tr></thead></table>');
     }
 
     var photos = [];
