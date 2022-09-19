@@ -8,6 +8,8 @@ if (typeof (Forms) === "undefined") {
 // 11/13/20: Moved from workflow.js
 Forms.REJECTED = -1;
 Forms.DRAFT = 0;
+Forms.SUPERSEDED = -2;
+
 
 //////////////////////////// Form Creation
 
@@ -236,6 +238,8 @@ Forms.deleteForm = function(formid, goBack) {
     for (var i = 0; i < subforms.length; i++) {
         Query.deleteId("Forms.forms", subforms[i].id);
     }
+    
+    Forms.notifyDelete(form);
 
     Query.deleteId("Forms.forms", formid);
     if (!(goBack === false)) History.back();

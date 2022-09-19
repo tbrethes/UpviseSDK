@@ -114,13 +114,31 @@ Forms.archive = function (id) {
     }
 }
 
+Forms.notifyDelete = function (form) {
+    try {
+        var values = JSON.parse(form.value);
+        var email = values["EMAILDELETE"];
+        if (!email) return;
+        var body = [];
+        body.push("Form Template: " + Query.names("forms.templates", form.templateid));
+        body.push("Form ID: " + form.name);
+        body.push("Deleted by: " + User.getName());
+        body.push("Date: " + new Date().toUTCString());
+        body.push("Device: " + Settings.getPlatform());
+        body.push("Database: " + Settings.get("company"));
+        Notif.send("Deleted Form Notification", body.join("\n"), "", "", email);
+    } catch(e) {
+        alert(e.message);
+    }
+}
+
 /////////////////////////////
 
 Forms.getState = function (form) {
     // empty state for subforms
     if (form.linkedtable == "Forms.forms") return {};
 
-    // superseeded status can apply with or without workflow
+    // superseded status can apply with or without workflow
     if (form.status == -2) {
         return { name: "Superseded"};
     }
@@ -422,6 +440,25 @@ Forms.resetToDraft = function(id, silent) {
     if (!silent) History.reload();
 }
 
+Forms.resetToSuperseded = function(id, silent) {
+    if (silent === null) silent = false;   
+    if (!silent) if (App.confirm("Are you sure?") == false) return;
+
+    let form = Query.selectId("Forms.forms", id);
+    Query.updateId("Forms.forms", form.id, "status", Forms.SUPERSEDED);
+    Query.updateId("Forms.forms", form.id, "color", "");
+    Forms.addHistory(form, "Reset To Superseded", "", "");
+
+    // also reset the subforms
+    let subforms = Forms.selectSubForms(form);
+    for (let subform of subforms) {
+        Query.updateId("Forms.forms", subform.id, "status", Forms.SUPERSEDED);
+    }
+    // update the form pdf for QRCode
+    FormsPdf.export(id, "update-qrcode");
+    
+    if (!silent) History.reload();
+}
 
 ///////////// ROLE WORKFLOW
 

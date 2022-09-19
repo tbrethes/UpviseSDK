@@ -85,9 +85,6 @@ Templates.editTemplates2 = function(tab) {
     List.show();    
 }
         
-
-Forms.editTemplateGroup
-
 Templates.editTemplateGroup = function (groupid) {
     var templates = Query.select("Forms.templates", "*", "groupid={groupid}", "name");
 
@@ -118,17 +115,6 @@ Templates.writeTemplateList = function (templates) {
             Table.addRow(template.id, [name, group, linkedto, template.date], "Templates.viewTemplate({template.id})");
         }
         Table.render();
-    /*
-    List.addHeader([R.NAME, R.LINKEDTO, R.GROUP, R.DATE, R.OWNER], ["50%"], "checkbox");
-    for (var i = 0; i < templates.length; i++) {
-        var template = templates[i];
-        var name = template.name + " " + Format.text(template.prefix, "gray");
-        var date = Format.date(template.date); 
-        var linkedto = (template.linkedtable) != "" ? Format.options(template.linkedtable, Forms.getLinkedOptions()) : "";
-        var group = Query.names("Forms.groups", template.groupid);
-        List.add([name, linkedto, group, date, Format.owner(template.owner)], "Templates.viewTemplate({template.id})", { id: template.id, img: "form" });
-    }
-    */
 }
 
 /////////////////////////////////////////////////////////
@@ -164,13 +150,12 @@ Templates.saveTemplate = function(groupid) {
     History.redirect("Templates.viewTemplate({id})");
 }
 
-/////////////// View Form Template'
+/////////////// View Form Template
 
 Templates.updatePdfOptions = function (templateid, id, value) {
     Templates.pdfoptions[id] = value;
     Query.updateId("Forms.templates", templateid, "pdfoptions", JSON.stringify(Templates.pdfoptions));
 }
-
 
 //////////////// 
 Templates.editFields = function (id, headerid) {
@@ -370,14 +355,15 @@ Templates.editExportPdf = function (id) {
     List.addComboBox("photoheight", "Photo height", Templates.pdfoptions.photoheight, onchange2, "200px|250px|275px|300px|350px|400px|410px|450px|500px|fullsize:Full Size");
     List.addComboBox("photocaption", "Add Photo Caption", Templates.pdfoptions.photocaption, onchange2, "0:" + R.NO + "|1:" + R.YES);
     List.addComboBox("orientation", "Orientation", Templates.pdfoptions.orientation, onchange2, "portrait:" + "Portrait" + "|landscape:" + "Landscape");
-
+   
     List.addHeader("Customize");
     List.addCheckBox("location", R.FORMSPDFLOCATION, Templates.pdfoptions.location, onchange2);
     List.addCheckBox("caption", R.INCLUDEFORMCAPTION, Templates.pdfoptions.caption, onchange2);
     List.addCheckBox("nohistory", R.PDFNOHISTORY, Templates.pdfoptions.nohistory, onchange2);
     List.addCheckBox("hideempty", R.HIDEEMPTYFIELDS, Templates.pdfoptions.hideempty, onchange2);
     List.addCheckBox("nopunch", "Hide punch items", Templates.pdfoptions.nopunch, onchange2);
-    
+    List.addCheckBox("linkedpdfcover", "Add link and cover for Attached PDF File&nbsp;" + Format.tag("New", Color.BLUE), Templates.pdfoptions.linkedpdfcover, onchange2);
+ 
     List.addHeader("If used as a subform");
     List.addCheckBox("subformlist", "Layout vertically", Templates.pdfoptions.subformlist, onchange2);
     List.addCheckBox("subformhidden", "Show hidden fields", Templates.pdfoptions.subformhidden, onchange2);
@@ -401,20 +387,21 @@ Templates.editCustomExportPdf = function (id) {
     var template = Query.selectId("Forms.templates", id);
     if (template == null) { History.back(); return; }
 
-    Toolbar.addButton(R.INSERTPLACEHOLDER, "Templates.popupInsertPlaceholder({id},'html')", "popup");
-    Toolbar.addButton(R.HELP, "App.help('forms/help/template/exportpdf.htm')", 'support');
-    Toolbar.moreButton = false;
-
-    List.addItemBox(template.name, "Custom PDF Export Template", "", "img:upload");
-
     Templates.pdfoptions = FormsPdf.getOptions(template);
     var onchange = "Query.updateId('Forms.templates',{id},this.id,this.value)";
     var onchange2 = "Templates.updatePdfOptions({template.id},this.id,this.value)";
 
-    List.forceNewLine = false;
-   // List.addHeader(R.CUSTOMIZELAYOUT);
+    Toolbar.moreButton = false;
+    Toolbar.addButton(R.INSERTPLACEHOLDER, "Templates.popupInsertPlaceholder({id},'html')", "popup");
+    Toolbar.addButton(R.HELP, "App.help('forms/help/template/exportpdf.htm')", 'support');
+    
+    List.forceNewLine = true;
+    List.addItemBox(template.name, "Custom PDF Export Template", "", "img:upload");
     List.addFileBox("pdfid", "Custom Pdf Template", Templates.pdfoptions.pdfid, onchange2);
-    //List.addHelp(R.CUSTOMIZELAYOUT_HELP);
+    
+    List.addTextBox("pdffunc", "Custom Pdf Function", Templates.pdfoptions.pdffunc, onchange2, "text");
+    List.addHelp("This function must be specific the Script On Edit");
+
     _html.push("<br/><br/><br/><br/>");
     List.addHeader("Simple HTML Layout");
     List.addTextBox("htmlpdf", "", template.htmlpdf, onchange, "textarea");
@@ -497,7 +484,8 @@ Templates.editSharing = function (id) {
         var buf = '<br/><a target=_blank href="' + url + '">' + url + '</a>';
         List.addItemLabel(R.PUBLICFORMURL, buf);
         var onchangeoption = "AccountSettings.set(this.id,this.value)";
-        List.addCheckBox("forms.publiclink", R.DISPLAYLINKEDREC, AccountSettings.get("forms.publiclink"), onchangeoption); // NB this is common to all templates
+        // deprecated
+        //List.addCheckBox("forms.publiclink", R.DISPLAYLINKEDREC, AccountSettings.get("forms.publiclink"), onchangeoption); // NB this is common to all templates
         List.addTextBox("publicnotifemail", R.SUBMITNOTIFEMAIL, template.publicnotifemail, onchange);
         List.addHelp(R.SUBMITNOTIFEMAIL_HELP);
     } else {
@@ -742,6 +730,7 @@ Templates.onDuplicate = function(templateid) {
     var newValues = Utils.clone(template);
     newValues.name = name;
     newValues.counter = 0;
+    newValues.date = Date.now();
     var newid = Query.insert("Forms.templates", newValues);
 
     // duplicate all fields

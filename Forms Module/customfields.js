@@ -611,8 +611,10 @@ CustomFields.formatToggle = function (value, options, isWeb) {
         var color = Color.BLUE;
         if (value == "0" || value == "5") color = Color.RED;
         else if (value == "1") color = Color.GREEN;
+        else if (value == "11") color = Color.BLUE;
         else if (value == "2" || value == "3") color = Color.YELLOW;
         else if (value == "4" || value == "P") color = Color.ORANGE;
+        else if (value == "6") color = Color.BLUEGRAY;
         return '<span style="font-weight:bold;color:' + color + '">' + label + '</span>';
     }
     return label;

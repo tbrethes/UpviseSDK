@@ -41,7 +41,7 @@ function _updateValue(formid, fieldname, fieldvalue) {
         var fields = Query.select("Forms.fields", "*", "formid={form.templateid} AND name={fieldname}");
         var fieldlabel = fields.length > 0 ? fields[0].label : null;
         var fieldid = fields.length > 0 ? fields[0].id : null;
-        Forms.field = fields[0]; // TBR added 29/22.2029
+        Forms.field = fields[0]; // TBR added 29/22/2019
         var ok = Forms._evalFormula(onchange, { oldvalue: oldvalue, value: fieldvalue, label: fieldlabel, fieldid: fieldid,  }, form, "ONCHANGE_" + fieldname); // value keyword is available in onchange
         if (ok === false) return;
     
@@ -424,7 +424,7 @@ Forms.injectCode = function (js, frm, sourceURL) {
 
 // state may optionally to passed to optimize perf on mobile
 Forms.canEdit = function (form, state) {
-    // Admin and manager can always edit
+    // Admin can always edit
     if (User.isAdmin()) return true;
 
     var hasWorkflow = Query.count("Forms.states", "templateid={form.templateid}") > 0;
@@ -434,6 +434,7 @@ Forms.canEdit = function (form, state) {
         }
         // manager can always edit
         if (User.isManager()) return true;
+        
         else if (form.status == 0) {
             // user(s) who own the form can edit it in Draft mode = 0
             return MultiValue.contains(form.owner, User.getName()); 
@@ -463,7 +464,15 @@ Forms.canDelete = function (form) {
 Forms.canDuplicate = function (form, state) {
     var values = Forms._getValues(form);
     if (values["NODUPLI"] == 1) return false;
-    else return Forms.canEdit(form, state);
+
+    var role = User.getRole();
+    if (role && role.project == "readonly") {
+        return false;
+    }
+    // 2 Sept. 2022
+    // because if a user can view the form, he can edit (we already filter by role the form template has has the right for)
+    return true;
+    //else return Forms.canEdit(form, state);
 }
 
 Forms.hasRight = function (action, form) {

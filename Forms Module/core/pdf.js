@@ -8,10 +8,17 @@ FormsPdf.export = function (formid, action, email, subject, body, replyto) {
     // then retore it at the end of the function
     var state = Forms.GET_STATE();
 
+    // form object usied in optional eval() below
     var form = Query.selectId("Forms.forms", formid);
     var template = Query.selectId("Forms.templates", form.templateid);
     
     var options = FormsPdf.getOptions(template);
+    if (options.pdffunc) {
+        if (action == null) action = "download";
+        // Warning : we use the form object here!!
+        eval(options.pdffunc + "(" + esc(formid) + "," + esc(action) + ")");
+        return;
+    }
 
     FormsPdf.init(options, form);
     var filename = FormsPdf.write(form, template);
@@ -33,8 +40,10 @@ FormsPdf.export = function (formid, action, email, subject, body, replyto) {
         // difference with "email" is that email is sent automatically by the server, there is no UI for the user to validate and click Send
         if (replyto) Pdf2.addTag("fromEmail", replyto);
         Pdf2.archiveEmail(email, subject, body);
-    }
-    else {
+    } else if (action == "update-qrcode" && options.qrcode == 1) {
+        var html = Pdf2.getContent();
+        Notif.sendPdfUpdate(html);
+    } else {
         Pdf2.download();
     }
 
@@ -79,6 +88,7 @@ FormsPdf.init = function(options, form) {
     if (options.footerid) Pdf2.footerid = options.footerid;
     if (options.orientation) Pdf2.orientation = options.orientation;
     if (options.pagenumber) Pdf2.pagenumber = options.pagenumber;
+    if (options.linkedpdfcover) Pdf2.linkedpdfcover = options.linkedpdfcover;
    
     Pdf2.addStyle("TABLE.form", "width:100%;border-collapse:collapse;border:1px solid #AAA;padding:0;margin-top:1em;margin-bottom:1em;");
     Pdf2.addStyle("TABLE.form TD", "padding:0.4em;padding-left:1em;padding-right:1em;vertical-align:top;border:1px solid #AAA;min-width:30px;text-align:left;");
@@ -144,7 +154,7 @@ FormsPdf.write = function (form, template, index) {
     // we need these 2 lines because of dynamic scripting in formulas and options, when we call Forms.getFields() and in writeCustom(
     _valueObj = Forms._getValues(form);
     _formid = form.id;
-    var includeHidden = FormsPdf.includeHidden; //"newsubform";
+    var includeHidden = FormsPdf.includeHidden;
     var fields = Forms.getFields(form, null, includeHidden);
 
     if (template.htmlpdf != "") {
@@ -252,18 +262,22 @@ FormsPdf.addFields = function (fields, form) {
 
         // hidden fields not belonging to the form workflow state
         if (form.status < field.status && form.status != -1 && form.status != -2) continue;
-
         if (FormsPdf.isFieldHidden(field) == true) continue;
+
         if (field.type == "header") {
             FormsPdf.stop();
             if (field.value == "1") Pdf2.addPageBreak();
-            headerToWrite = field.label;
-            if (headerToWrite == "") headerToWrite = "&nbsp;";
+            if (Pdf2.hideempty == true) {
+                // store header to delayed write
+                headerToWrite = field.label;
+                if (headerToWrite == "") headerToWrite = "&nbsp;";
+            } else {
+                FormsPdf.addHeaderField(form, field.label);
+            }
         } else {
             if (headerToWrite != null) {
-                // delayed header write only if there are fields below....
-                Pdf2.add('<table class="form t', form.templateid, '"><thead><tr><td colspan=4>', headerToWrite, '</td></tr></thead>');
-                Pdf2.fieldIndex = 0;
+                // write the delayed header if any
+                FormsPdf.addHeaderField(form, headerToWrite);
                 headerToWrite = null;
             }
 
@@ -293,6 +307,11 @@ FormsPdf.addFields = function (fields, form) {
         }
     }
     FormsPdf.stop();
+}
+
+FormsPdf.addHeaderField = function (form, title) {
+     Pdf2.add('<table class="form t', form.templateid, '"><thead><tr><td colspan=4>', title, '</td></tr></thead>');
+     Pdf2.fieldIndex = 0;
 }
 
 FormsPdf.addSubFormsTable = function (subforms, form) {
@@ -354,7 +373,7 @@ FormsPdf.addSubFormsTable = function (subforms, form) {
             }
         }
 
-        // Add usbform punch
+        // Add subform punch
         var formPunchs = Query.select("Forms.punchitems", "*", "formid={subform.id}", "creationdate");
         punchs = punchs.concat(formPunchs);
             
@@ -465,11 +484,7 @@ FormsPdf.addField = function (field, form) {
     } else if (field.type == "checkbox") {
         var c = (field.value == "1") ? '&#9745;' : '&#9744;';
         Pdf2.add('<td colspan=2 class="checkbox"><span class="bigger">', c, '</span><span>', field.label, '</span></td>');
-    } /* 26 April 2021 : we removed this as you can use  do not show hidden fields in the template
-        else if (field.type == "readonly" && field.value == "") {
-        // 16 March 2021: we do not want to output empty readonly field value for Nordex 
-        return;
-    } */ else {
+    } else {
         var value = CustomFields.formatValue(field.value, field.type, field.options, true); // isWeb=true
         Pdf2.add('<td class="label">', field.label, '</td><td>', value, '</td>');
     }
