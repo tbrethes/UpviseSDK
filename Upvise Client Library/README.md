@@ -8,3 +8,5 @@ Requirements:
 .NET Framework v4.6.1 or higher
 or .NET Core 2.0 or higher
 or .NET 5 or higher
+
+Usage of the Upvise Client Library is suject to our [API Tems of Use](https://www.upvise.com/legal/apitermsofuse.htm)
