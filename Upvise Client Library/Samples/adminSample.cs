@@ -1,4 +1,3 @@
-using System.IO;
 using System;
 
 using UpviseClient;
@@ -14,7 +13,7 @@ class AdminSample {
             var query = Query.login(email, password);
 
             var templateId = "XYZ";
-            var dashboardJs = File.readAllText(@"C:\temp\dash.js");
+            var dashboardJs = System.IO.File.ReadAllText(@"C:\temp\dash.js");
             
             var values = new JSONObject();
             values.put("dashboardjs", dashboardJs);
