@@ -164,13 +164,13 @@ CustomFields.export = function (table) {
     }
     var filename = R.CUSTOMFIELDS;
     if (table) filename += " " + table;
-    csv.download(filename);
+    csv.downloadExcel(filename);
 }
 
 CustomFields.import = function () {
     Toolbar.setTitle("Import Fields");
     Import.writeFileButton(R.SELECTCSVFILE, CustomFields.onImportCsv);
-    Import.writeSampleLink(CustomFields.CSV_HEADER, "Custom Fields Sample.csv");
+    Import.writeSampleLink(CustomFields.CSV_HEADER, "Custom Fields Sample.xlsx");
     List.show("pane");
 }
 

@@ -483,9 +483,6 @@ Templates.editSharing = function (id) {
         var url = User.BASE_URL + "form.htm" + '?' + data;
         var buf = '<br/><a target=_blank href="' + url + '">' + url + '</a>';
         List.addItemLabel(R.PUBLICFORMURL, buf);
-        var onchangeoption = "AccountSettings.set(this.id,this.value)";
-        // deprecated
-        //List.addCheckBox("forms.publiclink", R.DISPLAYLINKEDREC, AccountSettings.get("forms.publiclink"), onchangeoption); // NB this is common to all templates
         List.addTextBox("publicnotifemail", R.SUBMITNOTIFEMAIL, template.publicnotifemail, onchange);
         List.addHelp(R.SUBMITNOTIFEMAIL_HELP);
     } else {

@@ -6,10 +6,11 @@ if (typeof (Forms) === "undefined") {
 }
 
 // 11/13/20: Moved from workflow.js
-Forms.REJECTED = -1;
-Forms.DRAFT = 0;
 Forms.SUPERSEDED = -2;
+Forms.REJECTED = -1;
 
+Forms.DRAFT = 0;
+Forms.SUBMITTED = 1;
 
 //////////////////////////// Form Creation
 
@@ -135,7 +136,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     form.hidden = Forms.getDefaultHidden(template.id);
 
     var formid = Query.insert("Forms.forms", form);
-    // Warning : setDefaultValues needs form.id for drawing duplication
+    // Warning :  s needs form.id for drawing duplication
     form.id = formid;
     var values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values, Forms.DRAFT);
@@ -229,14 +230,14 @@ Forms.getDefaultHidden = function (templateid) {
 /////////////////////
 
 Forms.deleteForm = function(formid, goBack) {
-    var form = Query.selectId("Forms.forms", formid);
-    var files = Forms.selectFormPhotos(form);
-    for (var i = 0; i < files.length; i++) {
-        Query.deleteId("System.files", files[i].id);
+    let form = Query.selectId("Forms.forms", formid);
+    let fileids = Forms.selectFormPhotoIds(form);
+    for (let fileid of fileids) {
+        Query.deleteId("System.files", fileid);
     }
-    var subforms = Forms.selectSubForms(form);
-    for (var i = 0; i < subforms.length; i++) {
-        Query.deleteId("Forms.forms", subforms[i].id);
+    let subforms = Forms.selectSubForms(form, "id");
+    for (let subform of subforms) {
+        Query.deleteId("Forms.forms", subform.id);
     }
     
     Forms.notifyDelete(form);
@@ -252,13 +253,12 @@ Forms.duplicateForm = function (id, counterid) {
     var newid = Forms.duplicateInternal(form, form.linkedid, counterid);
 
     // Also duplicate all sub forms if any
-    var subforms = Forms.selectSubForms(form);
-    for (var i = 0; i < subforms.length; i++) {
-        var subform = subforms[i];
+    let subforms = Forms.selectSubForms(form);
+    for (let subform of subforms) {
         // make the new subform linkedid : first part is the new parent form id, second part is field name stays the same
-        var parts = subform.linkedid.split(":");
+        let parts = subform.linkedid.split(":");
         parts[0] = newid;
-        var linkedid = parts.join(":");
+        let linkedid = parts.join(":");
         Forms.duplicateInternal(subform, linkedid, counterid);
     }
 
@@ -307,30 +307,96 @@ Forms.duplicateInternal = function (form, linkedid, counterid) {
 
 //////////////////////////////////
 
-Forms.selectFormPhotos = function (form) {
-    var files = [];
-    var fields = Query.select("Forms.fields", "name", "formid={form.templateid} AND type IN ('photo','drawing')");
-    for (var i = 0; i < fields.length; i++) {
-        var field = fields[i];
-        var value = form.id + ":" + field.name; // hack for photos.....
-        var list = Query.select("System.files", "*", "linkedtable='Forms.forms' AND linkedrecid={value}", "date");
-        files = files.concat(list);
+function list2(array) {
+    if (array instanceof Array) {
+        if (array.length > 0) {
+            return "('" + array.join("','") + "')";
+        } else {
+            return "()";
+        }
+    } else {
+        return "()";
     }
-    return files;
 }
 
-Forms.selectSubForms = function (form) {
-    var subforms = [];
-    var fields = Query.select("Forms.fields", "name", "type='button' AND value='newsubform' AND formid={form.templateid}");
-    for (var i = 0; i < fields.length; i++) {
-        var field = fields[i];
-        var linkedid = form.id + ":" + field.name;
-        var list = Query.select("Forms.forms", "*", "linkedtable='Forms.forms' AND linkedid={linkedid}", "date");
-        subforms = subforms.concat(list);
+Forms.selectFormPhotoIds = function (form) {
+    let linkedrecids = [];
+    let fields = Query.select("Forms.fields", "name", "formid={form.templateid} AND type IN ('photo','drawing')");
+    for (let field of fields) {
+        let linkedrecid = form.id + ":" + field.name; 
+        linkedrecids.push(linkedrecid);
     }
+
+    let files = Query.select("System.files", "id", "linkedtable='Forms.forms' AND linkedrecid IN " + list2(linkedrecids));
+    let ids = [];
+    for (let file of files) {
+        ids.push(file.id);
+    }
+    return ids;
+}
+
+Forms.selectSubformPhotoIds = function (form) {
+    let linkedids = [];
+    // get all subform fields from template
+    let fields = Query.select("Forms.fields", "name", "type='button' AND value='newsubform' AND formid={form.templateid}");
+    for (let field of fields) {
+        let linkedid = form.id + ":" + field.name;
+        linkedids.push(linkedid);
+    }
+    // get all the subforms
+    let subforms  = Query.select("Forms.forms", "id;templateid", "linkedtable='Forms.forms' AND linkedid IN " + list2(linkedids));
+    // group them by templateid
+    let map = new HashMap();
+    for (let subform of subforms) {
+        let list = map.getArray(subform.templateid);
+        list.push(subform.id);
+    }
+    
+    // get all photos linked to any subform photo fields
+    let linkedrecids = []
+    for (let subtemplateid of map.keys) {
+        let subformids = map.getArray(subtemplateid);
+        let photofields = Query.select("Forms.fields", "name", "formid={subtemplateid} AND type IN ('photo','drawing')");
+        for (let field of photofields) {
+            for (let subformid of subformids) {
+                let linkedrecid = subformid +  ":" + field.name;
+                linkedrecids.push(linkedrecid);   
+            }
+        }
+    }
+    let photos = Query.select("System.files", "id", "linkedtable='Forms.forms' AND linkedrecid IN " + list2(linkedrecids));
+    let ids = [];
+    for (let photo of photos) {
+        ids.push(photo.id);
+    }
+    return ids;
+}
+
+////////////////////////////////
+
+Forms.selectSubForms = function(form, columns) {
+    if (!columns) columns = "*";
+    let linkedids = [];
+    // get all subform fields from template
+    let fields = Query.select("Forms.fields", "name", "type='button' AND value='newsubform' AND formid={form.templateid}");
+    for (let field of fields) {
+        let linkedid = form.id + ":" + field.name;
+        linkedids.push(linkedid);
+    }
+    // get all the subforms
+    let subforms  = Query.select("Forms.forms", columns, "linkedid IN " + list2(linkedids));
+    
+    /*
+    let subforms = [];
+    let fields = Query.select("Forms.fields", "name", "type='button' AND value='newsubform' AND formid={form.templateid}");
+    for (var field of fields) {
+        let linkedid = form.id + ":" + field.name;
+        let list = Query.select("Forms.forms", columns, "linkedtable='Forms.forms' AND linkedid={linkedid}", "date");
+        subforms = subforms.concat(list);
+    }*/
     return subforms;
 }
-
+ 
 ////////////////////////////////////////////////////////////////////
 
 Forms.editAddress = function (id) {
@@ -349,18 +415,23 @@ Forms.editAddress = function (id) {
 
 
 Forms.changeOwner = function (id, owner) {
-    var form = Query.selectId("Forms.forms", id);
-    var files = Forms.selectFormPhotos(form);
-    var subforms = Forms.selectSubForms(form);
+    let form = Query.selectId("Forms.forms", id);
     Query.updateId("Forms.forms", id, "owner", owner);
+
+    //change the owner for subforms
+    let subformids = [];
+    let subforms = Forms.selectSubForms(form, "id");
+    for (let subform of subforms) {
+        subformids.push(subform.id);
+        //Query.updateId("Forms.forms", subforms[i].id, "owner", owner);
+    }
+    if (subformids.length > 0) Notif.sendTouch("Forms.forms", subformids.join("|"));
+    
     // change the owner of the photos linked to the form too.
-    for (var i = 0; i < files.length; i++) {
-        Query.updateId("System.files", files[i].id, "owner", owner);
-    }
-    // same for subforms
-    for (var i = 0; i < subforms.length; i++) {
-        Query.updateId("Forms.forms", subforms[i].id, "owner", owner);
-    }
+    let fileids = Forms.selectFormPhotoIds(form);
+    let subfileids = Forms.selectSubformPhotoIds(form);
+    fileids = fileids.concat(subfileids);
+    if (fileids.length > 0)  Notif.sendTouch("System.files", fileids.join("|"));
 }
 
 /////////////////////
@@ -371,16 +442,16 @@ Forms.archiveForm = function (id, confirm) {
     }
 
     var form = Query.selectId("Forms.forms", id);
-    var files = Forms.selectFormPhotos(form);
-    for (var i = 0; i < files.length; i++) {
-        Query.archiveId("System.files", files[i].id);
+    var fileids = Forms.selectFormPhotoIds(form);
+    for (let file of fileids) {
+        Query.archiveId("System.files", file.id);
     }
     Query.archiveId("Forms.forms", id);
 
     // Also archive SubForms
-    var subforms = Forms.selectSubForms(form);
-    for (var i = 0; i < subforms.length; i++) {
-        Forms.archiveForm(subforms[i].id, false);
+    let subforms = Forms.selectSubForms(form, "id");
+    for (let subform of subforms) {
+        Forms.archiveForm(subform.id, false);
     }
 
     if (confirm === true) History.back();

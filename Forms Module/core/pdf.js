@@ -136,6 +136,9 @@ FormsPdf.addStyle = function (template) {
 FormsPdf.includeHidden = "newsubform";
 
 FormsPdf.write = function (form, template, index) {
+    // 22 Nov 2022 NAT : inject global forms JS
+    Forms.injectCodeLibjs(); 
+
     var linkedItem = Forms.getLinkedRecord != undefined ? Forms.getLinkedRecord(form, true) : null;
 
     var filename = template.name + " " + form.name;

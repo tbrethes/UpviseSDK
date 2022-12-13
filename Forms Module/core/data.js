@@ -469,10 +469,17 @@ Forms.canDuplicate = function (form, state) {
     if (role && role.project == "readonly") {
         return false;
     }
+    
+    // Nov 6th, sub forms cannot duplicated  only if parent form can be edited
+    if (form.linkedtable == "Forms.forms") {
+        let parentFormId = form.linkedid.split(":")[0];
+        let parentForm = Query.selectId("Forms.forms", parentFormId);
+        if (!parentForm) return false;
+        return Forms.canEdit(parentForm);
+    }
     // 2 Sept. 2022
     // because if a user can view the form, he can edit (we already filter by role the form template has has the right for)
     return true;
-    //else return Forms.canEdit(form, state);
 }
 
 Forms.hasRight = function (action, form) {
@@ -501,12 +508,11 @@ Forms.punchCount = function(id) {
 }
 
 Forms.punchCountSubforms = function (id) {
-    var count = 0;
-    var form = Query.selectId("Forms.forms", id);
-    var subforms = Forms.selectSubForms(form);
-    for (var i = 0; i < subforms.length; i++) {
-        var subformid = subforms[i].id;
-        count += Query.count("Forms.punchitems", "formid={subformid}");
+    let count = 0;
+    let form = Query.selectId("Forms.forms", id);
+    let subforms = Forms.selectSubForms(form, "id");
+    for (let subform of subforms) {
+        count += Query.count("Forms.punchitems", "formid={subform.id}");
     }
     return count;
 }
@@ -522,14 +528,12 @@ Forms.getSubformTitle = function (field) {
 
 // Including subforms
 Forms.getPunchData = function (id) {
-    var items = Query.select("Forms.punchitems", "*", "formid={id}", "creationdate");
-
-    var form = Query.selectId("Forms.forms", id);
-    var subforms = Forms.selectSubForms(form);
-    for (var i = 0; i < subforms.length; i++) {
-        var subformid = subforms[i].id;
-        var subformitems = Query.select("Forms.punchitems", "*", "formid={subformid}", "creationdate");
-        items = items.concat(subformitems);
+    let items = Query.select("Forms.punchitems", "*", "formid={id}", "creationdate");
+    let form = Query.selectId("Forms.forms", id);
+    let subforms = Forms.selectSubForms(form, "id");
+    for (let subform of subforms) {
+        let subitems = Query.select("Forms.punchitems", "*", "formid={subform.id}", "creationdate");
+        items = items.concat(subitems);
     }
 
     return Punch.groupByStatus(items);
@@ -597,11 +601,14 @@ Forms.getSubFormFields = function(template) {
     var where = "formid={template.id}";
     var options = FormsPdf.getOptions(template);
     if (options.subformhidden != "1") where += " AND hidden=0";
+    var displayColumns = template.columns ? template.columns.split("|") : [];
     var fields = Query.select("Forms.fields", "name;label;type", where, "rank");
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.type != "image" && field.type != "photo" && field.type != "button" && field.type != "label" && field.type != "header") {
-            list.push(field);
+            if (displayColumns.length == 0 || displayColumns.includes(field.name)) {
+                list.push(field);
+            }
         }
     }
     return list;

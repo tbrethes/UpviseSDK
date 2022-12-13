@@ -24,7 +24,7 @@ CustomFields.view2 = function (table, recordId, canEdit, sectionId) {
     var title = item.name;
     if (table == "tools") title += " #" + item.serialnumber;
     List.addItemBox(R.CUSTOMFIELDS, title, null, "img:info");
-    _html.push("<br>");
+    List.addLine();
 
     if (canEdit) Toolbar.addButton(R.EDIT, "CustomFields.edit2({table},{recordId},{sectionId})", "edit");
     Toolbar.setStyle("search"); // this enable inplace filtering of this screen on web
@@ -64,7 +64,7 @@ CustomFields.edit2 = function (table, recordId, sectionId) {
     var title = item.name;
     if (table == "tools") title += " #" + item.serialnumber;
     List.addItemBox(R.CUSTOMFIELDS, title, null, "img:edit");
-    _html.push("<br>");
+    List.addLine();
 
     Toolbar.setStyle("edit");
     

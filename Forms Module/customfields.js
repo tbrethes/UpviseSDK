@@ -279,7 +279,7 @@ CustomFields.onButton = function (recordId, fieldid) {
 
             var js = "";
             if (WEB()) js += "//# sourceURL=FORM.BUTTON." + fieldid.toUpperCase() + "\n";
-            js += onclick; // we cannot interpolate becuase this is common mobile + desktop code.....
+            js += onclick; // we cannot interpolate because this is common mobile + desktop code.....
             eval(js);
         } catch (e) {
             WEB() ? alert(e.message) : App.alert(e.message);
@@ -695,8 +695,8 @@ CustomFields.addFileBox = function (label, table, id, action, onchange) {
             List.addThumbnail(file.name, fileid, CustomFields._VIEWFILE + "({file.id})", file.mime);
         }
         if (edit) {
-            if (files.length > 0) _html.push("<br/>");
-            FileBox.writeButton("", R.SELECTFILE, "FilePicker.pick({table},{id},'',{action},{onchange})", "");
+            if (files.length > 0) { List.addLine();List.addLine();}
+            Grid.add(R.SELECTFILE, "FilePicker.pick({table},{id},'',{action},{onchange})", "img:upload;ondrop:true");
             Form.ensureClose();
         }
     } else {

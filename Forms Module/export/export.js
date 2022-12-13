@@ -20,8 +20,8 @@ Forms.exportOneExcel = function (formid) {
     excel.addSheet(template.name, csv.getContent());
     
     // get the sub forms
-    var subforms = Forms.selectSubForms(form);
-    var templateMap = FormUtils.groupByTemplate(subforms);
+    let subforms = Forms.selectSubForms(form);
+    let templateMap = FormUtils.groupByTemplate(subforms);
     for (var i = 0; i < templateMap.keys.length; i++) {
         var key = templateMap.keys[i];
         var obj = templateMap.get(key);
@@ -66,10 +66,14 @@ Forms.getExportUrl = function(templateid) {
 Forms.exportMultiple = function (templateid) {
     // if some items are checked, select only these
     //var forms = null;
-    let ids = Table.getChecked();
-    if (ids.length == 0) ids = sTable2.getRowIds();
-    
-    let forms = Query.selectIds("Forms.forms", ids);
+    let forms = [];
+    if (sTable2 != null) {
+        let ids = Table.getChecked();
+        if (ids.length == 0) ids = sTable2.getRowIds();
+        forms = Query.selectIds("Forms.forms", ids);
+    } else {
+        forms = Query.select("Forms.forms", "*", "templateid={templateid}", "date DESC");
+    }
     /*
     if (ids.length > 0) {
         forms = Query.selectIds("Forms.forms", ids);

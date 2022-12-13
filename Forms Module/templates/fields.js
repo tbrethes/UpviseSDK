@@ -249,7 +249,8 @@ function editFieldTemplate(id) {
         } else if (item.value == "code") {
             List.addTextBox("seloptions", "Javascript Code", item.seloptions, onchange, "code");
         }
-        List.addTextBox("exportid", R.COLOR, item.exportid, onchange, "color");
+        // TODO: Enable at some point
+        // List.addTextBox("exportid", R.COLOR, item.exportid, onchange, "color");
     } else if (type == "label") {
         List.addCheckBox("value", "Visible in PDF", item.value, onchange);
     } else if (type == "score") {

@@ -19,7 +19,7 @@ Forms.importForms = function (templateid) {
 
     Toolbar.setTitle("Import Forms : " + template.name);
     Import.writeFileButton(R.SELECTFILE, Forms.onImportForms);
-    Import.writeSampleLink(header, "Upvise Form Import - " + template.name + ".xlsx");
+    Import.writeSampleLink(header, "Form Import - " + template.name + ".xlsx");
     List.show("pane");
 }
 

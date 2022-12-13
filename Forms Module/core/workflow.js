@@ -242,11 +242,8 @@ Forms.submit = function(id, goBack) {
     Forms.LOCK = 1;
     try {
         Query.updateId("Forms.forms", id, "status", 1);
-        // also submit the subforms
-        var subforms = Forms.selectSubForms(form);
-        for (var i = 0; i < subforms.length; i++) {
-            Query.updateId("Forms.forms", subforms[i].id, "status", 1);
-        }
+        // submit the subforms
+        Forms.setSubFormsStatus(form, Forms.SUBMITTED);
         // notify all managers : null
         Forms.notify(form, R.SUBMITTED, null);
         Forms.archive(id);
@@ -365,7 +362,6 @@ function Forms_nextState(id, currentStatus) {
                 signature = App.prompt("Signature", "", "signature");
                 if (!signature) return;
             }
-
         }
     }
 
@@ -379,6 +375,12 @@ function Forms_nextState(id, currentStatus) {
     Query.updateId("Forms.forms", id, "status", newstate.status);
     Forms.addHistory(form, newstate.name, newstate.note, signature);
 
+    // Nov 6th, 2022
+    // if this is the last step , set all sub form state to 1 (submitted), so that manager cannot edit the subforms anymore
+    if (Forms.hasFinalStatus(form)) {
+        Forms.setSubFormsStatus(form, Forms.SUBMITTED);
+    }
+    
     // if the new state staff is not a manager, add it to the form owner, required for the new statestaff to see the form
     var newstaff = Forms.getStateStaff(form, newstate);
     var newowners = Forms.addStandardUsers(form.owner, newstaff);
@@ -430,13 +432,18 @@ Forms.resetToDraft = function(id, silent) {
     var form = Query.selectId("Forms.forms", id);
     Query.updateId("Forms.forms", form.id, "status", 0);
     Query.updateId("Forms.forms", form.id, "color", "");
+
+    // Remove signature
+    let fields = Query.select("Forms.fields", "name", "formid={form.templateid} AND type='signature'");
+    for (let field of fields) {
+        Forms.setValue(field.name, "");
+    }
+
     Forms.addHistory(form, "Reset To Draft", "", "");
 
     // also reset the subforms
-    var subforms = Forms.selectSubForms(form);
-    for (var i = 0; i < subforms.length; i++) {
-        Query.updateId("Forms.forms", subforms[i].id, "status", 0);
-    }
+    Forms.setSubFormsStatus(form, Forms.DRAFT);
+
     if (!silent) History.reload();
 }
 
@@ -450,14 +457,19 @@ Forms.resetToSuperseded = function(id, silent) {
     Forms.addHistory(form, "Reset To Superseded", "", "");
 
     // also reset the subforms
-    let subforms = Forms.selectSubForms(form);
-    for (let subform of subforms) {
-        Query.updateId("Forms.forms", subform.id, "status", Forms.SUPERSEDED);
-    }
+    Forms.setSubFormsStatus(form, Forms.SUPERSEDED);
+   
     // update the form pdf for QRCode
     FormsPdf.export(id, "update-qrcode");
     
     if (!silent) History.reload();
+}
+
+Forms.setSubFormsStatus = function(form, status) {
+    let subforms = Forms.selectSubForms(form, "id");
+    for (let subform of subforms) {
+        Query.updateId("Forms.forms", subform.id, "status", status);
+    }
 }
 
 ///////////// ROLE WORKFLOW
