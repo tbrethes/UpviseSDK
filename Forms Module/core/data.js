@@ -579,7 +579,7 @@ Forms.getHistory = function (form) {
     }
 }
 
-Forms.addHistory = function (form, name, note, signature) {
+Forms.addHistory = function (form, name, note) {
     var history = null;
     try {
         history = JSON.parse(form.history);
@@ -589,7 +589,6 @@ Forms.addHistory = function (form, name, note, signature) {
 
     var item = { name: name, staff: User.getName(), date: Date.now(), id: User.getId()};
     if (note) item.note = note;
-    if (signature) item.signature = signature;
     history.push(item);
     Query.updateId("Forms.forms", form.id, "history", JSON.stringify(history));
 }
@@ -601,14 +600,14 @@ Forms.getSubFormFields = function(template) {
     var where = "formid={template.id}";
     var options = FormsPdf.getOptions(template);
     if (options.subformhidden != "1") where += " AND hidden=0";
-    var displayColumns = template.columns ? template.columns.split("|") : [];
+    //var displayColumns = template.columns ? template.columns.split("|") : [];
     var fields = Query.select("Forms.fields", "name;label;type", where, "rank");
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.type != "image" && field.type != "photo" && field.type != "button" && field.type != "label" && field.type != "header") {
-            if (displayColumns.length == 0 || displayColumns.includes(field.name)) {
+            //if (displayColumns.length == 0 || displayColumns.includes(field.name)) {
                 list.push(field);
-            }
+            //}
         }
     }
     return list;

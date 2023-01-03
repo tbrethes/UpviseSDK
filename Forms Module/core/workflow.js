@@ -273,7 +273,7 @@ Forms.signOnSubmit = function(form) {
         }
     }
     // Add an history state 
-    Forms.addHistory(form, R.SUBMITTED, "", "");
+    Forms.addHistory(form, R.SUBMITTED);
 }
 
 Forms.reject = function(id) {
@@ -281,7 +281,7 @@ Forms.reject = function(id) {
     if (note == "" || note == null) return;
 
     var form = Query.selectId("Forms.forms", id);
-    Forms.addHistory(form, R.REJECTED, note, "");
+    Forms.addHistory(form, R.REJECTED, note);
     Forms.notify(form, R.REJECTED, Forms.getCreator(form));
     Forms.archive(id);
 
@@ -339,30 +339,18 @@ function Forms_nextState(id, currentStatus) {
     if (newstate.note != "" && App.confirm(newstate.note) == false) return;
 
     // ask for signature
-    var reuseSignature = AccountSettings.getBool("forms.reusesignature");
-
-    var signature = "";
+    //var reuseSignature = AccountSettings.getBool("forms.reusesignature");
+    //var signature = "";
     if (newstate.sign == 1) {
-        if (reuseSignature == true) {
-            if (!WEB() && Forms.getUserSignature() == null) {
-                var newSignature = App.prompt("Signature", "", "signature");
-                if (newSignature) {
-                    Forms.saveUserSignature(newSignature);
-                } else {
-                    return;
-                }
-            }
-        } else {
-            if (WEB()) {
-                signature = Forms.getLastSignature(User.getName());
-                if (signature) {
-                    if (App.confirm(R.FORMSIGNATURECONFIRM) == false) signature = "";
-                }
+        // 3 Jan 2022: We always reuse signature
+        if (!WEB() && Forms.getUserSignature() == null) {
+            var newSignature = App.prompt("Signature", "", "signature");
+            if (newSignature) {
+                Forms.saveUserSignature(newSignature);
             } else {
-                signature = App.prompt("Signature", "", "signature");
-                if (!signature) return;
+                return;
             }
-        }
+        }  
     }
 
     // Set the form default values for the new state
@@ -373,7 +361,7 @@ function Forms_nextState(id, currentStatus) {
     Query.updateId("Forms.forms", id, "value", JSON.stringify(values));
 
     Query.updateId("Forms.forms", id, "status", newstate.status);
-    Forms.addHistory(form, newstate.name, newstate.note, signature);
+    Forms.addHistory(form, newstate.name, newstate.note);
 
     // Nov 6th, 2022
     // if this is the last step , set all sub form state to 1 (submitted), so that manager cannot edit the subforms anymore
@@ -439,7 +427,7 @@ Forms.resetToDraft = function(id, silent) {
         Forms.setValue(field.name, "");
     }
 
-    Forms.addHistory(form, "Reset To Draft", "", "");
+    Forms.addHistory(form, "Reset To Draft");
 
     // also reset the subforms
     Forms.setSubFormsStatus(form, Forms.DRAFT);
@@ -454,7 +442,7 @@ Forms.resetToSuperseded = function(id, silent) {
     let form = Query.selectId("Forms.forms", id);
     Query.updateId("Forms.forms", form.id, "status", Forms.SUPERSEDED);
     Query.updateId("Forms.forms", form.id, "color", "");
-    Forms.addHistory(form, "Reset To Superseded", "", "");
+    Forms.addHistory(form, "Reset To Superseded");
 
     // also reset the subforms
     Forms.setSubFormsStatus(form, Forms.SUPERSEDED);
