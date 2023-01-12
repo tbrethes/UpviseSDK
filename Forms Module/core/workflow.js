@@ -512,8 +512,8 @@ Forms.getUserSignature = function (staff) {
     
     let users = Query.select("System.users", "id", "name={staff}");
     if (users.length == 0) return null;
-    let userId = User.getId();
-    let item = Query.selectId("Forms.signatures");
+    let userId = users[0].id;
+    let item = Query.selectId("Forms.signatures", userId);
     return item ? item.signature : null;
 }
 
