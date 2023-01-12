@@ -356,9 +356,9 @@ function Forms_nextState(id, currentStatus) {
     // Set the form default values for the new state
     // Bug fix. TBR: Feb. 8th 2019 : we need to re select the form from the database because Forms.evalOnLoad may have modified it....
     form = Query.selectId("Forms.forms", id);
-    var values = Forms._getValues(form);
-    Forms.setDefaultValues(form, values, newstate.status);
-    Query.updateId("Forms.forms", id, "value", JSON.stringify(values));
+    //var values = Forms._getValues(form);
+    //Forms.setDefaultValues(form, values, newstate.status);
+    //Query.updateId("Forms.forms", id, "value", JSON.stringify(values));
 
     Query.updateId("Forms.forms", id, "status", newstate.status);
     Forms.addHistory(form, newstate.name, newstate.note);
@@ -507,15 +507,14 @@ Forms.hasFinalStatus = function(form) {
 }
 ///////////////
 
-Forms.getUserSignature = function (staff, date) {
+Forms.getUserSignature = function (staff) {
     if (!staff) staff = User.getName();
-    if (!date) date = Date.now();
-
-    var users = Query.select("System.users", "id", "name={staff}");
+    
+    let users = Query.select("System.users", "id", "name={staff}");
     if (users.length == 0) return null;
-    var userId = users[0].id;
-    var items = Query.select("Forms.signatures", "signature", "id={userId} AND date<={date}", "date DESC");
-    return (items.length > 0) ? items[0].signature : null;
+    let userId = User.getId();
+    let item = Query.selectId("Forms.signatures");
+    return item ? item.signature : null;
 }
 
 Forms.saveUserSignature = function(signature) {

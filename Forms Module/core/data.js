@@ -570,7 +570,7 @@ Forms.getHistory = function (form) {
             var item = items[i];
             if (!item.signature && item.staff) {
                 // try to get it from signatures table
-                item.signature = Forms.getUserSignature(item.staff, item.date);
+                item.signature = Forms.getUserSignature(item.staff);
             }
         }
         return items;

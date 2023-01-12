@@ -78,7 +78,7 @@ FormsPdf.getOptions = function (template) {
 FormsPdf.init = function(options, form) {
     if (options == null) options = {};
 
-    if (options.watermarkstatus && Forms.hasFinalStatus(form) == false) {
+    if (form && options.watermarkstatus == 1 && Forms.hasFinalStatus(form) == false) {
        options.watermark += " " + Forms.getState(form).name;
     }
     Pdf2.init(options.fontsize);

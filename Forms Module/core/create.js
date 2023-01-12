@@ -81,7 +81,7 @@ Forms.newFormInternal = function (templateid, linkedtable, linkedid, values, nam
     form.id = formid;
     
     if (values == null) values = {}; // must be an object not array for stringify
-    Forms.setDefaultValues(form, values, Forms.DRAFT);
+    Forms.setDefaultValues(form, values);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
 
     Forms.ERROR_CREATE = null;
@@ -139,7 +139,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     // Warning :  s needs form.id for drawing duplication
     form.id = formid;
     var values = {}; // must be an object not array for stringify
-    Forms.setDefaultValues(form, values, Forms.DRAFT);
+    Forms.setDefaultValues(form, values);
     Query.updateId("Forms.forms", formid, "value", JSON.stringify(values));
   
     if (template.oncreate) {
@@ -166,31 +166,29 @@ Forms.getNewName = function (templateid, counterid) {
     return template.prefix + (template.prefix != "" ? "-" : "") + counter;
 }
 
-Forms.setDefaultValues = function (form, values, status) {
+// 11 Jan 2023 : this is called only once at form creation and applies to all default fields values, not for each specific workflow field state
+Forms.setDefaultValues = function (form, values) {
     // make sure the Libjs code has been loaded before calls to Forms._eval()
     Forms.injectCodeLibjs();
 
-    var where = "status={status} AND formid={form.templateid}";
-    var fields = Query.select("Forms.fields", "name;label;value;type", where, "rank");
-    var fieldsall = Query.select("Forms.fields", "name;label;value;type", "status=-1 AND formid={form.templateid}", "rank");
-    fields = fields.concat(fieldsall);
-    for (var i = 0; i < fields.length; i++) {
-        var field = fields[i];
-        var value = values[field.name];
+    //let where = "status={status} AND formid={form.templateid}";
+    let fields = Query.select("Forms.fields", "name;label;value;type", "formid={form.templateid}", "rank");
+    //let fieldsall = Query.select("Forms.fields", "name;label;value;type", "status=-1 AND formid={form.templateid}", "rank");
+    //fields = fields.concat(fieldsall);
+    for (let field of fields) {
+        let value = values[field.name];
         if (value == null) {
-            if (field.type == "drawing") {
-                value = field.value ? App.duplicatePicture(field.value, "Drawing " + new Date().toLocaleString()) : "";
+            if (field.type == "drawing" && field.value) {
+                value = App.duplicatePicture(field.value, "Drawing " + new Date().toLocaleString());
                 values[field.name] = value;
                 // TODO :  add linkedtable and linkedid as params in App.duplicatePicture
-                if (value && form.id) {
-                    // Note during form creation, there is no form.id yet,
-                    // but during workflow state change, form.id is present
+                if (value) {
                     Query.updateId("System.files", value, "linkedtable", "Forms.forms");
                     Query.updateId("System.files", value, "linkedrecid", form.id + ":" + field.name);
                 }
             } else if (field.type == "risk") {
-                var risk = Query.selectId("Qhse.risks", field.label);
-                if (risk != null) {
+                let risk = Query.selectId("Qhse.risks", field.label);
+                if (risk) {
                     values[field.name + "S"] = risk.severity;
                     values[field.name + "P"] = risk.probability;
                 }
@@ -443,8 +441,8 @@ Forms.archiveForm = function (id, confirm) {
 
     var form = Query.selectId("Forms.forms", id);
     var fileids = Forms.selectFormPhotoIds(form);
-    for (let file of fileids) {
-        Query.archiveId("System.files", file.id);
+    for (let fileid of fileids) {
+        Query.archiveId("System.files", fileid);
     }
     Query.archiveId("Forms.forms", id);
 
