@@ -116,7 +116,9 @@ Forms.archive = function (id) {
 
 Forms.notifyDelete = function (form) {
     try {
-        var values = JSON.parse(form.value);
+        if (!form || form.value == '') return;
+
+        var values = form.value ? JSON.parse(form.value) : {};
         var email = values["EMAILDELETE"];
         if (!email) return;
         var body = [];
@@ -128,7 +130,7 @@ Forms.notifyDelete = function (form) {
         body.push("Database: " + Settings.get("company"));
         Notif.send("Deleted Form Notification", body.join("\n"), "", "", email);
     } catch(e) {
-        alert(e.message);
+        //alert(e.message);
     }
 }
 

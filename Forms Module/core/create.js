@@ -136,7 +136,7 @@ Forms.newPlanFormInternal = function (templateid, fileid, geo, linkedtable, link
     form.hidden = Forms.getDefaultHidden(template.id);
 
     var formid = Query.insert("Forms.forms", form);
-    // Warning :  s needs form.id for drawing duplication
+    // Warning : need form.id for drawing duplication
     form.id = formid;
     var values = {}; // must be an object not array for stringify
     Forms.setDefaultValues(form, values);
@@ -171,21 +171,19 @@ Forms.setDefaultValues = function (form, values) {
     // make sure the Libjs code has been loaded before calls to Forms._eval()
     Forms.injectCodeLibjs();
 
-    //let where = "status={status} AND formid={form.templateid}";
     let fields = Query.select("Forms.fields", "name;label;value;type", "formid={form.templateid}", "rank");
-    //let fieldsall = Query.select("Forms.fields", "name;label;value;type", "status=-1 AND formid={form.templateid}", "rank");
-    //fields = fields.concat(fieldsall);
     for (let field of fields) {
         let value = values[field.name];
         if (value == null) {
             if (field.type == "drawing" && field.value) {
+                // download the drawing photo if not in cache
+                if (!WEB()) App.downloadFile(Settings.getFileUrl(field.value), null);
+                // Duplicate the drawing into a new file
                 value = App.duplicatePicture(field.value, "Drawing " + new Date().toLocaleString());
                 values[field.name] = value;
                 // TODO :  add linkedtable and linkedid as params in App.duplicatePicture
-                if (value) {
-                    Query.updateId("System.files", value, "linkedtable", "Forms.forms");
-                    Query.updateId("System.files", value, "linkedrecid", form.id + ":" + field.name);
-                }
+                Query.updateId("System.files", value, "linkedtable", "Forms.forms");
+                Query.updateId("System.files", value, "linkedrecid", form.id + ":" + field.name);
             } else if (field.type == "risk") {
                 let risk = Query.selectId("Qhse.risks", field.label);
                 if (risk) {
