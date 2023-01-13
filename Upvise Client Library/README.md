@@ -2,7 +2,7 @@
 
 The Upvise Client Library for .NET allows you to make direct HTTPS calls to the Upvise Cloud Database, from any client program. runnning on a desktop or server machine. You can query any application table, download and upload files to your Upvise account.
 
-Current Version: **v2.1**, released **January 13th, 2023**
+**Current Version: v2.1**, released **January 13th, 2023**
 
 [Programming guide & API Reference](https://www.upvise.com/dev/guide/webservice.htm)
 
