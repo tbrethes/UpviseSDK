@@ -8,6 +8,8 @@ function main() {
     List.show();
 }
 
+
+// valid style properties are: backcolor, color, bold, 
 function exportExcel() {
  	var csv = new CsvFile();
   	var style1 = {backcolor:"blue", color:"red", bold:true};
@@ -19,6 +21,24 @@ function exportExcel() {
   
   	var excel = new ExcelFile();
   	excel.addSheet("Sheet1", csv.getContent());
-  	excel.download("test.xlsx");
-  
+  	excel.download("test.xlsx");  
 }
+
+/* Valid Styles for Excel: 
+var style = {
+		backcolor:"color",
+		color:"color",
+		bold:true,
+		align:"left|center|right",
+		fontsize:12,
+		border:"color",
+		bordertop:"color",
+		borderright:"color",
+		borderleft:"color",
+		borderbottom:"color",
+		width:200
+	}
+}
+
+color can be a named color like red, green blue or HTML code color.
+*/
