@@ -9,7 +9,6 @@ function main() {
 }
 
 
-// valid style properties are: backcolor, color, bold, 
 function exportExcel() {
  	var csv = new CsvFile();
   	var style1 = {backcolor:"blue", color:"red", bold:true};
