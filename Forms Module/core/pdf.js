@@ -2,7 +2,7 @@
 
 function FormsPdf() {}
 
-FormsPdf.export = function (formid, action, email, subject, body, replyto) {
+FormsPdf.export = function(formid, action, email, subject, body, replyto) {
 
     // capture the current form memory state, before generating the Form PDF, because it then calls Forms._getValues() which changes global _valuesObj variable.
     // then retore it at the end of the function
@@ -11,6 +11,9 @@ FormsPdf.export = function (formid, action, email, subject, body, replyto) {
     // form object usied in optional eval() below
     var form = Query.selectId("Forms.forms", formid);
     var template = Query.selectId("Forms.templates", form.templateid);
+    if (template == null) {
+        return; // ERROR : nothing to do...
+    }
     
     var options = FormsPdf.getOptions(template);
     if (options.pdffunc) {
@@ -35,19 +38,56 @@ FormsPdf.export = function (formid, action, email, subject, body, replyto) {
         // if fileid is set, pdf email archival will also store PDF file in the Files app in Upvise
         if (AccountSettings.get("forms.archivedb") == "1") Pdf2.setFileid(formid);
         var subject = "Archive: " + User.getName() + " " + Pdf2.filename;
-        Pdf2.archiveEmail(email, subject);
+        Pdf2.emailServer(email, subject);
     } else if (action == "serveremail") {
         // difference with "email" is that email is sent automatically by the server, there is no UI for the user to validate and click Send
         if (replyto) Pdf2.addTag("fromEmail", replyto);
-        Pdf2.archiveEmail(email, subject, body);
+        Pdf2.emailServer(email, subject, body);
     } else if (action == "update-qrcode" && options.qrcode == 1) {
         var html = Pdf2.getContent();
         Notif.sendPdfUpdate(html);
+    } else if (action == "api-store") {
+        Pdf2.store(formid, "api-store");
     } else {
         Pdf2.download();
     }
 
     Forms.RESTORE_STATE(state);
+}
+
+FormsPdf.exportMulti = function(formids, title, email, subject, body, replyto) {
+    let forms = Query.selectIds("Forms.forms", formids);
+    FormsPdf.init();
+    Pdf2.addStyle("H1", "text-transform:uppercase;font-size:4em;padding-top:200px;margin-bottom:200px;text-align:center;color:black");
+    Pdf2.addStyle("H2", "text-transform:uppercase;font-size:2em;padding:50px;text-align:center");
+    Pdf2.addStyle(".label", "font-weight:bold");
+    Pdf2.addStyle("TABLE.toc TR TD:nth-child(2)", "width:100px");
+    Pdf2.addStyle("TABLE.toc TR TD:nth-child(3)", "text-align:right;width:220px");
+
+    Pdf2.add("<H2>", title, "</H2>");    
+    Pdf2.add('<table class="form toc">');
+    Pdf2.add('<tr><td colspan=3 class=header>', " ", '</td></tr>');
+    for (let form of forms) {
+        let label = Query.names("Forms.templates", form.templateid) + " " + form.name;
+        Pdf2.addRow([label, Format.datetime(form.date), form.owner]);
+    }
+    Pdf2.stopTable();
+
+    for (let form of forms) {
+        Pdf2.addPageBreak();
+        let template = Query.selectId("Forms.templates", form.templateid);
+        FormsPdf.write(form, template);
+    }
+
+    Pdf2.setFilename(title);
+    Pdf2.setFooter(title);
+
+    if (email) {   
+        if (replyto) Pdf2.addTag("fromEmail", replyto);
+        Pdf2.emailServer(email, subject, body);
+    } else {
+        Pdf2.download();
+    }
 }
 
 FormsPdf.getOptions = function (template) {
@@ -145,7 +185,6 @@ FormsPdf.write = function (form, template, index) {
     if (linkedItem && linkedItem.value) filename += "-" + linkedItem.value;
     filename += ".pdf";
 
-    
     var title = index ? index + " " : "";
     if (AccountSettings.get("forms.pdfgroup") == "1") {
         var name = Query.names("Forms.groups", template.groupid);
@@ -223,7 +262,6 @@ FormsPdf.write = function (form, template, index) {
         var qrcode = companyId + "-" + form.id;// + "-" + hash;
         Pdf2.addTag("qrcode", qrcode);
     }
-
     return filename;
 }
 

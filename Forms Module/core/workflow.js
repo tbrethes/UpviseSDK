@@ -1,6 +1,5 @@
 
 //////////////////////////////////
-
 Forms.LOCK = 0;
 
 Forms.checkEmptyFields = function (form) {
@@ -13,12 +12,16 @@ Forms.checkEmptyFields = function (form) {
         var isMandatory = (field.mandatory == 1 && (field.status == form.status || field.status == -1));
         if (isMandatory) {
             var isEmpty = false;
-            if (field.type == "signature" && Settings.getPlatform() == "web") continue; // signature never mandatory on web.
-            else if (field.type == "photo") {
+            if (field.type == "signature") {
+                isEmpty = (field.value == "");
+                if (isEmpty && WEB() && GlobalSettings.getString("forms.websignature.mandatory") != "1") isEmpty = false; 
+            } else if (field.type == "photo") {
                 var count = Query.count("System.files", "linkedtable='Forms.forms' AND linkedrecid={field.value}");
                 if (count == 0) isEmpty = true;
             } else if (field.type == "date" || field.type == "datetime" || field.type == "time") {
                 isEmpty = !(Math.abs(parseInt(field.value)) > 0);
+            } else if (field.type == "checkbox") {
+                isEmpty = (field.value != "1"); // Added 9 May 2023
             } else if (field.value == null || field.value === "") { // use === because 0 should not be empty
                 isEmpty = true;
             }
@@ -109,9 +112,13 @@ Forms.notify = function (form, statename, staff) {
 
 Forms.archive = function (id) {
     var email = AccountSettings.get("Forms.archive");
-    if (email != null && email != "") {
+    if (email) {
         FormsPdf.export(id, "archive", email);
     }
+    // NEW April 2023
+    if (AccountSettings.get("forms.pdfapistore") == "1") {
+        FormsPdf.export(id, "api-store"); // qrcode-store public-store cold-store
+    }         
 }
 
 Forms.notifyDelete = function (form) {
@@ -167,7 +174,7 @@ Forms.getState = function (form) {
         }
         return obj;
     } else {
-        var states = Query.select("Forms.states", "name;action;staff;roleid", "templateid={form.templateid} AND status={form.status}");
+        var states = Query.select("Forms.states", "status;name;action;staff;roleid", "templateid={form.templateid} AND status={form.status}");
         if (states.length == 0) return { name: "Error Status" };
         var state = states[0];
         var obj = { name: state.name };
@@ -211,6 +218,12 @@ Forms.getStateStaff = function (form, state) {
         }
         return staffArray.join("|");
     } else {
+        // 4 April 2023 : custom field indicates newt workflow staff
+        if (state.staff == "") {
+            let values = Forms._getValues(form);
+            let staff = values["NEXT_WORKFLOW_STAFF"];
+            if (staff) return staff;
+        }
         // user based staff
         return state.staff;
     }
@@ -222,39 +235,43 @@ Forms.shouldArchive = function (state) {
 
 //////////////////////
 
-Forms.submit = function(id, goBack) {
+Forms.submit = function(id, noReload) {
     var form = Query.selectId("Forms.forms", id);
     // TBR: shield for KONE email loop bug. 9/22/2015
-    if (form.status == 1) return;
-
-    if (Forms.checkEmptyFields(form) == false) return;
-
+    if (form.status == 1) return false;
     //NB LOCK is to handle double tap execution, but will not fix all concurrent execution cases
     if (Forms.LOCK == 1) {
         App.alert("Lock");
-        return;
+        return false;
     }
 
-    if (Forms.signOnSubmit(form) == false) return;
+    if (Forms.checkEmptyFields(form) == false) return false;
+    if (Forms.signOnSubmit(form) == false) return false;
 
     // Execute on Submit
     var returnValue = Forms.evalSubmit(form);
-    if (returnValue === 0) return;
+    if (returnValue === 0) return false;
 
     Forms.LOCK = 1;
     try {
         Query.updateId("Forms.forms", id, "status", 1);
         // submit the subforms
         Forms.setSubFormsStatus(form, Forms.SUBMITTED);
+        // Add an history state 
+        Forms.addHistory(form, R.SUBMITTED);
         // notify all managers : null
         Forms.notify(form, R.SUBMITTED, null);
         Forms.archive(id);
-    } catch (e) { }
-    if (returnValue != 2) {
-        if (goBack === true) History.back();
-        else History.reload();
-    }
+    } catch (e) {}
     Forms.LOCK = 0;
+
+    // returnValue == 2 means the onsubmit script has already navigated itself to another screen
+    if (returnValue == 2 || noReload === true) {
+        return true;
+    }
+
+    History.reload();
+    return true;
 }
 
 Forms.signOnSubmit = function(form) {
@@ -266,7 +283,7 @@ Forms.signOnSubmit = function(form) {
     var signature = Forms.getUserSignature();
     if (!signature) {
         if (WEB()) {
-            App.prompt("Signature required. Please submit on a mobile device to sign.");
+            App.confirm("Signature required. Please submit on a mobile device to sign.");
             return false;
         } else {
             signature = App.prompt("Signature", "", "signature");
@@ -274,8 +291,6 @@ Forms.signOnSubmit = function(form) {
             Forms.saveUserSignature(signature);
         }
     }
-    // Add an history state 
-    Forms.addHistory(form, R.SUBMITTED);
 }
 
 Forms.reject = function(id) {
@@ -341,18 +356,24 @@ function Forms_nextState(id, currentStatus) {
     if (newstate.note != "" && App.confirm(newstate.note) == false) return;
 
     // ask for signature
-    //var reuseSignature = AccountSettings.getBool("forms.reusesignature");
-    //var signature = "";
     if (newstate.sign == 1) {
         // 3 Jan 2022: We always reuse signature
-        if (!WEB() && Forms.getUserSignature() == null) {
-            var newSignature = App.prompt("Signature", "", "signature");
-            if (newSignature) {
-                Forms.saveUserSignature(newSignature);
-            } else {
-                return;
+        if (!WEB()) {
+            var hasSignature = (Forms.getUserSignature() != null);
+            if (hasSignature) {
+                if (App.confirm("Reuse your existing signature?") == false) {
+                    hasSignature = false; 
+                }
             }
-        }  
+            if (!hasSignature) {
+                var newSignature = App.prompt("Signature", "", "signature");
+                if (!newSignature) {
+                    return; // cancel;
+                }
+                // save signature and continue
+                Forms.saveUserSignature(newSignature);
+            }
+        }
     }
 
     // Set the form default values for the new state
@@ -455,6 +476,11 @@ Forms.resetToSuperseded = function(id, silent) {
     if (!silent) History.reload();
 }
 
+Forms.resetColor = function(id, silent = false) {
+    Query.updateId("Forms.forms", id, "color", "");
+    if (!silent) History.reload();
+}
+
 Forms.setSubFormsStatus = function(form, status) {
     let subforms = Forms.selectSubForms(form, "id");
     for (let subform of subforms) {
@@ -526,6 +552,3 @@ Forms.saveUserSignature = function(signature) {
     values.date = Date.now();
     Query.insert("Forms.signatures", values);
 }
-
-
-

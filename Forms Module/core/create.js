@@ -380,23 +380,14 @@ Forms.selectSubForms = function(form, columns) {
         linkedids.push(linkedid);
     }
     // get all the subforms
-    let subforms  = Query.select("Forms.forms", columns, "linkedid IN " + list2(linkedids));
-    
-    /*
-    let subforms = [];
-    let fields = Query.select("Forms.fields", "name", "type='button' AND value='newsubform' AND formid={form.templateid}");
-    for (var field of fields) {
-        let linkedid = form.id + ":" + field.name;
-        let list = Query.select("Forms.forms", columns, "linkedtable='Forms.forms' AND linkedid={linkedid}", "date");
-        subforms = subforms.concat(list);
-    }*/
+    let subforms  = Query.select("Forms.forms", columns, "linkedid IN " + list2(linkedids));  
     return subforms;
 }
  
 ////////////////////////////////////////////////////////////////////
 
 Forms.editAddress = function (id) {
-    var form = Query.selectId("forms", id);
+    var form = Query.selectId("Forms.forms", id);
     if (form == null) { History.back(); return; }
     var onchange = "Query.updateId('forms',{id},this.id,this.value)";
 
@@ -414,12 +405,11 @@ Forms.changeOwner = function (id, owner) {
     let form = Query.selectId("Forms.forms", id);
     Query.updateId("Forms.forms", id, "owner", owner);
 
-    //change the owner for subforms
+    // Touch the sub forms and all linked photos of main and sub forms
     let subformids = [];
     let subforms = Forms.selectSubForms(form, "id");
     for (let subform of subforms) {
         subformids.push(subform.id);
-        //Query.updateId("Forms.forms", subforms[i].id, "owner", owner);
     }
     if (subformids.length > 0) Notif.sendTouch("Forms.forms", subformids.join("|"));
     

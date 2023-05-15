@@ -502,7 +502,7 @@ Templates.editIntegration = function (id) {
     var url = Forms.getExportUrl(template.id);
     var absUrl = new URL(url, document.URL).href;
     var value = '<a href="' + absUrl + '">' + absUrl + '</a>';
-    _html.push('<div><b>', "Integration URL" + Format.tag("New", Color.BLUE), '</b></div><div style="background-color:#EEEEEE;padding:10px;margin:10px;display:inline-block">', value, '</div>');
+    _html.push('<div><b>', "Integration URL" + Format.tag("Deprecated", Color.ORANGE), '</b></div><div style="background-color:#EEEEEE;padding:10px;margin:10px;display:inline-block">', value, '</div>');
 
     List.addLine();
     
@@ -570,7 +570,7 @@ Templates.viewTemplate = function (id) {
     let sharingStyle= "img:group";
     if (template.public == 1) sharingStyle += ";color:green;count:ON";
     if (Templates.SHARING) Grid.add(R.SHARING, "Templates.editSharing({id})", sharingStyle);
-    Grid.add("Integration", "Templates.editIntegration({id})", "img:pipe");
+    Grid.add("Integration<br/>" + Format.tag("Deprecated", Color.ORANGE), "Templates.editIntegration({id})", "img:pipe");
 
     List.show();    
 }

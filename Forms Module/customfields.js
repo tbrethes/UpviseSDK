@@ -140,15 +140,15 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid, fi
         else List.addItemLabel(label, "Open Link", "App.web({value})");
     } else if (type == 'date') {
         // do not display Someday date for forms
-        if (value != 0) List.addItemLabel(label, Format.date(value), null, "img:calendar");
+        if (value != 0) List.addItemLabel(label, Format.date(parseInt(value)), null, "img:calendar");
     } else if (type == 'datetzi') {
-        if (value != 0) List.addItemLabel(label, Format.date(value, "utc"), null, "img:calendar");
+        if (value != 0) List.addItemLabel(label, Format.date(parseInt(value), "utc"), null, "img:calendar");
     } else if (type == 'time') {
         if (value == 0) return; // Otherwise on Android value = 0 is displayed as a default time, i.e 7:30
-        List.addItemLabel(label, Format.time(value), null, "img:clock");
+        List.addItemLabel(label, Format.time(parseInt(value)), null, "img:clock");
     } else if (type == 'datetime') {
         if (value == 0) return;  // do not display One day...
-        List.addItemLabel(label, Format.datetime(value), null, "img:calendar");
+        List.addItemLabel(label, Format.datetime(parseInt(value)), null, "img:calendar");
     } else if (type == 'duration') {
         List.addItemLabel(label, Format.duration(parseInt(value)));
     } else if (type == 'textarea') {

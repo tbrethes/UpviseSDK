@@ -7,7 +7,7 @@ Forms.getInbox = function (templateids) {
     // Add the role based state too
     var role = User.getRole();
     if (role) {
-        var states2 = Query.select("Forms.states", "templateid;status", "roleid={role.id} AND action!=''");
+        var states2 = Query.select("Forms.states", "templateid;status", "roleid CONTAINS {role.id} AND action!=''");
         states = states.concat(states2);
     }
 

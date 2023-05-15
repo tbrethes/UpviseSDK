@@ -503,6 +503,15 @@ Forms.canEditTemplates = function () {
     else return User.isManager();
 }
 
+Forms.canResetToDraft = function(form) {
+    if (User.isAdmin()) return true;
+    if (User.isManager()) {
+        return AccountSettings.get("forms.resetdraft") == "1";
+    } else {
+        return false;
+    }
+}
+
 Forms.punchCount = function(id) {
     return Query.count("Forms.punchitems", "formid={id}");
 }
