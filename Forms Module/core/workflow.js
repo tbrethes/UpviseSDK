@@ -103,6 +103,8 @@ Forms.notify = function (form, statename, staff) {
     var type = "form." + template.id;
     // this will change type to "" to force notify for workflow.
     if (staff && GlobalSettings.getString("forms.forcenotify") == "1") type = "";
+    if (values["EMAILNOTIF"] == 1) type = "high"; // force notif also sent by email
+    
     var body = statename + " by " + User.getName();
 
     var emails = (staff != null) ? User.getEmails(staff) : null;
@@ -218,11 +220,9 @@ Forms.getStateStaff = function (form, state) {
         }
         return staffArray.join("|");
     } else {
-        // 4 April 2023 : custom field indicates newt workflow staff
-        if (state.staff == "") {
-            let values = Forms._getValues(form);
-            let staff = values["NEXT_WORKFLOW_STAFF"];
-            if (staff) return staff;
+        // 4 April 2023 : ns form column indicates next staff for dynamic workflow
+        if (state.staff == "" && form.ns) {
+            return form.ns;
         }
         // user based staff
         return state.staff;
@@ -497,7 +497,7 @@ User.getRoleMap = function(projectid) {
         // if projectid, filter users by project owners.
         var project = Query.selectId("Projects.projects", projectid);
         if (project && project.owner) {
-            where = "name IN " + list(project.owner);
+            where = "name IN " + list3(project.owner); // FIX_IN
         }
     }
 

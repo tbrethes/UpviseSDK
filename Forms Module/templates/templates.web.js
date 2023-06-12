@@ -253,12 +253,13 @@ Templates.editInfo = function (id) {
     if (Forms.getLinkedOptions != undefined) List.addComboBox('linkedtable', R.LINKEDTO, template.linkedtable, onchange, Forms.getLinkedOptions());
     List.addTextBox("counter", R.NEXTFORMID, template.counter, onchange, "numeric");
     List.addTextBox("version", "Version", template.version, onchange, "longtext");
-    //List.addTextBox("icon", "Icon", template.icon, onchange, "text");
     List.addCheckBox("schedule", "Requires schedule to create", template.schedule, onchange);
 
     List.addHeader(R.TASKGROUP);
     List.addComboBox('groupid', R.GROUP, template.groupid, onchange, Query.options("Forms.groups"), "Templates.addGroupToCombo(this.value)");
-    List.addComboBoxMulti('notifusers', R.NOTIFYMANAGERS, template.notifusers, onchange, User.getOptions("manager"));
+    // May 2023 This template option is actually only used when there is a Workflow. In case of simple template, notifications are sent to all Managers by default
+    var stateCount = Query.count("Forms.states", "templateid={id}");
+    if (stateCount > 0) List.addComboBoxMulti('notifusers', R.NOTIFYMANAGERS, template.notifusers, onchange, User.getOptions("manager"));
  
     List.addHeader("Auto Archive");
     List.addTextBox('archivedays', "Archive after nb days", template.archivedays, onchange, "numeric");
@@ -591,6 +592,8 @@ Templates.popupHeaders = function (templateid) {
     Popup.show();    
 }
 
+// 19/05/2023 NB Looks like this function is no longer used?
+/*
 Templates.editFormTemplate = function(template, onchange) {
     List.addTextBox("name", R.NAME, template.name, onchange, "longtext");
     List.addTextBox("prefix", R.PREFIX, template.prefix, onchange);
@@ -599,6 +602,7 @@ Templates.editFormTemplate = function(template, onchange) {
     List.addTextBox("counter", R.NEXTFORMID, template.counter, onchange, "numeric");
     List.addHeader(R.TASKGROUP);
     List.addComboBox('groupid', R.GROUP, template.groupid, onchange, Query.options("Forms.groups"), "Templates.addGroupToCombo(this.value)");
+    
     List.addComboBoxMulti('notifusers', R.NOTIFYMANAGERS, template.notifusers, onchange, User.getOptions("manager"));
 
     List.addHeader(R.OPTIONS);
@@ -613,6 +617,7 @@ Templates.editFormTemplate = function(template, onchange) {
     List.addHeader("Auto Archive");
     List.addTextBox('archivedays', "Archive after nb days", template.archivedays, onchange, "numeric");
 }
+*/
 
 Templates.getColumnsOptions = function (templateid) {
     var options = [];

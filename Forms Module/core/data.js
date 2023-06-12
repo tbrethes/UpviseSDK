@@ -132,6 +132,7 @@ Forms.writeViewFields = function (form) {
 
     _valueObj = Forms._getValues(form); // we need this because Risk.view access it
     _formid = form.id;
+    CustomFields.curHeader = null;
     var fields = Forms.getFields(form);
 
     for (var i = 0; i < fields.length; i++) {

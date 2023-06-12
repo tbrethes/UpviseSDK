@@ -74,17 +74,7 @@ Forms.exportMultiple = function (templateid) {
     } else {
         forms = Query.select("Forms.forms", "*", "templateid={templateid}", "date DESC");
     }
-    /*
-    if (ids.length > 0) {
-        forms = Query.selectIds("Forms.forms", ids);
-    } else {
-        var where = "";
-        if (templateid != null) where = "templateid={templateid}";
-        where = Where.addOwner(where);
-        where = Where.addDateRange(where);
-        forms = Query.select("forms", "*", where, "date DESC");
-    }
-    */
+   
     let filename = R.ALLFORMS;
     if (templateid) filename = Query.names("templates", templateid);
     Forms.exportExcel(forms, filename);

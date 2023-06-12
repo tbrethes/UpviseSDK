@@ -302,7 +302,7 @@ Forms.duplicateInternal = function (form, linkedid, counterid) {
 }
 
 //////////////////////////////////
-
+/*
 function list2(array) {
     if (array instanceof Array) {
         if (array.length > 0) {
@@ -314,7 +314,7 @@ function list2(array) {
         return "()";
     }
 }
-
+*/
 Forms.selectFormPhotoIds = function (form) {
     let linkedrecids = [];
     let fields = Query.select("Forms.fields", "name", "formid={form.templateid} AND type IN ('photo','drawing')");
@@ -323,7 +323,7 @@ Forms.selectFormPhotoIds = function (form) {
         linkedrecids.push(linkedrecid);
     }
 
-    let files = Query.select("System.files", "id", "linkedtable='Forms.forms' AND linkedrecid IN " + list2(linkedrecids));
+    let files = Query.select("System.files", "id", "linkedtable='Forms.forms' AND linkedrecid IN " + list3(linkedrecids));
     let ids = [];
     for (let file of files) {
         ids.push(file.id);
@@ -340,7 +340,7 @@ Forms.selectSubformPhotoIds = function (form) {
         linkedids.push(linkedid);
     }
     // get all the subforms
-    let subforms  = Query.select("Forms.forms", "id;templateid", "linkedtable='Forms.forms' AND linkedid IN " + list2(linkedids));
+    let subforms  = Query.select("Forms.forms", "id;templateid", "linkedtable='Forms.forms' AND linkedid IN " + list3(linkedids));
     // group them by templateid
     let map = new HashMap();
     for (let subform of subforms) {
@@ -360,7 +360,7 @@ Forms.selectSubformPhotoIds = function (form) {
             }
         }
     }
-    let photos = Query.select("System.files", "id", "linkedtable='Forms.forms' AND linkedrecid IN " + list2(linkedrecids));
+    let photos = Query.select("System.files", "id", "linkedtable='Forms.forms' AND linkedrecid IN " + list3(linkedrecids));
     let ids = [];
     for (let photo of photos) {
         ids.push(photo.id);
@@ -380,7 +380,7 @@ Forms.selectSubForms = function(form, columns) {
         linkedids.push(linkedid);
     }
     // get all the subforms
-    let subforms  = Query.select("Forms.forms", columns, "linkedid IN " + list2(linkedids));  
+    let subforms  = Query.select("Forms.forms", columns, "linkedid IN " + list3(linkedids));  
     return subforms;
 }
  

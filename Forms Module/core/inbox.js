@@ -27,14 +27,15 @@ Forms.getInbox = function (templateids) {
 
     var me = User.getName();
     var forms = [];
-    var where = "";
+    var where = "status>0 AND linkedtable!='Forms.forms'"; // optimization 17 May 2023
     if (templateids) where = "templateid IN " + list(templateids);
-    var allForms = Query.select("Forms.forms", "id;templateid;status;name;date;owner", where, "date DESC");
+    var allForms = Query.select("Forms.forms", "id;templateid;status;name;date;owner;ns", where, "date DESC");
     for (var i = 0; i < allForms.length; i++) {
         var form = allForms[i];
         var key = form.templateid + ":" + form.status;
         if (myStateMap[key] != null) forms.push(form);
         else if (initiatorStateMap[key] != null && form.owner == me) forms.push(form);
+        else if (form.ns == me) forms.push(form);
     }
 
     // Finaly filter with User role.
