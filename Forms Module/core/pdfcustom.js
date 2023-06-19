@@ -16,7 +16,6 @@ FormsPdf.writeCustom2 = function (form, pdfid) {
     }
 }
 
-
 FormsPdf.writeCustom = function (form, template) {
     var html = FormsPdf.replaceCustom(template.htmlpdf, form, template);
     Pdf2.add(html);
@@ -47,8 +46,6 @@ FormsPdf.replaceCustom = function (content, form, template) {
 
     return output;
 }
-
-
 
 /// Custom Email that replaces the default email when sending a Form by PDF
 FormsPdf.getCustomEmail = function (form, template) {

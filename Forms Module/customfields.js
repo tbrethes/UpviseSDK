@@ -69,7 +69,7 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid, fi
         return;
     }
     // do not write empty fields (exception button which can have value==null )
-    if (type!= "button" && (value == null || value === "")) {
+    if (type != "button" && (value == null || value === "")) {
         return;
     }
 
@@ -78,96 +78,132 @@ CustomFields.addViewItem = function (id, type, label, value, options, formid, fi
         List.addHeader(CustomFields.curHeader);
         CustomFields.curHeader = null;
     }
-
-    if (type == "button") {
-        CustomFields.addButton(id, label, value, options, formid, fieldguid); // value instead of "code"
-    } else if (type == 'select' || type == 'selectmulti') {
-        List.addItemLabel(label, Format.options(value, options));
-    } else if (type == 'toggle') {
-        List.addToggleBox('', label, value, null, options);
-    } else if (type == 'checkbox') {
-        if (Settings.getPlatform() == "web") List.addItemLabel(label, (value == "1") ? R.YES : R.NO);
-        else if (parseInt(value) == 1) List.addItem(label, '', 'icon:checked');
-    } else if (type == 'contact') {
-        CustomFields.writeMultivalueItem(label, value, "Contacts.contacts", "Contacts.viewContact", "contact");
-    } else if (type == 'company') {
-        CustomFields.writeMultivalueItem(label, value, "Contacts.companies", "Contacts.viewCompany", "company");
-    } else if (type == 'project') {
-        CustomFields.writeMultivalueItem(label, value, "Projects.projects", "Projects.viewProject", "project");
-    } else if (type == 'opp') {
-        CustomFields.writeMultivalueItem(label, value, "Sales.opportunities", "Sales.viewOpp");
-    } else if (type == 'product') {
-        CustomFields.writeMultivalueItem(label, value, "Sales.products", "Sales.viewProduct");
-    } else if (type == 'asset') {
-        CustomFields.writeMultivalueItem(label, value, "Assets.assets", "Assets.viewAsset");
-    } else if (type == 'tool') {
-        CustomFields.writeMultivalueItem(label, value, "Tools.tools", "Tools.viewTool", "job");
-    } else if (type == 'form') {
-        CustomFields.writeMultivalueItem(label, value, "Forms.forms", "Forms.viewForm");
-    } else if (type == 'user') {
-        var owners = value.split("|");
-        var contactids = [];
-        for (var i = 0; i < owners.length; i++) {
-            var contact = User.getContact(owners[i]);
-            if (contact != null) contactids.push(contact.id);
-        }
-        CustomFields.writeMultivalueItem(label, contactids.join("|"), "Contacts.contacts", "Contacts.viewContact", "contact"); // no table="" id and value are the same
-    } else if (type == "photo") {
-        CustomFields.addFileBox(label, "Forms.forms", value);
-    } else if (type == "drawing") {
-        CustomFields.addImage(id, label, value, options, formid);
-    } else if (type == "image") {
-        CustomFields.addImage(id, label, value, options, formid);
-    } else if (type == 'signature') {
-        var onclick = User.isAdmin() ? "Forms.popupResetSignature({formid},{id})" : "";
-        if (WEB()) List.addItemLabel(label, Format.image64(value), onclick);
-        else List.addSignatureBox('', label, value, '');
-    } else if (type == 'barcode') {
-        List.addItemLabel(label, value);
-    } else if (type == 'readonly') {
-        if (!WEB()) value = Format.text(value);
-        List.addItemLabel(label, value);
-    } else if (type == 'label') {
-        List.addItemLabel(label, " ", null, "color:gray");
-    } else if (type == 'phonenumber' || type == 'phone') {
-        List.addItemLabel(label, Format.phone(value), "App.call({value})");
-    } else if (type == 'email') {
-        List.addItemLabel(label, value, "App.mailto({value})");
-    } else if (type == 'link') {
-        // if not protocol, then assume http
-        if (value.indexOf(":") == -1) value = "http://" + value;
-        if (WEB()) List.addItemLabel("", label, "App.web({value})");
-        else List.addItemLabel(label, "Open Link", "App.web({value})");
-    } else if (type == 'date') {
-        // do not display Someday date for forms
-        if (value != 0) List.addItemLabel(label, Format.date(parseInt(value)), null, "img:calendar");
-    } else if (type == 'datetzi') {
-        if (value != 0) List.addItemLabel(label, Format.date(parseInt(value), "utc"), null, "img:calendar");
-    } else if (type == 'time') {
-        if (value == 0) return; // Otherwise on Android value = 0 is displayed as a default time, i.e 7:30
-        List.addItemLabel(label, Format.time(parseInt(value)), null, "img:clock");
-    } else if (type == 'datetime') {
-        if (value == 0) return;  // do not display One day...
-        List.addItemLabel(label, Format.datetime(parseInt(value)), null, "img:calendar");
-    } else if (type == 'duration') {
-        List.addItemLabel(label, Format.duration(parseInt(value)));
-    } else if (type == 'textarea') {
-        if (Settings.getPlatform() != "web") value = Format.text(value);
-        List.addItemLabel(label, value);
-    } else if (type == 'numeric' || type == 'decimal') {
-        List.addItemLabel(label, "" + value); // we do this : because toLocaleString() rounds to 3 decimals only.....
-    } else if (type == 'formula') {
-        List.addItemLabel(label, value);
-    } else if (type == 'risk') {
-        Risk.view(id, label, value);
-    } else if (type == 'location') {
-        List.addItemLabel(label, value, "App.map({value})");
-    } else if (type == "file") {
-        List.addItemLabel(label, Query.names("System.files", value), CustomFields._VIEWFILE + "({value})");
-    } else if (type == "score") {
-        CustomFields.addScoreBox(label, value);
-    } else {
-        List.addItemLabel(label, value);
+    switch(type) {
+        case "button":
+            CustomFields.addButton(id, label, value, options, formid, fieldguid); // value instead of "code"
+            break;
+        case "select":
+        case "selectmulti":
+            List.addItemLabel(label, Format.options(value, options));
+            break;
+        case "toggle":
+            List.addToggleBox('', label, value, null, options);
+            break;
+        case "checkbox":
+            if (WEB()) List.addItemLabel(label, (value == "1") ? R.YES : R.NO);
+            else if (parseInt(value) == 1) List.addItem(label, '', 'icon:checked');
+            break;
+        case "contact":
+            CustomFields.writeMultivalueItem(label, value, "Contacts.contacts");
+            break;
+        case "company":
+            CustomFields.writeMultivalueItem(label, value, "Contacts.companies");
+            break;
+        case "project":
+            CustomFields.writeMultivalueItem(label, value, "Projects.projects");
+            break;
+        case "opp":
+            CustomFields.writeMultivalueItem(label, value, "Sales.opportunities");
+            break;
+        case "product":
+            CustomFields.writeMultivalueItem(label, value, "Sales.products");
+            break;
+        case "asset":
+            CustomFields.writeMultivalueItem(label, value, "Assets.assets");
+            break;
+        case "tool":
+            CustomFields.writeMultivalueItem(label, value, "Tools.tools");
+            break;
+        case "form":
+            CustomFields.writeMultivalueItem(label, value, "Forms.forms");
+            break;
+        case "user":
+            var owners = value.split("|");
+            var contactids = [];
+            for (var i = 0; i < owners.length; i++) {
+                var contact = User.getContact(owners[i]);
+                if (contact != null) contactids.push(contact.id);
+            }
+            CustomFields.writeMultivalueItem(label, contactids.join("|"), "Contacts.contacts");
+            break;
+        case "photo":
+            CustomFields.addFileBox(label, "Forms.forms", value);
+            break;
+        case "drawing":
+        case "image":
+            CustomFields.addImage(id, label, value, options, formid);
+            break;
+        case "signature":
+            var onclick = User.isAdmin() ? "Forms.popupResetSignature({formid},{id})" : "";
+            if (WEB()) List.addItemLabel(label, Format.image64(value), onclick);
+            else List.addSignatureBox('', label, value, '');
+            break;
+        case "barcode":
+            List.addItemLabel(label, value);
+            break;
+        case "readonly":
+            if (!WEB()) value = Format.text(value);
+            List.addItemLabel(label, value);
+            break;
+        case "label":
+            List.addItemLabel(label, " ", null, "color:gray");
+            break;
+        case "phonenumber":
+        case "phone":
+            List.addItemLabel(label, Format.phone(value), "App.call({value})");
+            break;
+        case "email":
+            List.addItemLabel(label, value, "App.mailto({value})");
+            break;
+        case "link":
+            // if not protocol, then assume http
+            if (value.indexOf(":") == -1) value = "http://" + value;
+            if (WEB()) List.addItemLabel("", label, "App.web({value})");
+            else List.addItemLabel(label, "Open Link", "App.web({value})");
+            break;
+        case "date":
+            // do not display Someday date for forms
+            if (value != 0) List.addItemLabel(label, Format.date(parseInt(value)), null, "img:calendar");
+            break;
+        case "datetzi":
+            if (value != 0) List.addItemLabel(label, Format.date(parseInt(value), "utc"), null, "img:calendar");
+            break;
+        case "time":
+            if (value != 0) List.addItemLabel(label, Format.time(parseInt(value)), null, "img:clock");
+            break;
+        case "datetime":
+            if (value != 0) List.addItemLabel(label, Format.datetime(parseInt(value)), null, "img:calendar");
+            break;
+        case "duration":
+            List.addItemLabel(label, Format.duration(parseInt(value)));
+            break;
+        case "textarea":
+            if (!WEB()) value = Format.text(value);
+            List.addItemLabel(label, value);
+            break;
+        case "numeric":
+        case "decimal":
+            // we do this : because toLocaleString() rounds to 3 decimals only.....
+            List.addItemLabel(label, "" + value); 
+            break;
+        case "formula":
+            List.addItemLabel(label, value);
+            break;
+        case "risk":
+            Risk.view(id, label, value);
+            break;
+        case "location":
+            List.addItemLabel(label, value, "App.map({value})");
+            break;
+        case "file":
+            List.addItemLabel(label, Query.names("System.files", value), CustomFields._VIEWFILE + "({value})");
+            break;
+        case "score":
+            CustomFields.addScoreBox(label, value);
+            break;
+        default:
+            List.addItemLabel(label, value);
+            break;
     }
 }
 
@@ -287,7 +323,7 @@ CustomFields.onButton = function (recordId, fieldid) {
     }
 }
 
-CustomFields.writeMultivalueItem = function (label, id, table, func, img) {
+CustomFields.writeMultivalueItem = function (label, id, table) {
     id = String(id); // make sure its a string
     var items = Query.select(table, "id;name", "id IN " + list(id), "name");
     if (items.length == 0) {
@@ -295,15 +331,22 @@ CustomFields.writeMultivalueItem = function (label, id, table, func, img) {
           List.addItemLabel(label, "#ERROR : no record for ID: " + id);
         }
         return;
-    } 
+    }
+    
+    if (typeof (Link) === "undefined") return; // TODO remove
+    let info = Link.get(table);
+    if (!info) return;
+    let func = info.func;
+    let img = info.img;
+    
 
-    var style = "icon:arrow"  + (img !=null ? ";img:" + img : "");
+    var style = "icon:arrow"  + (img ? ";img:" + img : "");
     if (items.length == 1) {
         var item = items[0];
         var onclick = func + "(" + esc(item.id) + ")";
-        List.addItemLabel(label, item.name, onclick, style );
+        List.addItemLabel(label, item.name, onclick, style);
     } else {
-        var values = new Array();
+        var values = [];
         for (var i = 0; i < items.length; i++) {
             values.push(items[i].name);
         }
@@ -350,76 +393,101 @@ CustomFields.edit = function (table, recordId, ids, fieldsTable) {
 }
 
 CustomFields.writeEditItem = function (id, type, label, value, onchange, options, formid) {
-    if (type == 'header') {
+    switch(type) {
+        case "header":
         List.addHeader(label);
-    } else if (type == 'select') {
+        break;
+    case "select":
         List.addComboBox(id, label, value, onchange, options);
-    } else if (type == 'selectmulti') {
+        break;
+    case  "selectmulti":
         List.addComboBoxMulti(id, label, value, onchange, options);
-    } else if (type == 'toggle') {
+        break;
+    case "toggle":
         onchange += ";CustomFields.onPunch({formid},{label},this.value,{id})";
         List.addToggleBox(id, label, value, onchange, options);
-    } else if (type == 'checkbox') {
+        break;
+    case "checkbox":
         List.addCheckBox(id, label, parseInt(value), onchange);
-    } else if (type == 'contact') {
+        break;
+    case "contact":
         var groupid = options;  // options field may contain the groupid to filter
         var where = groupid ? "groupid CONTAINS {options}" : "";
         var contactOptions = Query.options("Contacts.contacts", where);
         List.addComboBoxMulti(id, label, value, onchange, contactOptions, "CustomFields.onNewContact({formid},{id},this.value,{groupid})");
-    } else if (type == 'company') {
+        break;
+    case "company":
         var groupid = options;  // options field may contain the groupid to filter
         var where = groupid ? "groupid CONTAINS {options}" : "";
         var companyOptions = Query.options("Contacts.companies", where);
         List.addComboBoxMulti(id, label, value, onchange, companyOptions, "CustomFields.onNewCompany({formid},{id},this.value,{groupid})");
-    } else if (type == 'project') {
+        break;
+    case "project":
         List.addComboBoxMulti(id, label, value, onchange, Query.options("Projects.projects", "status=0"));
-    } else if (type == 'opp') {
+        break;
+    case "opp":
         List.addComboBoxMulti(id, label, value, onchange, Query.options("Sales.opportunities", "status!=2")); // 2 : lost
-    } else if (type == 'product') {
+        break;
+    case "product":
         List.addComboBoxMulti(id, label, value, onchange, Query.options("Sales.products", "status=0"));
-    } else if (type == 'asset') {
+        break;
+    case "asset":
         List.addComboBoxMulti(id, label, value, onchange, Query.options("Assets.assets"));
-    } else if (type == 'tool') {
+        break;
+    case "tool":
         List.addComboBoxMulti(id, label, value, onchange, CustomFields.getToolOptions(formid));
-    } else if (type == 'form') {
+        break;
+    case "form":
         List.addComboBox(id, label, value, onchange, Query.options("Forms.forms", "templateid!=''"));
-    } else if (type == 'user') {
+        break;
+    case "user":
         List.addComboBoxMulti(id, label, value, onchange, User.getOptions());
-    } else if (type == "photo") {
+        break;
+    case "photo":
         CustomFields.addFileBox(label, "Forms.forms", value, options, onchange); // options is for add new
-    } else if (type == "drawing") {
+        break;
+    case "drawing":
         List.addHeader(label);
         if (value != "") List.addImage(Settings.getFileUrl(value), "App.editPicture({value})");
-    } else if (type == "image") {
+        break;
+    case "image":
         CustomFields.addImage(id, label, value, options, formid);
-    } else if (type == 'signature') { 
+        break;
+    case "signature": 
         List.addSignatureBox(id, label, value, onchange);
-    } else if (type == 'barcode') {
+        break;
+    case "barcode":
         List.addBarcodeBox(id, label, value, onchange, options); // options if for custom action
-    } else if (type == 'button' || type == "buttonbox") {
+        break;
+    case "button":
+    case "buttonbox":
         // do not display button in edit mode
-    } else if (type == 'label') {
+        break;
+    case "label":
         List.addItemLabel (label, " ", null, "color:gray");
-    } else if (type == 'formula') {
-        // do not display formula in edit mode unless seloptions=1
-        if (options == "1") { // we use the seloptions template field to store if formula is visible in edit mode
-            List.addItemLabel(label, value);
-        }
-    } else if (type == 'textarea') {
+        break;
+    case "formula":
+        // we use the seloptions template field to store if formula is visible in edit mode
+        if (options == "1") List.addItemLabel(label, value);
+        break;
+    case "textarea":
         if (Settings.getPlatform() == "web") type = "textarea2";
         List.addTextBox(id, label, value, onchange, type);
-    } else if (type == 'risk') {
+        break;
+    case "risk":
         Risk.edit(id, label, value, options, formid);
-    } else if (type == 'file') {
+        break;
+    case "file":
         List.addComboBox(id, label, value, onchange, Query.options("System.files", "folderid={options}"));
-    } else if (type == "button") {
-        // no button in edit mode
-    } else if (type == 'score') {
+        break;
+    case "score":
         CustomFields.addScoreBox(label, value);
-    } else if (type == 'readonly') {
+        break;
+    case "readonly":
         if (!WEB()) value = Format.text(value);
         List.addItemLabel(label, value);
-    } else {
+        break;
+    default:
         // works for text, phone, email, time, duration, currency
         List.addTextBox(id, label, value, onchange, type);
     }
@@ -455,8 +523,6 @@ CustomFields.onImageTap = function (id, formid, geo) {
     }
 }
 
-
-
 CustomFields.onPunch = function (formid, label, value, id) {
     if (value == "P") {
         Punch.newFormItem(formid, label);
@@ -474,7 +540,6 @@ CustomFields.getToolOptions = function (formid) {
 
     var where = (projectid != null) ? "projectid={projectid}" : null;
     return Query.options("Tools.tools", where);
-
 }
 
 CustomFields.onNewContact = function (formid, fieldname, name, groupid) {
@@ -543,8 +608,7 @@ CustomFields._getValue = function (name) {
 
 // returns an array of custom field object, with id, name, label and formatted value
 CustomFields.get = function (table, custom, recordId) {
-    var list = new Array();
-
+    var list = [];
     var objValues = CustomFields.loadValues(custom);
     var fields = Query.select("Notes.fields", "id;name;label;type;seloptions", "formid={table}", "rank");
     for (var i = 0; i < fields.length; i++) {
@@ -562,37 +626,70 @@ CustomFields.get = function (table, custom, recordId) {
 
 // isWeb = true for HTML output (web and pdf)
 CustomFields.formatValue = function (value, type, options, isWeb) {
-    if (value == null || value === "") return "";
-    if (value == 0 && type == 'time') return ""; // Otherwise on Android value = 0 is displayed as Unix time 1 Jan 1970, i.e 7:30 for GMT +8
-
-    if (type == 'date') return Format.date(parseFloat(value));
-    else if (type == 'datetzi') return Format.date(parseFloat(value), "utc");
-    else if (type == 'time') return Format.time(parseFloat(value));
-    else if (type == 'datetime') return Format.datetime(parseFloat(value));
-    else if (type == 'duration') return Format.duration(parseInt(value));
-    else if (type == 'contact') return buf = Query.names("Contacts.contacts", value);
-    else if (type == 'company') return Query.names("Contacts.companies", value);
-    else if (type == 'project') return Query.names("Projects.projects", value);
-    else if (type == 'product') return Query.names("Sales.products", value);
-    else if (type == 'opp') return Query.names("Sales.opportunities", value);
-    else if (type == 'asset') return Query.names("Assets.assets", value);
-    else if (type == 'tool') return Query.names("Tools.tools", value);
-    else if (type == 'file') return Query.names("System.files", value);
-    else if (type == 'button' || type == "header") return "";
-    else if (type == "select" || type == "selectmulti") return Format.options(value, options);
-    else if (type == "toggle") return CustomFields.formatToggle(value, options, isWeb);
-    else if (type == 'checkbox') return value == 1 ? R.YES : R.NO;
-    else if (type == "numeric" || type == "decimal") return value; 
-    else if (type == "signature") return CustomFields.formatSignature(value);
-    else if (type == "photo") return CustomFields.formatImages(value);
-    else if (type == "drawing" || type == "image") return CustomFields.formatDrawing(value);
-    else if (type == "formula") return typeof(value) === "string" ? value : Number(value).toLocaleString(); // try to convert to number only if already a number. Nov 16 2022.
-    else if (type == "score") return CustomFields.formatScore(value, isWeb);
-    else return String(value);
+    if (value == null) return "";
+    
+    switch(type) {
+        case "date":
+            return Format.date(parseFloat(value));
+        case "datetzi":
+            return Format.date(parseFloat(value), "utc");
+        case "time":
+            // Otherwise on Android value = 0 is displayed as Unix time 1 Jan 1970, i.e 7:30 for GMT +8
+            if (value == 0) return "";
+            return Format.time(parseFloat(value));
+        case "datetime":
+            return Format.datetime(parseFloat(value));
+        case "duration":
+            return Format.duration(parseInt(value));
+        case "contact":
+            return buf = Query.names("Contacts.contacts", value);
+        case "company":
+            return Query.names("Contacts.companies", value);
+        case "project":
+            return Query.names("Projects.projects", value);
+        case "product":
+            return Query.names("Sales.products", value);
+        case "opp":
+            return Query.names("Sales.opportunities", value);
+        case "asset":
+            return Query.names("Assets.assets", value);
+        case "tool":
+            return Query.names("Tools.tools", value);
+        case "file":
+            return Query.names("System.files", value);
+        case "button":
+        case "header":
+            return "";
+        case "select":
+        case "selectmulti":
+            return Format.options(value, options);
+        case "toggle":
+            return CustomFields.formatToggle(value, options, isWeb);
+        case "checkbox":
+            return (value == 1) ? R.YES : R.NO;
+        case "numeric":
+        case "decimal":
+            return value; 
+        case "signature":
+            return CustomFields.formatSignature(value);
+        case "photo":
+            return CustomFields.formatImages(value);
+            case "drawing":
+            case "image":
+                return CustomFields.formatDrawing(value);
+        case "formula":
+             // try to convert to number only if already a number. Nov 16 2022.
+            return typeof(value) === "string" ? value : Number(value).toLocaleString();
+        case "score":
+            return CustomFields.formatScore(value, isWeb);
+        default:
+            return String(value);
+    }
 }
 
 CustomFields.formatScore = function (value, isWeb) {
     if (!value) value = "";
+    value = String(value); // make sure its a string, especially if value is a number and there is no color
     var parts = value.split(":");
     var label = parts[0];
     var color = (parts.length == 2) ? parts[1] : Color.BLUE;

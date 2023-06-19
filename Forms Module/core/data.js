@@ -260,7 +260,6 @@ Forms.getHeaderStatus = function (fields) {
     } else {
         return { label: "", color: "" };
     }
-    //return hasMandatory ? { label: R.COMPLETED, color: Color.GREEN } : ;
 }
 
 Forms.getFieldLabel = function (field, lang) {
@@ -375,7 +374,6 @@ Forms._evalFormula = function (js, valuesObj, form, sourceURL) {
         return "Error: " + e.message;
     }
 }
-
 
 Forms.injectCodeLibjs = function() {
     try {
