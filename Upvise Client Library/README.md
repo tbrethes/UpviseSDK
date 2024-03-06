@@ -7,9 +7,8 @@ The Upvise Client Library for .NET allows you to make direct HTTPS calls to the 
 [Programming guide & API Reference](https://www.upvise.com/dev/guide/webservice.htm)
 
 Requirements:
-.NET Framework v4.6.1 or higher
-or .NET Core 2.0 or higher
-or .NET 5 or higher
+.NET Framework v4.8.1 or higher
+or .NET 6 or higher
 
 Runtime Requirements:
 Needs full access right to local path **C:\ProgramData\Upvise** folder for local cache.
