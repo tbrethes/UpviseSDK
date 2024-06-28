@@ -25,8 +25,9 @@ function leftpane() {
     List.show("leftpane");
 }
 
-function main() {
+async function main() {
     if (WEB() == false) {
+        // Mobile versiob
         List.addItemTitle("Welcome", User.getName());
 
         List.addButton("Alert", "test()", "color:red");
@@ -38,11 +39,17 @@ function main() {
         List.addItem("Quest", "Qhse.main()", "img:support;icon:arrow");
         List.show();
     } else {
+        // WEB version
         List.addItemTitle("Welcome", User.getName());
         Layout.firstColumn();
         Grid.add("Timesheets", "AppLoader.openApp('time')", "img:clock");
-        Grid.add("Contacts", "AppLoader.openApp('contacts')", "img:contact");
-        Grid.add("Projects", "AppLoader.openApp('projects')", "img:project");
+        Grid.add("Contacts", "Contacts.main()", "img:contact");
+        Grid.add("Projects", "Projects.main()", "img:project");
+        Grid.add("TEST", "test()", "img:project");
+
+        let projectid = "XDE";
+        let assetid = 1234;
+        Grid.add("MyProject", FUNC("Projects.viewProject", projectid), "img:project");
         Grid.add("Equipment", "AppLoader.openApp('tools')", "img:job");
         Grid.add("Forms", "AppLoader.openApp('forms')", "img:form");
         Grid.add("Knowledge Base", "AppLoader.openApp('qhse')", "img:app");
@@ -54,4 +61,9 @@ function main() {
         Layout.stop();
         Grid.show();
     }
+}
+
+
+function test() {
+    FormUtils.xxx();
 }
