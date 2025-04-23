@@ -14,3 +14,12 @@ Runtime Requirements:
 Needs full access right to local path **C:\ProgramData\Upvise**  or user **HOME** folder for local cache.
 
 Usage of the Upvise Client Library is suject to our [API Tems of Use](https://www.upvise.com/legal/apitermsofuse.htm)
+
+
+# v4.2 Release notes
+
+**Query.downloadArchiveFile()** has been removed, please use Query.downloadFile()
+**Query.selectSinceLastCall()** has been removed, please use Query.selectSince()
+**Query.count()** has been removed, please use Query.select().length
+**Query.enableSyncWhere** property has been removed
+
