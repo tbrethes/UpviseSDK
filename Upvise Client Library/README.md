@@ -16,10 +16,10 @@ Needs full access right to local path **C:\ProgramData\Upvise**  or user **HOME*
 Usage of the Upvise Client Library is suject to our [API Tems of Use](https://www.upvise.com/legal/apitermsofuse.htm)
 
 
-# v4.2 Release notes
+# Release notes v4.2
 
-**Query.downloadArchiveFile()** has been removed, please use Query.downloadFile()
-**Query.selectSinceLastCall()** has been removed, please use Query.selectSince()
-**Query.count()** has been removed, please use Query.select().length
-**Query.enableSyncWhere** property has been removed
+1. **Query.downloadArchiveFile()** has been removed, please use Query.downloadFile()
+2. **Query.selectSinceLastCall()** has been removed, please use Query.selectSince()
+3. **Query.count()** has been removed, please use Query.select().length
+4. **Query.enableSyncWhere** property has been removed
 
