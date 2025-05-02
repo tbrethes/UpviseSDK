@@ -22,21 +22,15 @@ Usage of the Upvise Client Library is suject to our [API Tems of Use](https://ww
 2. **Query.MAX_ARCHIVE_COUNT** property
 
 How to use the new offset and pagination for Query.selectArchived();
-> var where = "";
-> 
-> JSONObject[] forms;
-> 
-> int offset = 0;
 
-> do {
-
->     forms = query.selectArchived(Form.TABLE, where, offset);
-
->     offset += forms.Length;
-
->     Console.WriteLine("record count:"  + forms.Length + " offset: " + offset);
-
-> while (forms.Length == Query.MAX_ARCHIVE_COUNT)
+  # var where = ""; 
+  # JSONObject[] forms;
+  # int offset = 0;
+  # do {
+  #   forms = query.selectArchived(Form.TABLE, where, offset);
+  #   offset += forms.Length;
+  #   Console.WriteLine("record count:"  + forms.Length + " offset: " + offset);
+  # while (forms.Length == Query.MAX_ARCHIVE_COUNT)
 
 # Release notes v4.2
 
