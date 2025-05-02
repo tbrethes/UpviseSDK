@@ -16,6 +16,21 @@ Needs full access right to local path **C:\ProgramData\Upvise**  or user **HOME*
 Usage of the Upvise Client Library is suject to our [API Tems of Use](https://www.upvise.com/legal/apitermsofuse.htm)
 
 
+# Release notes v4.3
+
+1. **Query.selectArchived(table, where, offset=0)** has a new optional **offset** param and returns only Query.MAX_ARCHIVE_COUNT records each time
+2. **Query.MAX_ARCHIVE_COUNT** property
+
+How to use the new offset and pagination for Query.selectArchived();
+var where = "";
+JSONObject[] forms;
+int offset = 0;
+do {
+    forms = query.selectArchived(Form.TABLE, where, offset);
+    offset += forms.Length;
+    Console.WriteLine("record count:"  +forms.Length + " offset: " + offset);
+while (forms.Length == Query.MAX_ARCHIVE_COUNT)
+
 # Release notes v4.2
 
 1. **Query.downloadArchiveFile()** has been removed, please use Query.downloadFile()
