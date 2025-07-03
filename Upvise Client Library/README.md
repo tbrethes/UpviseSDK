@@ -15,6 +15,11 @@ Needs full access right to local path **C:\ProgramData\Upvise**  or user **HOME*
 
 Usage of the Upvise Client Library is suject to our [API Tems of Use](https://www.upvise.com/legal/apitermsofuse.htm)
 
+
+# Release notes v4.6
+1. Local File Cache optimization to reduce lock duration
+2. new optional **Query.enableMemoryCache = true** static property to use memory cache in addition to file cache
+
 # Release notes v4.4
 
 1. Fixed bug with table with no record in Query.select()
