@@ -17,7 +17,7 @@ Usage of the Upvise Client Library is suject to our [API Tems of Use](https://ww
 
 # Release notes v4.9
 1. new optional **Query.useDriveCacheD = true** static property to use high speed D:\ local SSD drive for cache storage when deployed with Azure App Services
-2. new optional twofa param in user creation method **User.createUser(Query query, string name, string email, string password, int userType = User.STANDARD, string roleid = "", bool twoFa = false)**
+2. new optional twofa param and idp param in user creation method **User.createUser(Query query, string name, string email, string password, int userType = User.STANDARD, string roleid = "", bool twoFa = false, string idp = "")**
 
 # Release notes v4.8
 1. new optional **Query.enableMemoryCache = true** static property to use memory cache in addition to file cache
